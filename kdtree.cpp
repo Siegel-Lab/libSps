@@ -3,7 +3,7 @@
 
 PYBIND11_MODULE( libkdtree, m )
 {
-    pybind11::class_<kdtree::KDTree>( m, "kdtree" )
-        .def( pybind11::init<size_t, size_t, kdtree::KDTree::Points>( ) ) // constructor
-        .def( "count", &kdtree::KDTree::count );
+    pybind11::class_<kdtree::CacheVector>( m, "kdtree" )
+        .def( pybind11::init<kdtree::CacheVector::Points, std::vector<kdtree::CacheVector::Point>>( ) ) // constructor
+        .def( "count", &kdtree::CacheVector::count );
 }
