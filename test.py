@@ -1,6 +1,6 @@
 from build.libkdtree import kdtree
 
-threads = 0
+threads = 32
 
 bins = [range(4), range(4)]
 

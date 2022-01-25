@@ -13,6 +13,18 @@
 #include <vector>
 #include <pybind11/stl.h>
 
+#ifndef DEBUG_LEVEL
+#define DEBUG_LEVEL 0
+#endif // DEBUG_LEVEL
+
+#if DEBUG_LEVEL >= 1
+#define DEBUG( x ) x
+#define DEBUG_PARAM( x ) , x
+#else // DEBUG_LEVEL
+#define DEBUG_PARAM( x )
+#define DEBUG( x )
+#endif // DEBUG_LEVEL
+
 namespace kdtree
 {
 
@@ -238,7 +250,7 @@ class CacheVector
             for(size_t i = 0; i < vBins.size(); i++)
             {
                 if(i > 0)
-                    uiRet *= vBins[i-1].size();
+                    uiRet *= vBins[i].size();
                 auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
                 if(vSubstrOne[i] && itI != vBins[i].begin())
                     --itI;
@@ -267,7 +279,7 @@ class CacheVector
                 Point xP;
                 for(int64_t uiI = *(itI-1); uiI <= *itI; uiI++)
                     xP.push_back(uiI);
-                std::cout << "makeBins " << pointCoords(xP) << std::endl;
+                DEBUG(std::cerr << "makeBins " << pointCoords(xP) << std::endl;)
                 vRet.push_back(xP);
             }
             return vRet;
@@ -294,7 +306,7 @@ class CacheVector
             return sRet + ")";
         }
 
-        void integrate(size_t iFixedDim, size_t iDim, Point& vPoint, size_t* uiCnt){
+        void integrate(size_t iFixedDim, size_t iDim, Point& vPoint, size_t* uiCnt, std::mutex& rLock){
             if(iDim == iFixedDim)
                 iDim += 1;
             if(iDim >= vBins.size())
@@ -304,17 +316,23 @@ class CacheVector
                 {
                     vPoint[iFixedDim] = uiI;
                     size_t uiIdx = getIdx(vPoint, std::vector<bool>(vBins.size(), false));
-                    //std::cout << "integrate " << pointCoords(vPoint) << ": " << uiIntegral << std::endl;
+                    DEBUG(std::cout << "integrate " << pointCoords(vPoint) << " (" << uiIdx << "/" << vData.size()
+                          << ")" << ": " << 
+                          vData[uiIdx].uiIntegral << " -> " << uiIntegral << std::endl<< std::endl;)
                     uiIntegral += vData[uiIdx].uiIntegral;
                     vData[uiIdx].uiIntegral = uiIntegral;
                     if(uiCnt != nullptr)
                     {
-                        if(*uiCnt % 10000000 == 0)
-                            std::cerr << "\rintegrating " << *uiCnt << " / " << maxIdx() << "\033[K";
-                        ++(*uiCnt);
+                        size_t x = (*uiCnt)++;
+                        if(x % 1000000 == 0)
+                        {
+                            std::unique_lock<std::mutex> _(rLock);
+                            std::cerr << "\rintegrating " << x << " / " <<  maxIdx() << " = " << 
+                                         (100*x)/maxIdx() << "%\033[K";
+                        }
                     }
                 }
-                //std::cout << std::endl;
+                DEBUG(std::cout << std::endl;)
             }
             else
             {
@@ -323,8 +341,7 @@ class CacheVector
                     xPool.enqueue([&](size_t, size_t uiI){
                         Point vP(vPoint);
                         vP[iDim] = uiI;
-                        size_t uiCnt = 0;
-                        integrate(iFixedDim, iDim + 1, vP, uiI == 0 ? &uiCnt : nullptr);
+                        integrate(iFixedDim, iDim + 1, vP, uiCnt, rLock);
                     }, uiI);
             }
         }
@@ -334,8 +351,9 @@ class CacheVector
             std::cerr << "\r\033[Kintegrating";
             Point vPoint(vBins.size(), 0);
             size_t uiCnt = 0;
+            std::mutex xLock;
             for(size_t iFixedDim = 0; iFixedDim < vBins.size(); iFixedDim++)
-                integrate(iFixedDim, 0, vPoint, nullptr);
+                integrate(iFixedDim, 0, vPoint, &uiCnt, xLock);
             std::cerr << "\r\033[K";
         }
 
@@ -348,9 +366,9 @@ class CacheVector
                 vpCache.front()->pCache.reset();
                 vpCache.pop_front();
             }
-            std::cerr << "computing cache " << vpCache.size() << " due to " << pointCoords(vP) << " out of " << rN.vPoints.size() << " elements." << std::endl;
+            DEBUG(std::cerr << "computing cache " << vpCache.size() << " due to " << pointCoords(vP) << " out of " << rN.vPoints.size() << " elements." << std::endl;)
             rN.pCache = std::make_shared<CacheVector>(rN.vPoints, makeBins(vP), 0, uiThreads);
-            std::cerr << rN.pCache->print() << std::endl;
+            DEBUG(std::cerr << rN.pCache->print() << std::endl;)
             vpCache.push_back(&rN);
         }
 
@@ -373,7 +391,7 @@ class CacheVector
                     x = pointVal(vP, vSub);
                 else
                     x = -pointVal(vP, vSub);
-                std::cerr << "count " << pointCoords(vP) << ": " << x << std::endl;
+                DEBUG(std::cerr << "count " << pointCoords(vP) << ": " << x << std::endl;)
                 return x;
             }
             int64_t iRet = 0;
@@ -391,7 +409,7 @@ class CacheVector
             if(i >= vBins.size())
             {
                 size_t xIdx = getIdx(vP, std::vector<bool>(vBins.size(), false));
-                std::cerr << "pointVal->cache " << xIdx << std::endl;
+                DEBUG(std::cerr << "pointVal->cache " << xIdx << std::endl;)
                 makeCache(vData[xIdx], vP);
                 return vData[xIdx].pCache->count(vLeft, vRight);
             }
@@ -422,7 +440,8 @@ class CacheVector
             }
             else 
             {
-                std::cerr << "cache " << std::endl;
+                return 0;
+                DEBUG(std::cerr << "cache " << std::endl;)
                 Point vP(vBins.size(), 0);
                 return count_cache(vP, vLeft, vRight, 0);
             }
@@ -459,23 +478,24 @@ CacheVector::CacheVector(Points vvfPoints, std::vector<Point> vBins, size_t uiSi
 {
     {
         std::cerr << "loading";
-        ThreadPool xPool(uiThreads);
-        if(uiThreads < 1)
-            uiThreads = 1;
-        std::vector<std::mutex> vArr(uiThreads*100);
-        for(size_t uiI = 0; uiI < uiThreads; uiI++)
+        size_t uiT = 0;//uiThreads;
+        ThreadPool xPool(uiT);
+        if(uiT < 1)
+            uiT = 1;
+        std::vector<std::mutex> vArr(uiT*100);
+        for(size_t uiI = 0; uiI < uiT; uiI++)
             xPool.enqueue([&](size_t, size_t uiI){
-            for(size_t uiX = uiI; uiX < vvfPoints.size(); uiX+=uiThreads){
-                if(uiX % 10000000 == 0)
-                    std::cerr << "\rloading " << uiX << " / " << vvfPoints.size() << "\033[K";
-                auto p = vvfPoints[uiX];
-                
-                std::cout << "loading " << pointCoords(p.first) << std::endl;
-                size_t uiIdx = getIdx(p.first, std::vector<bool>(vBins.size(), false));
-                std::unique_lock<std::mutex> xLock(vArr[uiIdx % vArr.size()]);
-                vData[uiIdx].vPoints.push_back(p);
-                ++vData[uiIdx].uiIntegral;
-            }
+                for(size_t uiX = uiI; uiX < vvfPoints.size(); uiX+=uiT){
+                    if(uiX % 1000000 == 0)
+                        std::cerr << "\rloading " << uiX << " / " << vvfPoints.size() << "\033[K";
+                    auto p = vvfPoints[uiX];
+                    
+                    DEBUG(std::cout << "loading " << pointCoords(p.first) << std::endl;)
+                    size_t uiIdx = getIdx(p.first, std::vector<bool>(vBins.size(), false));
+                    std::unique_lock<std::mutex> xLock(vArr[uiIdx % vArr.size()]);
+                    vData[uiIdx].vPoints.push_back(p);
+                    vData[uiIdx].uiIntegral = vData[uiIdx].vPoints.size();
+                }
             }, uiI);
     }
     std::cerr << "\r\033[K";
