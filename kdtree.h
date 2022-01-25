@@ -239,6 +239,7 @@ class CacheVector
         };
 
         std::vector<Point> vBins;
+        //std::vector<Points> vDataPoints;
         std::vector<Node> vData;
         size_t uiSizeCache;
         size_t uiThreads;
@@ -277,7 +278,10 @@ class CacheVector
             {
                 auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
                 Point xP;
-                for(int64_t uiI = *(itI-1); uiI <= *itI; uiI++)
+                size_t uiAdd = 1;
+                if(*itI - *(itI-1) > 10000)
+                    uiAdd = 1000;
+                for(int64_t uiI = *(itI-1); uiI <= *itI; uiI+=uiAdd)
                     xP.push_back(uiI);
                 DEBUG(std::cerr << "makeBins " << pointCoords(xP) << std::endl;)
                 vRet.push_back(xP);
@@ -357,19 +361,20 @@ class CacheVector
             std::cerr << "\r\033[K";
         }
 
-        void makeCache(Node& rN, Point& vP)
+        void makeCache(Node* pN, Point& vP)
         {
-            if(rN.pCache != nullptr)
+            if(pN->pCache != nullptr)
                 return;
-            while(vpCache.size() >= uiSizeCache)
+            while(vpCache.size() > uiSizeCache)
             {
                 vpCache.front()->pCache.reset();
                 vpCache.pop_front();
             }
-            DEBUG(std::cerr << "computing cache " << vpCache.size() << " due to " << pointCoords(vP) << " out of " << rN.vPoints.size() << " elements." << std::endl;)
-            rN.pCache = std::make_shared<CacheVector>(rN.vPoints, makeBins(vP), 0, uiThreads);
-            DEBUG(std::cerr << rN.pCache->print() << std::endl;)
-            vpCache.push_back(&rN);
+            std::cerr << "computing cache " << vpCache.size() << " due to " << pointCoords(vP) << " out of " << 
+                         pN->vPoints.size() << " elements." << std::endl;
+            pN->pCache = std::make_shared<CacheVector>(pN->vPoints, makeBins(vP), 0, uiThreads);
+            DEBUG(std::cerr << pN->pCache->print() << std::endl;)
+            vpCache.push_back(pN);
         }
 
         int64_t pointVal(Point& vP, std::vector<bool>& vSub)
@@ -410,7 +415,7 @@ class CacheVector
             {
                 size_t xIdx = getIdx(vP, std::vector<bool>(vBins.size(), false));
                 DEBUG(std::cerr << "pointVal->cache " << xIdx << std::endl;)
-                makeCache(vData[xIdx], vP);
+                makeCache(&vData[xIdx], vP);
                 return vData[xIdx].pCache->count(vLeft, vRight);
             }
             else
@@ -440,7 +445,6 @@ class CacheVector
             }
             else 
             {
-                return 0;
                 DEBUG(std::cerr << "cache " << std::endl;)
                 Point vP(vBins.size(), 0);
                 return count_cache(vP, vLeft, vRight, 0);
@@ -474,7 +478,8 @@ CacheVector::CacheVector(Points vvfPoints, std::vector<Point> vBins, size_t uiSi
     vBins(vBins),
     vData(maxIdx()),
     uiSizeCache(uiSizeCache),
-    uiThreads(uiThreads)
+    uiThreads(uiThreads),
+    vpCache()
 {
     {
         std::cerr << "loading";
