@@ -27,6 +27,12 @@ class CacheVector
                 Points vPoints = Points();
                 int64_t uiIntegral = 0;
                 std::shared_ptr<CacheVector> pCache = nullptr;
+
+                std::string print(){
+                    std::string sRet = "";
+                    sRet += std::to_string(uiIntegral);
+                    return sRet;
+                }
         };
 
         std::vector<Point> vBins;
@@ -52,6 +58,19 @@ class CacheVector
             return uiRet;
         }
 
+        std::string poitCoords(Point& vP)
+        {
+            std::string sRet = "";
+            sRet += "(";
+            for(size_t uiI = 0; uiI < vP.size(); uiI++)
+            {
+                sRet += std::to_string(vP[uiI]) ;
+                if(uiI + 1 < vP.size())
+                    sRet += ", ";
+            }
+            return sRet + ")";
+        }
+
         void integrate(size_t iFixedDim, size_t iDim, Point& vPoint){
             if(iDim == iFixedDim)
                 iDim += 1;
@@ -62,9 +81,11 @@ class CacheVector
                 {
                     vPoint[iFixedDim] = uiI;
                     size_t uiIdx = getIdx(vPoint);
-                    uiIntegral += vData[uiIdx].vPoints.size();
+                    //std::cout << "integrate " << poitCoords(vPoint) << ": " << uiIntegral << std::endl;
+                    uiIntegral += vData[uiIdx].uiIntegral;
                     vData[uiIdx].uiIntegral = uiIntegral;
                 }
+                //std::cout << std::endl;
             }
             else
                 for(size_t uiI : vBins[iDim])
@@ -76,7 +97,7 @@ class CacheVector
 
         void integrate()
         {
-            Point vPoint(0, vBins.size());
+            Point vPoint(vBins.size(), 0);
             for(size_t iFixedDim = 0; iFixedDim < vBins.size(); iFixedDim++)
                 integrate(iFixedDim, 0, vPoint);
         }
@@ -104,14 +125,36 @@ class CacheVector
             vData(maxIdx())
         {
             for(const DataPoint& p: vvfPoints)
+            {
                 vData[getIdx(p.first)].vPoints.push_back(p);
+                ++vData[getIdx(p.first)].uiIntegral;
+            }
             integrate();
         }
 
         size_t count(Point vLeft, Point vRight)
         {
-            Point vP(0, vBins.size());
+            Point vP(vBins.size(), 0);
             return (size_t)count_help(vP, vLeft, vRight, 0, 0);
+        }
+
+        std::string print_help(Point& vP, size_t uiDim)
+        {
+            std::string sRet = "";
+            if(uiDim >= vBins.size())
+                sRet = poitCoords(vP) + ": " + vData[getIdx(vP)].print() + "\n";
+            else
+                for(size_t uiI : vBins[uiDim])
+                {
+                    vP[uiDim] = uiI;
+                    sRet += print_help(vP, uiDim + 1);
+                }
+            return sRet;
+        }
+        std::string print()
+        {
+            Point vP(vBins.size(), 0);
+            return print_help(vP, 0);
         }
 };
 
