@@ -1,12 +1,13 @@
 from build.libkdtree import kdtree
 
 threads = 32
+cache = 10000000
 
 bins = [range(4), range(4)]
 
 d = [([1,1],""), ([2,2],""), ([2,2],"")]
 
-tree = kdtree(d, bins, 10, threads)
+tree = kdtree(d, bins, cache, threads, 0)
 
 print(tree)
 
@@ -26,7 +27,7 @@ assert_print(tree.count([0,0], [1,1]), 0)
 bins = [range(3), range(3), range(3)]
 d = [([1, 1, 1],"")]
 
-tree = kdtree(d, bins, 10, threads)
+tree = kdtree(d, bins, cache, threads, 1)
 
 print(tree)
 
@@ -39,7 +40,7 @@ bins = [x, x]
 
 d = [([1,1],""), ([4,4],""), ([5,5],"")]
 
-tree = kdtree(d, bins, 10, threads)
+tree = kdtree(d, bins, cache, threads, 0)
 
 print(tree)
 

@@ -220,32 +220,22 @@ class CacheVector
         typedef std::pair<Point, std::string> DataPoint;
         typedef std::vector<DataPoint> Points;
         
-        CacheVector(Points vvfPoints, std::vector<Point> vBins, size_t uiSizeCache, size_t uiThreads);
+        CacheVector(Points vvfPoints, std::vector<Point> vBins, size_t uiSizeCache, size_t uiThreads,
+                    size_t uiUntouchedDimensions, size_t uiLayer);
     private:
-        class Node
-        {
-            public:
-                Points vPoints = Points();
-                int64_t uiIntegral = 0;
-                std::shared_ptr<CacheVector> pCache = nullptr;
-
-                std::string print(){
-                    std::string sRet = "";
-                    sRet += std::to_string(vPoints.size());
-                    sRet += " -> ";
-                    sRet += std::to_string(uiIntegral);
-                    return sRet;
-                }
-        };
 
         std::vector<Point> vBins;
-        //std::vector<Points> vDataPoints;
-        std::vector<Node> vData;
+        size_t uiUntouchedDimensions;
+        std::vector<Points> vDataPoints;
+        std::vector<std::shared_ptr<CacheVector>> vDataCache;
+        std::vector<int64_t> vData;
         size_t uiSizeCache;
         size_t uiThreads;
-        std::deque<Node*> vpCache;
+        size_t uiLayer;
+        static std::vector<std::deque<std::shared_ptr<CacheVector>>> vpCache;
+        static size_t uiKILL;
 
-        size_t getIdx(const Point& xPoint, std::vector<bool> vSubstrOne)
+        size_t getIdx(const Point& xPoint, bool bSubstrOne)
         {
             size_t uiRet = 0;
             for(size_t i = 0; i < vBins.size(); i++)
@@ -253,7 +243,25 @@ class CacheVector
                 if(i > 0)
                     uiRet *= vBins[i].size();
                 auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
-                if(vSubstrOne[i] && itI != vBins[i].begin())
+                if(bSubstrOne && itI != vBins[i].begin())
+                    --itI;
+                if(itI == vBins[i].begin())
+                    return std::numeric_limits<size_t>::max();
+                //bOnSpot = true;
+                uiRet += (itI - vBins[i].begin()) - 1;
+            }
+            return uiRet;
+        }
+
+        size_t getIdxPoints(const Point& xPoint, bool bSubstrOne)
+        {
+            size_t uiRet = 0;
+            for(size_t i = 0; i < vBins.size()-uiUntouchedDimensions; i++)
+            {
+                if(i > 0)
+                    uiRet *= vBins[i].size();
+                auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
+                if(bSubstrOne && itI != vBins[i].begin())
                     --itI;
                 if(itI == vBins[i].begin())
                     return std::numeric_limits<size_t>::max();
@@ -266,8 +274,12 @@ class CacheVector
         bool onSpot(const Point& xPoint)
         {
             for(size_t i = 0; i < vBins.size(); i++)
+            {
+                if(xPoint[i] < vBins[i].front() || xPoint[i] > vBins[i].back())
+                    return true;
                 if(*std::lower_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]) != xPoint[i])
                     return false;
+            }
             return true;
         }
 
@@ -276,13 +288,19 @@ class CacheVector
             std::vector<Point> vRet;
             for(size_t i = 0; i < vBins.size(); i++)
             {
-                auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
                 Point xP;
-                size_t uiAdd = 1;
-                if(*itI - *(itI-1) > 10000)
-                    uiAdd = 1000;
-                for(int64_t uiI = *(itI-1); uiI <= *itI; uiI+=uiAdd)
-                    xP.push_back(uiI);
+                if(i < vBins.size() - uiUntouchedDimensions)
+                {
+                    auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
+                    size_t uiAdd = *itI - *(itI-1) / 1000;
+                    if(uiAdd < 1)
+                        uiAdd = 1;
+                    for(int64_t uiI = *(itI-1); uiI <= *itI; uiI+=uiAdd)
+                        xP.push_back(uiI);
+                }
+                else
+                    for(int64_t uiI : vBins[i])
+                        xP.push_back(uiI);
                 DEBUG(std::cerr << "makeBins " << pointCoords(xP) << std::endl;)
                 vRet.push_back(xP);
             }
@@ -293,6 +311,14 @@ class CacheVector
         {
             size_t uiRet = 1;
             for(size_t i = 0; i < vBins.size(); i++)
+                    uiRet *= vBins[i].size();
+            return uiRet;
+        }
+
+        size_t maxIdxPoints()
+        {
+            size_t uiRet = 1;
+            for(size_t i = 0; i < vBins.size()-uiUntouchedDimensions; i++)
                     uiRet *= vBins[i].size();
             return uiRet;
         }
@@ -319,12 +345,12 @@ class CacheVector
                 for(size_t uiI : vBins[iFixedDim])
                 {
                     vPoint[iFixedDim] = uiI;
-                    size_t uiIdx = getIdx(vPoint, std::vector<bool>(vBins.size(), false));
+                    size_t uiIdx = getIdx(vPoint, false);
                     DEBUG(std::cout << "integrate " << pointCoords(vPoint) << " (" << uiIdx << "/" << vData.size()
                           << ")" << ": " << 
-                          vData[uiIdx].uiIntegral << " -> " << uiIntegral << std::endl<< std::endl;)
-                    uiIntegral += vData[uiIdx].uiIntegral;
-                    vData[uiIdx].uiIntegral = uiIntegral;
+                          vData[uiIdx] << " -> " << uiIntegral << std::endl<< std::endl;)
+                    uiIntegral += vData[uiIdx];
+                    vData[uiIdx] = uiIntegral;
                     if(uiCnt != nullptr)
                     {
                         size_t x = (*uiCnt)++;
@@ -361,67 +387,88 @@ class CacheVector
             std::cerr << "\r\033[K";
         }
 
-        void makeCache(Node* pN, Point& vP)
+        void makeCache(size_t uiI, Point& vP)
         {
-            if(pN->pCache != nullptr)
+            if(vDataCache[uiI] != nullptr)
                 return;
-            while(vpCache.size() > uiSizeCache)
+            if(vDataPoints[uiI].size() < 10000)
+                return;
+            while(vpCache[uiLayer].size() > uiSizeCache)
             {
-                vpCache.front()->pCache.reset();
-                vpCache.pop_front();
+                vpCache[uiLayer].front().reset();
+                vpCache[uiLayer].pop_front();
             }
-            std::cerr << "computing cache " << vpCache.size() << " due to " << pointCoords(vP) << " out of " << 
-                         pN->vPoints.size() << " elements." << std::endl;
-            pN->pCache = std::make_shared<CacheVector>(pN->vPoints, makeBins(vP), 0, uiThreads);
-            DEBUG(std::cerr << pN->pCache->print() << std::endl;)
-            vpCache.push_back(pN);
+            //if(uiKILL++ >= 5)
+            //    return;
+            std::cerr << "computing cache " << vpCache[uiLayer].size() << " due to " << pointCoords(vP) <<
+                        " out of " << vDataPoints[uiI].size() << " elements." << std::endl;
+            vDataCache[uiI] = std::make_shared<CacheVector>(vDataPoints[uiI], makeBins(vP), uiSizeCache, 
+                                                            uiThreads, uiUntouchedDimensions, uiLayer+1);
+            DEBUG(std::cerr << vDataCache[uiI]->print() << std::endl;)
+            vpCache[uiLayer].push_back(vDataCache[uiI]);
         }
 
-        int64_t pointVal(Point& vP, std::vector<bool>& vSub)
+        int64_t pointVal(Point& vP)
         {
-            auto xIdx = getIdx(vP, vSub);
+            auto xIdx = getIdx(vP, true);
             if(xIdx == std::numeric_limits<size_t>::max())
                 return 0;
             int64_t iRet = 0;
-            return (int64_t)vData[xIdx].uiIntegral;
+            return (int64_t)vData[xIdx];
         }
 
-        int64_t count_help(Point& vP, std::vector<bool>& vSub, Point vLeft, Point vRight, 
+        int64_t count_help(Point& vP, Point vLeft, Point vRight, 
                            size_t uiI, size_t uiEdgesFromRight)
         {
             if(uiI >= vBins.size())
             {
                 int64_t x = 0;
                 if(uiEdgesFromRight % 2 == 0)
-                    x = pointVal(vP, vSub);
+                    x = pointVal(vP);
                 else
-                    x = -pointVal(vP, vSub);
+                    x = -pointVal(vP);
                 DEBUG(std::cerr << "count " << pointCoords(vP) << ": " << x << std::endl;)
                 return x;
             }
             int64_t iRet = 0;
             vP[uiI] = vLeft[uiI];
-            vSub[uiI] = true;
-            iRet += count_help(vP, vSub, vLeft, vRight, uiI+1, uiEdgesFromRight+1);
+            iRet += count_help(vP, vLeft, vRight, uiI+1, uiEdgesFromRight+1);
             vP[uiI] = vRight[uiI];
-            vSub[uiI] = true;
-            iRet += count_help(vP, vSub, vLeft, vRight, uiI+1, uiEdgesFromRight);
+            iRet += count_help(vP, vLeft, vRight, uiI+1, uiEdgesFromRight);
             return iRet;
         }
 
         int64_t count_cache(Point& vP, Point vLeft, Point vRight, size_t i)
         {
-            if(i >= vBins.size())
+            if(i >= vBins.size()-uiUntouchedDimensions)
             {
-                size_t xIdx = getIdx(vP, std::vector<bool>(vBins.size(), false));
+                size_t xIdx = getIdxPoints(vP, false);
                 DEBUG(std::cerr << "pointVal->cache " << xIdx << std::endl;)
-                makeCache(&vData[xIdx], vP);
-                return vData[xIdx].pCache->count(vLeft, vRight);
+                makeCache(xIdx, vP);
+                if(vDataCache[xIdx] == nullptr)
+                {
+                    int64_t iRet = 0;
+                    for(DataPoint p: vDataPoints[xIdx])
+                    {
+                        bool bAdd = true;
+                        for(size_t i = 0; i < vBins.size() && bAdd; ++i)
+                            if(vLeft[i] > p.first[i] || vRight[i] <= p.first[i] )
+                                bAdd = false;
+                        if(bAdd)
+                            ++iRet;
+                    }
+                    return iRet;
+                }
+                else
+                    return vDataCache[xIdx]->count(vLeft, vRight);
             }
             else
             {
                 int64_t uiRet = 0;
-                for(auto itI = std::lower_bound(vBins[i].begin(), vBins[i].end(), vLeft[i]);
+                auto xStart = std::upper_bound(vBins[i].begin(), vBins[i].end(), vLeft[i]);
+                if(xStart != vBins[i].begin())
+                    xStart--;
+                for(auto itI = xStart;
                     itI != std::upper_bound(vBins[i].begin(), vBins[i].end(), vRight[i]);
                     ++itI
                     )
@@ -440,8 +487,7 @@ class CacheVector
             if(onSpot(vLeft) && onSpot(vRight))
             {
                 Point vP(vBins.size(), 0);
-                std::vector<bool> vSub(vBins.size(), false);
-                return (size_t)count_help(vP, vSub, vLeft, vRight, 0, 0);
+                return (size_t)count_help(vP, vLeft, vRight, 0, 0);
             }
             else 
             {
@@ -456,7 +502,8 @@ class CacheVector
             std::string sRet = "";
             if(uiDim >= vBins.size())
                 sRet = pointCoords(vP) + ": " + 
-                       vData[getIdx(vP, std::vector<bool>(vBins.size(), false))].print() + "\n";
+                        std::to_string(vDataPoints[getIdxPoints(vP, false)].size()) + " -> " +
+                        std::to_string(vData[getIdx(vP, false)]) + "\n";
             else
                 for(size_t uiI : vBins[uiDim])
                 {
@@ -473,14 +520,20 @@ class CacheVector
 };
 
 
-CacheVector::CacheVector(Points vvfPoints, std::vector<Point> vBins, size_t uiSizeCache, size_t uiThreads)
+CacheVector::CacheVector(Points vvfPoints, std::vector<Point> vBins, size_t uiSizeCache, size_t uiThreads, 
+                        size_t uiUntouchedDimensions, size_t uiLayer)
         :
     vBins(vBins),
-    vData(maxIdx()),
+    uiUntouchedDimensions(uiUntouchedDimensions),
+    vData(maxIdx(), 0),
+    vDataPoints(maxIdxPoints()),
+    vDataCache(maxIdxPoints(), nullptr),
     uiSizeCache(uiSizeCache),
     uiThreads(uiThreads),
-    vpCache()
+    uiLayer(uiLayer)
 {
+    while(vpCache.size() <= uiLayer)
+        vpCache.push_back(std::deque<std::shared_ptr<CacheVector>>());
     {
         std::cerr << "loading";
         size_t uiT = 0;//uiThreads;
@@ -496,16 +549,19 @@ CacheVector::CacheVector(Points vvfPoints, std::vector<Point> vBins, size_t uiSi
                     auto p = vvfPoints[uiX];
                     
                     DEBUG(std::cout << "loading " << pointCoords(p.first) << std::endl;)
-                    size_t uiIdx = getIdx(p.first, std::vector<bool>(vBins.size(), false));
+                    size_t uiIdx = getIdx(p.first, false);
                     std::unique_lock<std::mutex> xLock(vArr[uiIdx % vArr.size()]);
-                    vData[uiIdx].vPoints.push_back(p);
-                    vData[uiIdx].uiIntegral = vData[uiIdx].vPoints.size();
+                    vDataPoints[getIdxPoints(p.first, false)].push_back(p);
+                    ++vData[uiIdx];
                 }
             }, uiI);
     }
     std::cerr << "\r\033[K";
     integrate();
 }
+
+size_t CacheVector::uiKILL = 0;
+std::vector<std::deque<std::shared_ptr<CacheVector>>> CacheVector::vpCache = std::vector<std::deque<std::shared_ptr<CacheVector>>>();
 
 }
 
