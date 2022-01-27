@@ -345,13 +345,18 @@ class CacheVector
             }
         }
 
-        void save_helper(std::string sFlieName)
+        void save_helper(std::string sFlieName, size_t uiMinSizeCacheSave)
         {
             //@todo template this
             serialize(sFlieName, true);
+            Point x;
             for(size_t uiI = 0; uiI < vDataCache.size(); uiI++)
-                if(vDataCache[uiI] != nullptr)
-                    vDataCache[uiI]->save_helper(sFlieName + "." + std::to_string(uiI));
+                if(vDataCache[uiI] != nullptr || vDataPoints[uiI].size() > uiMinSizeCacheSave)
+                {
+                    makeCache(uiI, x);
+                    vDataCache[uiI]->save_helper(sFlieName + "." + std::to_string(uiI), uiMinSizeCacheSave);
+                    vDataCache[uiI].reset();
+                }
         }
 
         size_t getIdx(const Point& xPoint, bool bSubstrOne)
@@ -359,8 +364,7 @@ class CacheVector
             size_t uiRet = 0;
             for(size_t i = 0; i < vBins.size(); i++)
             {
-                if(i > 0)
-                    uiRet *= vBins[i].size();
+                uiRet *= vBins[i].size();
                 auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
                 if(bSubstrOne && itI != vBins[i].begin())
                     --itI;
@@ -377,8 +381,7 @@ class CacheVector
             size_t uiRet = 0;
             for(size_t i = 0; i < vBins.size()-uiUntouchedDimensions; i++)
             {
-                if(i > 0)
-                    uiRet *= vBins[i].size();
+                uiRet *= vBins[i].size();
                 auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
                 if(bSubstrOne && itI != vBins[i].begin())
                     --itI;
@@ -412,22 +415,23 @@ class CacheVector
             {
                 size_t ii = vBins.size() - i - 1;
                 std::vector<int64_t> xP;
-                if(i < vBins.size() - uiUntouchedDimensions)
+                if(ii < vBins.size() - uiUntouchedDimensions)
                 {
                     size_t j = uiPointIdx % vBins[ii].size();
-                    size_t uiAdd = (vBins[i][j+1] - vBins[i][j]) / 1000;
+                    size_t uiAdd = (vBins[i][j+1] - vBins[i][j]) / 500;
                     if(uiAdd < 1)
                         uiAdd = 1;
                     for(int64_t uiI = vBins[i][j]; uiI <= vBins[i][j+1]; uiI+=uiAdd)
                         xP.push_back(uiI);
                 }
                 else
-                    for(int64_t uiI : vBins[i])
+                    for(int64_t uiI : vBins[ii])
                         xP.push_back(uiI);
                 //std::cerr << "makeBins " << vecCoords(xP) << std::endl;
-                vRet[i] = xP;
-                uiPointIdx /= vBins[ii].size();
-            }
+                vRet[ii] = xP;
+                if(ii < vBins.size() - uiUntouchedDimensions)
+                    uiPointIdx /= vBins[ii].size();
+            };
             return vRet;
         }
 
@@ -496,8 +500,8 @@ class CacheVector
                         uiCnt += vCnt[uiTid];
                         vCnt[uiTid] = 0;
                         if(uiTid == 0)
-                            std::cerr << "\rintegrating " << uiCnt << " / " << maxIdx()*(vBins.size()-1) << " = " << 
-                                        (100*uiCnt)/(maxIdx()*(vBins.size()-1)) << "%\033[K";
+                            std::cerr << "\rintegrating " << uiCnt << " / " << maxIdx()*vBins.size() << " = " << 
+                                        (100*uiCnt)/(maxIdx()*vBins.size()) << "%\033[K";
                     }
                 }
                 DEBUG(std::cout << std::endl;)
@@ -639,18 +643,10 @@ class CacheVector
             }
         }
 
-    public:
-        void makeCaches(size_t uiMinSize)
+    public:    
+        void save(size_t uiMinSizeCacheSave)
         {
-            Point x;
-            for(size_t uiI = 0; uiI < vDataCache.size(); uiI++)
-                if(vDataPoints[uiI].size() > uiMinSize)
-                    makeCache(uiI, x);
-        }
-    
-        void save()
-        {
-            save_helper(sFilename);
+            save_helper(sFilename, uiMinSizeCacheSave);
         }
 
         size_t count(Point vLeft, Point vRight)
@@ -740,7 +736,7 @@ CacheVector<N>::CacheVector(std::string sFileName, Points vvfPoints, std::array<
                     size_t uiIdx2 = getIdxPoints(p.first, false);
                     if(uiIdx2 == std::numeric_limits<size_t>::max())
                     {
-                        std::cerr << "point does not fit in vector" << std::endl;
+                        std::cerr << "point does not fit in vector " << pointCoords(p.first) << std::endl;
                         for(auto& rBin : vBins)
                             std::cerr << vecCoords(rBin) << std::endl;
                         continue;
@@ -797,7 +793,6 @@ void export_(pybind11::module& m, std::string sName){
                              size_t, size_t, size_t, size_t, size_t>( ) ) // constructor
         .def( pybind11::init<std::string, size_t, size_t, size_t, size_t, size_t>( ) ) // constructor
         .def( "count", &kdtree::CacheVector<N>::count )
-        .def( "make_caches", &kdtree::CacheVector<N>::makeCaches )
         .def( "save", &kdtree::CacheVector<N>::save )
         .def( "__str__", &kdtree::CacheVector<N>::print );
 }

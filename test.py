@@ -43,7 +43,7 @@ d = [([1,1],"c"), ([4,4],"s"), ([5,5],"a")]
 tree = kdtree_2("test/blub", d, bins, cache, threads, 0,0,0)
 
 print(tree)
-tree.save()
+tree.save(1000000000)
 
 
 assert_print(tree.count([0,0], [6,6]), 3)
@@ -68,5 +68,23 @@ assert_print(tree.count([0,0], [4,4]), 1)
 assert_print(tree.count([0,0], [1,1]), 0)
 assert_print(tree.count([2,2], [4,4]), 0)
 assert_print(tree.count([2,2], [3,3]), 0)
-assert_print(tree.count([4,4], [5,5]), 1) # @todo bug
-#exit()
+assert_print(tree.count([4,4], [5,5]), 1) 
+
+
+bins = [range(2), range(2)]
+
+d = [([0,0],"a")]
+
+tree = kdtree_2("test/blub", d, bins, cache, threads, 0,0,0)
+
+print(tree)
+
+def assert_print(a, b):
+    if a != b:
+        print(a)
+        assert False
+    else:
+        print("success")
+
+assert_print(tree.count([0,0], [1,1]), 1)
+assert_print(tree.count([1,1], [1,1]), 0)
