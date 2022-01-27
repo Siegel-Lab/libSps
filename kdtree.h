@@ -274,28 +274,43 @@ class CacheVector
         void serialize(std::string sFilename, bool bOut)
         {
             for(size_t uiI = 0; uiI < N; uiI++)
+            {
                 if(bOut)
                     vectorToFile(sFilename + ".axis." + std::to_string(uiI) + ".bin", vBins[uiI]);
                 else
                     fileToVector(sFilename + ".axis." + std::to_string(uiI) + ".bin", vBins[uiI]);
+            }
 
             if(bOut)
                 vectorToFile(sFilename + ".count.bin", vData);
             else
                 fileToVector(sFilename + ".count.bin", vData);
 
+            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << (bOut ? "true" : "false") << std::endl;
             if(bOut)
             {
                 std::ofstream myfile(sFilename + ".points.bin", std::ios::binary | std::ios::trunc);
+                std::vector<size_t> vSizes;
+                for(auto& v : vDataPoints)
+                    vSizes.push_back(v.size());
                 size_t x = vDataPoints.size();
                 myfile.write((char*)&x, sizeof(size_t));
-                for(size_t uiI = 0; uiI < maxIdxPoints(); uiI++)
+                myfile.write((char*)&vSizes[0], vSizes.size() * sizeof(size_t));
+                //std::cerr << "yyyyy " << vDataPoints.size() << std::endl;
+                for(size_t uiI = 0; uiI < vDataPoints.size(); uiI++)
                 {
-                    size_t x = vDataPoints[uiI].size();
-                    myfile.write((char*)&x, sizeof(size_t));
-                    myfile.write((char*)&vDataPoints[uiI][0],
-                                vDataPoints[uiI].size() * sizeof(Point));
+                    if(vDataPoints[uiI].size() > 0)
+                        myfile.write((char*)&vDataPoints[uiI][0], vDataPoints[uiI].size() * sizeof(DataPoint));
+                
+                    //std::cerr << "yy " << vDataPoints[uiI].size() << std::endl;
+                    //for(size_t uiK = 0; uiK < vDataPoints[uiI].size(); uiK++)
+                    //    std::cerr << pointCoords(vDataPoints[uiI][uiK].first) << " ";
+                    //std::cerr << std::endl;
                 }
+                std::vector<char> vSuff(8);
+                myfile.write(&vSuff[0], vSuff.size());
+
+                myfile.flush();
                 myfile.close();
             }
             else
@@ -304,20 +319,25 @@ class CacheVector
                 std::ifstream file(sFilename + ".points.bin", std::ios::binary);
 
                 // Stop eating new lines in binary mode!!!
-                file.unsetf(std::ios::skipws);
+                file.unsetf(std::ios_base::skipws);
 
                 size_t uiI = 0;
                 file.read((char*)&uiI, sizeof(size_t));
                 vDataPoints.resize(uiI);
+                std::vector<size_t> vSizes;
+                vSizes.resize(uiI);
+                file.read((char*)&vSizes[0], uiI * sizeof(size_t));
                 for(size_t uiI = 0; uiI < vDataPoints.size(); uiI++)
                 {
-                    size_t uiJ = 0;
-                    file.read((char*)&uiJ, sizeof(size_t));
-                    if(uiJ > 0)
+                    if(vSizes[uiI] > 0)
                     {
-                        vDataPoints[uiI].resize(uiJ);
-                        file.read((char*)&vDataPoints[uiI][0], uiJ * sizeof(Point));
+                        vDataPoints[uiI].resize(vSizes[uiI]);
+                        file.read((char*)&vDataPoints[uiI][0], vSizes[uiI] * sizeof(DataPoint));
                     }
+                    //std::cerr << "xx " << vSizes[uiI] << std::endl;
+                    //for(size_t uiK = 0; uiK < vSizes[uiI]; uiK++)
+                    //    std::cerr << pointCoords(vDataPoints[uiI][uiK].first) << " ";
+                    //std::cerr << std::endl;
                 }
 
                 // read the data:
@@ -378,26 +398,27 @@ class CacheVector
                     return true;
                 if(*std::lower_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]) != xPoint[i])
                 {
-                    std::cerr << pointCoords(xPoint) << " not on spot in dimension " << i << std::endl;
+                    //std::cerr << pointCoords(xPoint) << " not on spot in dimension " << i << std::endl;
                     return false;
                 }
             }
             return true;
         }
 
-        std::array<std::vector<int64_t>, N> makeBins(const Point& xPoint)
+        std::array<std::vector<int64_t>, N> makeBins(size_t uiPointIdx)
         {
             std::array<std::vector<int64_t>, N> vRet;
             for(size_t i = 0; i < vBins.size(); i++)
             {
+                size_t ii = vBins.size() - i - 1;
                 std::vector<int64_t> xP;
                 if(i < vBins.size() - uiUntouchedDimensions)
                 {
-                    auto itI = std::upper_bound(vBins[i].begin(), vBins[i].end(), xPoint[i]);
-                    size_t uiAdd = (*itI - *(itI-1)) / 1000;
+                    size_t j = uiPointIdx % vBins[ii].size();
+                    size_t uiAdd = (vBins[i][j+1] - vBins[i][j]) / 1000;
                     if(uiAdd < 1)
                         uiAdd = 1;
-                    for(int64_t uiI = *(itI-1); uiI <= *itI; uiI+=uiAdd)
+                    for(int64_t uiI = vBins[i][j]; uiI <= vBins[i][j+1]; uiI+=uiAdd)
                         xP.push_back(uiI);
                 }
                 else
@@ -405,6 +426,7 @@ class CacheVector
                         xP.push_back(uiI);
                 //std::cerr << "makeBins " << vecCoords(xP) << std::endl;
                 vRet[i] = xP;
+                uiPointIdx /= vBins[ii].size();
             }
             return vRet;
         }
@@ -437,6 +459,7 @@ class CacheVector
             }
             return sRet + ")";
         }
+
         std::string vecCoords(const std::vector<int64_t>& vP)
         {
             std::string sRet = "";
@@ -467,14 +490,14 @@ class CacheVector
                     uiIntegral += vData[uiIdx];
                     vData[uiIdx] = uiIntegral;
                     vCnt[uiTid]++;
-                    if(vCnt[uiTid] >= 100000 )
+                    if(vCnt[uiTid] >= 1000000 )
                     {
                         std::unique_lock<std::mutex> _(xLock);
                         uiCnt += vCnt[uiTid];
                         vCnt[uiTid] = 0;
                         if(uiTid == 0)
-                            std::cerr << "\rintegrating " << uiCnt << " / " << maxIdx()*vBins.size() << " = " << 
-                                        (100*uiCnt)/(maxIdx()*vBins.size()) << "%\033[K";
+                            std::cerr << "\rintegrating " << uiCnt << " / " << maxIdx()*(vBins.size()-1) << " = " << 
+                                        (100*uiCnt)/(maxIdx()*(vBins.size()-1)) << "%\033[K";
                     }
                 }
                 DEBUG(std::cout << std::endl;)
@@ -523,18 +546,21 @@ class CacheVector
             }
             std::cerr << "computing cache " << uiLayer << ":" << vpCache[uiLayer].size() << " due to " 
                       << pointCoords(vP) << " out of " << vDataPoints[uiI].size() << " elements.\033[K\r";
+            //for(auto& rPoint : vDataPoints[uiI])
+            //    std::cerr << pointCoords(rPoint.first) << std::endl;
             std::string sNewFileName = sFilename + "." + std::to_string(uiI);
             std::ifstream x((sNewFileName + ".count.bin").c_str());
             bool b = x.good();
             x.close();
+            //std::cerr << vDataPoints.size() << " " << uiI << std::endl;
             if(b)
                 vDataCache[uiI] = std::make_shared<CacheVector>(sNewFileName, uiSizeCache, uiThreads, 
                                                                 uiUntouchedDimensions, uiLayer+1, uiEleNoCache);
             else
                 vDataCache[uiI] = std::make_shared<CacheVector>(sNewFileName, 
-                                                                vDataPoints[uiI], makeBins(vP), uiSizeCache, 
+                                                                vDataPoints[uiI], makeBins(uiI), uiSizeCache, 
                                                                 uiThreads, uiUntouchedDimensions, uiLayer+1, 
-                                                                uiEleNoCache);
+                                                                uiEleNoCache);  // 
             DEBUG(std::cerr << vDataCache[uiI]->print() << std::endl;)
             
             std::unique_lock<std::mutex> _(xCacheLock);
@@ -708,10 +734,20 @@ CacheVector<N>::CacheVector(std::string sFileName, Points vvfPoints, std::array<
                         std::cerr << "\rloading " << uiX << " / " << vvfPoints.size() << "\033[K";
                     auto p = vvfPoints[uiX];
                     
-                    DEBUG(std::cout << "loading " << pointCoords(p.first) << std::endl;)
+                    DEBUG(std::cout << "loading " << pointCoords(p.first) << " " << getIdxPoints(p.first, false) 
+                                    << " " << vDataPoints.size() << std::endl;)
                     size_t uiIdx = getIdx(p.first, false);
+                    size_t uiIdx2 = getIdxPoints(p.first, false);
+                    if(uiIdx2 == std::numeric_limits<size_t>::max())
+                    {
+                        std::cerr << "point does not fit in vector" << std::endl;
+                        for(auto& rBin : vBins)
+                            std::cerr << vecCoords(rBin) << std::endl;
+                        continue;
+                    }
+
                     std::unique_lock<std::mutex> xLock(vArr[uiIdx % vArr.size()]);
-                    vDataPoints[getIdxPoints(p.first, false)].push_back(p);
+                    vDataPoints[uiIdx2].push_back(p);
                     ++vData[uiIdx];
                 }
             }, uiI);

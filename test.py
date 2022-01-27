@@ -56,8 +56,6 @@ assert_print(tree.count([4,4], [5,5]), 1)
 
 print(tree)
 
-print("saving")
-
 print("loading")
 tree = kdtree_2("test/blub", cache, threads, 0,0,0)
 
@@ -71,4 +69,4 @@ assert_print(tree.count([0,0], [1,1]), 0)
 assert_print(tree.count([2,2], [4,4]), 0)
 assert_print(tree.count([2,2], [3,3]), 0)
 assert_print(tree.count([4,4], [5,5]), 1) # @todo bug
-exit()
+#exit()
