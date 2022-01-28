@@ -354,8 +354,11 @@ class CacheVector
                 if(vDataCache[uiI] != nullptr || vDataPoints[uiI].size() > uiMinSizeCacheSave)
                 {
                     makeCache(uiI, x);
-                    vDataCache[uiI]->save_helper(sFlieName + "." + std::to_string(uiI), uiMinSizeCacheSave);
-                    vDataCache[uiI].reset();
+                    if(vDataCache[uiI] != nullptr)
+                    {
+                        vDataCache[uiI]->save_helper(sFlieName + "." + std::to_string(uiI), uiMinSizeCacheSave);
+                        vDataCache[uiI].reset();
+                    }
                 }
         }
 
@@ -421,18 +424,37 @@ class CacheVector
                     size_t uiAdd = (vBins[i][j+1] - vBins[i][j]) / 500;
                     if(uiAdd < 1)
                         uiAdd = 1;
-                    for(int64_t uiI = vBins[i][j]; uiI <= vBins[i][j+1]; uiI+=uiAdd)
+                    int64_t uiI = vBins[i][j];
+                    for(; uiI < vBins[i][j+1]; uiI+=uiAdd)
                         xP.push_back(uiI);
+                    xP.push_back(uiI);
+                    uiPointIdx /= vBins[ii].size();
                 }
                 else
                     for(int64_t uiI : vBins[ii])
                         xP.push_back(uiI);
                 //std::cerr << "makeBins " << vecCoords(xP) << std::endl;
                 vRet[ii] = xP;
+            };
+            return vRet;
+        }
+    
+        bool spaceBetweenBins(size_t uiPointIdx)
+        {
+            for(size_t i = 0; i < vBins.size(); i++)
+            {
+                size_t ii = vBins.size() - i - 1;
+                std::vector<int64_t> xP;
+                if(ii < vBins.size() - uiUntouchedDimensions)
+                {
+                    size_t j = uiPointIdx % vBins[ii].size();
+                    if(vBins[i][j+1] > vBins[i][j] + 1)
+                        return true;
+                }
                 if(ii < vBins.size() - uiUntouchedDimensions)
                     uiPointIdx /= vBins[ii].size();
             };
-            return vRet;
+            return false;
         }
 
         size_t maxIdx()
@@ -539,6 +561,8 @@ class CacheVector
                 return;
             if(vDataPoints[uiI].size() < uiEleNoCache)
                 return;
+            if(!spaceBetweenBins(uiI))
+                return;
             {
                 std::unique_lock<std::mutex> _(xCacheLock);
                 while(vpCache[uiLayer].size() > uiSizeCache)
@@ -643,7 +667,7 @@ class CacheVector
             }
         }
 
-    public:    
+    public:
         void save(size_t uiMinSizeCacheSave)
         {
             save_helper(sFilename, uiMinSizeCacheSave);
@@ -717,6 +741,7 @@ CacheVector<N>::CacheVector(std::string sFileName, Points vvfPoints, std::array<
             vpCache.push_back(std::deque<std::shared_ptr<CacheVector>>());
     }
     {
+        bool bComplained = false;
         std::cerr << "loading";
         size_t uiT = 0;//uiThreads;
         ThreadPool xPool(uiT);
@@ -726,7 +751,7 @@ CacheVector<N>::CacheVector(std::string sFileName, Points vvfPoints, std::array<
         for(size_t uiI = 0; uiI < uiT; uiI++)
             xPool.enqueue([&](size_t, size_t uiI){
                 for(size_t uiX = uiI; uiX < vvfPoints.size(); uiX+=uiT){
-                    if(uiX % 1000000 == 0)
+                    if(uiX % 100000 == 0)
                         std::cerr << "\rloading " << uiX << " / " << vvfPoints.size() << "\033[K";
                     auto p = vvfPoints[uiX];
                     
@@ -736,9 +761,14 @@ CacheVector<N>::CacheVector(std::string sFileName, Points vvfPoints, std::array<
                     size_t uiIdx2 = getIdxPoints(p.first, false);
                     if(uiIdx2 == std::numeric_limits<size_t>::max())
                     {
-                        std::cerr << "point does not fit in vector " << pointCoords(p.first) << std::endl;
-                        for(auto& rBin : vBins)
-                            std::cerr << vecCoords(rBin) << std::endl;
+                        if(!bComplained)
+                        {
+                            std::cerr << "point does not fit in vector " << pointCoords(p.first) << std::endl;
+                            for(size_t uiI = 0; uiI < vBins.size(); uiI++)
+                                std::cerr << "axis" << uiI << ": [" << vBins[uiI].front() 
+                                          << ", " << vBins[uiI].back() << "); steps:" << std::endl;
+                        }
+                        bComplained = true;
                         continue;
                     }
 
