@@ -421,13 +421,13 @@ class CacheVector
                 if(ii < vBins.size() - uiUntouchedDimensions)
                 {
                     size_t j = uiPointIdx % vBins[ii].size();
-                    size_t uiAdd = (vBins[i][j+1] - vBins[i][j]) / 500;
+                    size_t uiAdd = (vBins[ii][j+1] - vBins[ii][j]) / 500;
                     if(uiAdd < 1)
                         uiAdd = 1;
-                    int64_t uiI = vBins[i][j];
-                    for(; uiI < vBins[i][j+1]; uiI+=uiAdd)
+                    int64_t uiI = vBins[ii][j];
+                    for(; uiI < vBins[ii][j+1]; uiI+=uiAdd)
                         xP.push_back(uiI);
-                    xP.push_back(uiI);
+                    xP.push_back(uiI+1);
                     uiPointIdx /= vBins[ii].size();
                 }
                 else
@@ -448,11 +448,12 @@ class CacheVector
                 if(ii < vBins.size() - uiUntouchedDimensions)
                 {
                     size_t j = uiPointIdx % vBins[ii].size();
-                    if(vBins[i][j+1] > vBins[i][j] + 1)
+                    if(j >= vBins.size() - 1)
+                        return false;
+                    if(vBins[ii][j+1] > vBins[ii][j] + 1)
                         return true;
-                }
-                if(ii < vBins.size() - uiUntouchedDimensions)
                     uiPointIdx /= vBins[ii].size();
+                }
             };
             return false;
         }
