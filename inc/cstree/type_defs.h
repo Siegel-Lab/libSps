@@ -25,7 +25,7 @@ template <typename _coordinate_t, //
           template <typename> class _cont_sums_vec_t, //
           template <typename> class _point_desc_vec_t, //
           template <typename> class _bin_coords_vec_t, //
-          template <typename> class _sort_func_t //
+          template <typename, typename> class _sort_func_t //
           >
 class TypeDefs
 {
@@ -42,8 +42,8 @@ class TypeDefs
     template <typename cont_sum_t> using cont_sums_vec_t = _cont_sums_vec_t<cont_sum_t>;
     using bin_coords_vec_t = _bin_coords_vec_t<coordinate_t>;
     using bin_cords_generator = _bin_cords_generator<coordinate_t>;
-    using vec_generator = _vec_generator;
-    using sort_func_t = _sort_func_t;
-}
+    template <typename vec_type_t> using vec_generator = _vec_generator<vec_type_t>;
+    template <typename it_t, typename cmp_t> using sort_func_t = _sort_func_t<it_t, cmp_t>;
+};
 
 } // namespace cstree

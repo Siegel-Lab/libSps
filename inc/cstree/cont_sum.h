@@ -9,11 +9,11 @@ namespace cstree
 template <typename type_defs> class ContSum
 {
   private:
-    type_defs::cont_sum_val_t uiVal;
+    typename type_defs::cont_sum_val_t uiVal;
     SubtreeInfo<type_defs> xSubtree;
 
   public:
-    ContSum( type_defs::cont_sum_val_t uiVal ) : uiVal( uiVal ), xSubtree( )
+    ContSum( typename type_defs::cont_sum_val_t uiVal ) : uiVal( uiVal ), xSubtree( )
     {}
-}
+};
 } // namespace cstree
