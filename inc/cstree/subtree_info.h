@@ -8,7 +8,7 @@ namespace cstree
 {
 template <typename type_defs> class SubtreeInfo
 {
-  private:
+  public:
     typename type_defs::points_vec_offset_t uiPointsBegin;
     typename type_defs::points_vec_offset_t uiPointsEnd;
     typename type_defs::sums_vec_offset_t uiSubtreeOffset;
@@ -16,7 +16,6 @@ template <typename type_defs> class SubtreeInfo
     std::array<typename type_defs::points_vec_offset_t, type_defs::d> vuiSubtreeBinCordsBegin;
     std::array<typename type_defs::points_vec_offset_t, type_defs::d> vuiSubtreeBinCordsEnd;
 
-  public:
     SubtreeInfo( typename type_defs::points_vec_offset_t uiPointsBegin,
                  typename type_defs::points_vec_offset_t uiPointsEnd,
                  typename type_defs::sums_vec_offset_t uiSubtreeOffset )
@@ -45,20 +44,20 @@ template <typename type_defs> class SubtreeInfo
         return vuiSubtreeBinCordsEnd[ uiD ] - vuiSubtreeBinCordsBegin[ uiD ];
     }
 
-    typename type_defs::sums_vec_offset_t numCountSumBins( ) const
+    typename type_defs::sums_vec_offset_t numContSumBins( ) const
     {
         typename type_defs::sums_vec_offset_t uiRet = 1;
         for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
             uiRet = uiRet * axisSize( uiD );
         return uiRet;
     }
-    typename type_defs::sums_vec_offset_t countSumBinsEnd( ) const
+    typename type_defs::sums_vec_offset_t contSumBinsEnd( ) const
     {
-        return numCountSumBins( ) + uiSubtreeOffset;
+        return numContSumBins( ) + uiSubtreeOffset;
     }
 
     typename type_defs::sums_vec_offset_t
-    countSumIndexFromAxisIndices( std::array<typename type_defs::coordinate_t, type_defs::d> vAxisIndices ) const
+    contSumIndexFromAxisIndices( std::array<typename type_defs::coordinate_t, type_defs::d> vAxisIndices ) const
     {
         typename type_defs::points_vec_offset_t uiRet = 0;
         for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
@@ -78,7 +77,6 @@ template <typename type_defs> class SubtreeInfo
             vRet[ uiD ] = vuiSubtreeBinCordsBegin[ uiD ] + uiContSumIdx % axisSize( uiD ) + uiOffset;
             uiContSumIdx = uiContSumIdx / axisSize( uiD );
         }
-        assert( uiContSumIdx == 0 );
         return vRet;
     }
     std::array<typename type_defs::coordinate_t, type_defs::d>
