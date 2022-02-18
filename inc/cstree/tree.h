@@ -19,17 +19,18 @@ template <typename type_defs> class Tree
   private:
     std::string sPrefix;
 
+    const typename type_defs::bin_cords_generator xBinCoordsGen;
+
     using data_points_t = typename type_defs::template data_points_vec_t<DataPoint<type_defs>>;
     data_points_t vPoints;
 
-    typename type_defs::bin_coords_vec_t vBinCoords;
 
     using cont_sums_t = typename type_defs::template cont_sums_vec_t<ContSum<type_defs>>;
     cont_sums_t vContSums;
 
     typename type_defs::point_desc_vec_t vDesc;
 
-    SubtreeInfo<type_defs> xMainTree;
+    AnnotatedSubtreeInfo<type_defs> xMainTree;
 
     size_t uiThreads;
 
@@ -52,38 +53,45 @@ template <typename type_defs> class Tree
         return sPrefix + ".desc";
     }
 
+    std::array<typename type_defs::coordinate_t, type_defs::d> mainBinCoordsBegin( ) const
+    {
+        std::array<typename type_defs::coordinate_t, type_defs::d> vuiBinCoordsBegin;
+        for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
+            vuiBinCoordsBegin[ uiD ] = xBinCoordsGen.minCoord( uiD );
+    }
+
+    std::array<typename type_defs::coordinate_t, type_defs::d> mainBinCoordsEnd( ) const
+    {
+        std::array<typename type_defs::coordinate_t, type_defs::d> vuiBinCoordsEnd;
+        for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
+            vuiBinCoordsEnd[ uiD ] = xBinCoordsGen.maxCoord( uiD );
+    }
+
   public:
-    Tree( std::string sPrefix, size_t uiThreads, char cDelim )
+    Tree( std::string sPrefix, const typename type_defs::bin_cords_generator xBinCoordsGen, size_t uiThreads,
+          char cDelim )
         : sPrefix( sPrefix ),
+          xBinCoordsGen( xBinCoordsGen ),
           vPoints( typename type_defs::template vec_generator<data_points_t>( )( this->pointsFileName( ) ) ),
-          vBinCoords( typename type_defs::template vec_generator<typename type_defs::bin_coords_vec_t>( )(
-              this->binsFileName( ) ) ),
           vContSums( typename type_defs::template vec_generator<cont_sums_t>( )( this->sumsFileName( ) ) ),
           vDesc( typename type_defs::template vec_generator<typename type_defs::point_desc_vec_t>( )(
               this->descFileName( ) ) ),
-          xMainTree( ), //
+          xMainTree( 0, &xBinCoordsGen, &vContSums, mainBinCoordsBegin( ), mainBinCoordsEnd( ), 0 ), //
           uiThreads( uiThreads ), //
           cDelim( cDelim ) //
     {
         // make sure the initial bounds are set up for the root node
-        if( vBinCoords.size( ) == 0 && vContSums.size( ) == 0 )
-        {
-            for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
-            {
-                xMainTree.vuiSubtreeBinCordsBegin[ uiD ] = 2 * uiD;
-                xMainTree.vuiSubtreeBinCordsEnd[ uiD ] = 2 * uiD + 2;
-                vBinCoords.push_back( 0 );
-                vBinCoords.push_back( 0 );
-            }
+        if( vContSums.size( ) == 0 )
             vContSums.emplace_back( 0 );
-        }
     }
 
 
-    Tree( std::string sPrefix, size_t uiThreads ) : Tree( sPrefix, uiThreads, '\0' )
+    Tree( std::string sPrefix, typename type_defs::bin_cords_generator xBinCoordsGen, size_t uiThreads )
+        : Tree( sPrefix, xBinCoordsGen, uiThreads, '\0' )
     {}
 
-    Tree( std::string sPrefix ) : Tree( sPrefix, 0 )
+    Tree( std::string sPrefix, typename type_defs::bin_cords_generator xBinCoordsGen )
+        : Tree( sPrefix, xBinCoordsGen, 0 )
     {}
 
     void addPoint( typename type_defs::point_t vPos, std::string sDesc )
@@ -94,73 +102,76 @@ template <typename type_defs> class Tree
         vDesc.push_back( cDelim );
         vPoints.emplace_back( vPos, uiDescOffset );
 
-        for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
-        {
-            vBinCoords[ xMainTree.vuiSubtreeBinCordsBegin[ uiD ] ] =
-                std::min( vBinCoords[ xMainTree.vuiSubtreeBinCordsBegin[ uiD ] ], vPos[ uiD ] );
-            vBinCoords[ xMainTree.vuiSubtreeBinCordsEnd[ uiD ] - 1 ] =
-                std::max( vBinCoords[ xMainTree.vuiSubtreeBinCordsEnd[ uiD ] - 1 ], vPos[ uiD ] );
-        }
-
-        xMainTree.uiPointsEnd++;
+        xMainTree.setPointsEnd( vPoints.size( ) );
 
         vContSums.clear( );
-    }
-
-    typename type_defs::coordinate_t axisIndexFromPos( const SubtreeInfo<type_defs>& rSubtreeInfo,
-                                                       typename type_defs::point_t vPos,
-                                                       typename type_defs::coordinate_t uiD ) const
-    {
-        auto iIt = std::lower_bound( vBinCoords.begin( ) + rSubtreeInfo.vuiSubtreeBinCordsBegin[ uiD ],
-                                     vBinCoords.begin( ) + rSubtreeInfo.vuiSubtreeBinCordsEnd[ uiD ],
-                                     vPos[ uiD ] );
-        if( iIt == vBinCoords.begin( ) + rSubtreeInfo.vuiSubtreeBinCordsEnd[ uiD ] )
-            return std::numeric_limits<typename type_defs::coordinate_t>::max( );
-        return (typename type_defs::coordinate_t)( iIt - vBinCoords.begin( ) );
-    }
-
-
-    std::array<typename type_defs::coordinate_t, type_defs::d>
-    axisIndicesFromPos( const SubtreeInfo<type_defs>& rSubtreeInfo, typename type_defs::point_t vPos ) const
-    {
-        std::array<typename type_defs::coordinate_t, type_defs::d> vRet;
-        for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
-            vRet[ uiD ] = axisIndexFromPos( rSubtreeInfo, vPos, uiD );
-        return vRet;
     }
 
     // @todo points can be sorted into the perfect order from the getgo!!!!
     class PointSorter
     {
       private:
-        const SubtreeInfo<type_defs>& rSubtreeInfo;
-        const Tree* pTree;
+        const AnnotatedSubtreeInfo<type_defs> xMainTree;
 
       public:
-        PointSorter( const SubtreeInfo<type_defs>& rSubtreeInfo, const Tree* pTree )
-            : rSubtreeInfo( rSubtreeInfo ), pTree( pTree )
+        PointSorter( const AnnotatedSubtreeInfo<type_defs> xMainTree ) : xMainTree( xMainTree )
         {}
 
         bool operator( )( const DataPoint<type_defs>& a, const DataPoint<type_defs>& b ) const
         {
-            typename type_defs::sums_vec_offset_t uiA =
-                rSubtreeInfo.contSumIndexFromAxisIndices( pTree->axisIndicesFromPos( rSubtreeInfo, a.vPos ) );
-            typename type_defs::sums_vec_offset_t uiB =
-                rSubtreeInfo.contSumIndexFromAxisIndices( pTree->axisIndicesFromPos( rSubtreeInfo, b.vPos ) );
-            return uiA < uiB;
+            // filter out points with equal positions
+            bool bSame = true;
+            for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d && bSame; uiD++ )
+                if( a.vPos[ uiD ] != b.vPos[ uiD ] )
+                    bSame = false;
+            if( bSame )
+                return false;
+
+            // deal with points in different positions
+            // eventurally they will end up in different bins: just keep goining down with the layers
+            AnnotatedSubtreeInfo<type_defs> xRoot = xMainTree;
+            while( true )
+            {
+                // @todo recursiveley go into subtrees
+                typename type_defs::sums_vec_offset_t uiA = xRoot.contSumIndexFromPos( a.vPos );
+                typename type_defs::sums_vec_offset_t uiB = xRoot.contSumIndexFromPos( b.vPos );
+                if( uiA != uiB )
+                    return uiA < uiB;
+                // uiA == uiB
+                xRoot = xRoot.getSubtree( uiA );
+            }
+            // will never get here as only points on equal positions are always in the same bin
+            // these bins are filtered out above
         }
+
         typename type_defs::sums_vec_offset_t min_value( ) const
         {
             return 0;
         }
+
         typename type_defs::sums_vec_offset_t max_value( ) const
         {
-            return pTree->vContSums.size( );
+            return std::numeric_limits<typename type_defs::sums_vec_offset_t>::max( );
         }
     };
 
+    void sortPoints( )
+    {
+        typename type_defs::template sort_func_t<typename data_points_t::iterator,
+                                                 typeof( PointSorter( xMainTree ) )>( )(
+            vPoints.begin( ), vPoints.end( ), PointSorter( xMainTree ) );
+    }
+
+    void addPoints( std::vector<std::tuple<typename type_defs::point_t, std::string>> vPoints )
+    {
+        for( auto xPoint : vPoints )
+            addPoint( std::get<0>( xPoint ), std::get<1>( xPoint ) );
+        sortPoints( );
+    }
+
+
     template <typename type_defs::coordinate_t D>
-    void integrateHelper( ThreadPool& rPool, SubtreeInfo<type_defs>& rSubtreeInfo,
+    void integrateHelper( ThreadPool& rPool, AnnotatedSubtreeInfo<type_defs> xSubtreeInfo,
                           std::array<typename type_defs::coordinate_t, type_defs::d>& vAxisIndices,
                           typename type_defs::coordinate_t uiFixedDim )
     {
@@ -170,12 +181,12 @@ template <typename type_defs> class Tree
             rPool.enqueue(
                 [ & ]( size_t uiTid, std::array<typename type_defs::coordinate_t, type_defs::d> vAxisIndices ) {
                     typename type_defs::cont_sum_val_t uiContSum = 0;
-                    for( typename type_defs::points_vec_offset_t uiI = 0; uiI < rSubtreeInfo.axisSize( uiFixedDim );
+                    for( typename type_defs::points_vec_offset_t uiI = 0; uiI < xSubtreeInfo.axisSize( uiFixedDim );
                          uiI++ )
                     {
                         vAxisIndices[ uiFixedDim ] = uiI;
                         typename type_defs::sums_vec_offset_t uiContSumIdx =
-                            rSubtreeInfo.contSumIndexFromAxisIndices( vAxisIndices );
+                            xSubtreeInfo.contSumIndexFromAxisIndices( vAxisIndices );
                         uiContSum += vContSums[ uiContSumIdx ].uiVal;
                         vContSums[ uiContSumIdx ].uiVal = uiContSum;
                     }
@@ -185,65 +196,41 @@ template <typename type_defs> class Tree
         else
         {
             if( D == uiFixedDim )
-                integrateHelper<D + 1>( rPool, rSubtreeInfo, vAxisIndices, uiFixedDim );
+                integrateHelper<D + 1>( rPool, xSubtreeInfo, vAxisIndices, uiFixedDim );
             else
-                for( typename type_defs::points_vec_offset_t uiI = 0; uiI < rSubtreeInfo.axisSize( D ); uiI++ )
+                for( typename type_defs::points_vec_offset_t uiI = 0; uiI < xSubtreeInfo.axisSize( D ); uiI++ )
                 {
                     vAxisIndices[ D ] = uiI;
-                    integrateHelper<D + 1>( rPool, rSubtreeInfo, vAxisIndices, uiFixedDim );
+                    integrateHelper<D + 1>( rPool, xSubtreeInfo, vAxisIndices, uiFixedDim );
                 }
         }
     }
 
-
-    void subdivideBin( SubtreeInfo<type_defs>& rSubtreeInfo,
-                       std::array<typename type_defs::coordinate_t, type_defs::d>
-                           vBinCordsBegin,
-                       std::array<typename type_defs::coordinate_t, type_defs::d>
-                           vBinCordsEnd,
-                       typename type_defs::coordinate_t uiLayer )
+    void subdivideBin( AnnotatedSubtreeInfo<type_defs> xCurrRoot )
     {
-        // 1: setup bin coordinates
-        for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
-        {
-            rSubtreeInfo.vuiSubtreeBinCordsBegin[ uiD ] = vBinCoords.size( );
-            std::vector<typename type_defs::coordinate_t> vBinCoords =
-                typename type_defs::bin_cords_generator( )( vBinCordsBegin[ uiD ], vBinCordsEnd[ uiD ], uiD, uiLayer );
-            for( typename type_defs::coordinate_t uiBinCord : vBinCoords )
-                vBinCoords.push_back( uiBinCord );
-            rSubtreeInfo.vuiSubtreeBinCordsEnd[ uiD ] = vBinCoords.size( );
-        }
 
-        // 2: sort points to into their bins
-        // @todo this is not necessary since points cna be sorted into the perfect order from the getgo
-        typename type_defs::template sort_func_t<typename data_points_t::iterator,
-                                                 typeof( PointSorter( rSubtreeInfo, this ) )>( )(
-            vPoints.begin( ) + rSubtreeInfo.uiPointsBegin,
-            vPoints.begin( ) + rSubtreeInfo.uiPointsEnd,
-            PointSorter( rSubtreeInfo, this ) );
-
-        // 3: setup cont sum
-        rSubtreeInfo.uiSubtreeOffset = vContSums.size( );
-        vContSums.resize( vContSums.size( ) + rSubtreeInfo.numContSumBins( ) );
+        // 1: setup cont sum
+        xCurrRoot.setSumBinsBegin( vContSums.size( ) );
+        vContSums.resize( vContSums.size( ) + xCurrRoot.numContSumBins( ) );
 
         // 4: adjust point begins and ends of cont_sums & set uiVal to num
-        typename type_defs::points_vec_offset_t uiCurrPointIdx = rSubtreeInfo.uiPointsBegin;
-        for( typename type_defs::sums_vec_offset_t uiContSumIdx = rSubtreeInfo.uiSubtreeOffset;
-             uiContSumIdx < rSubtreeInfo.contSumBinsEnd( ) + rSubtreeInfo.uiSubtreeOffset;
+        typename type_defs::points_vec_offset_t uiCurrPointIdx = xCurrRoot.pointsBegin( );
+        for( typename type_defs::sums_vec_offset_t uiContSumIdx = xCurrRoot.contSumBinsBegin( );
+             uiContSumIdx < xCurrRoot.contSumBinsEnd( );
              uiContSumIdx++ )
         {
-            vContSums[ uiContSumIdx ].xSubtree.uiPointsBegin = uiCurrPointIdx;
-            while( uiCurrPointIdx < rSubtreeInfo.uiPointsEnd )
+            auto xChild = xCurrRoot.getSubtree( uiContSumIdx );
+            xChild.setPointsBegin( uiCurrPointIdx );
+            while( uiCurrPointIdx < xCurrRoot.pointsEnd( ) )
             {
-                typename type_defs::sums_vec_offset_t uiX = rSubtreeInfo.contSumIndexFromAxisIndices(
-                    axisIndicesFromPos( rSubtreeInfo, vPoints[ uiCurrPointIdx ].vPos ) );
+                typename type_defs::sums_vec_offset_t uiX =
+                    xCurrRoot.contSumIndexFromPos( vPoints[ uiCurrPointIdx ].vPos );
                 if( uiX != uiContSumIdx )
                     break;
                 uiCurrPointIdx++;
-                vContSums[ uiContSumIdx ].xSubtree.uiPointsEnd = uiCurrPointIdx;
             }
-            vContSums[ uiContSumIdx ].uiVal =
-                vContSums[ uiContSumIdx ].xSubtree.uiPointsEnd - vContSums[ uiContSumIdx ].xSubtree.uiPointsBegin;
+            xChild.setPointsEnd( uiCurrPointIdx );
+            vContSums[ uiContSumIdx ].uiVal = xChild.numPoints( );
         }
 
         // 5: integrate cont_sums
@@ -251,58 +238,54 @@ template <typename type_defs> class Tree
         {
             ThreadPool xPool( uiThreads );
             std::array<typename type_defs::coordinate_t, type_defs::d> vAxisIndices;
-            integrateHelper<0>( xPool, rSubtreeInfo, vAxisIndices, uiFixedDim );
+            integrateHelper<0>( xPool, xCurrRoot, vAxisIndices, uiFixedDim );
         }
     }
 
-    void recursiveSubdivideHelper( SubtreeInfo<type_defs>& rSubtreeInfo, typename type_defs::coordinate_t uiLayer,
+    void recursiveSubdivideHelper( AnnotatedSubtreeInfo<type_defs> xCurrRoot,
                                    typename type_defs::points_vec_offset_t uiMinPoints )
     {
-        for( typename type_defs::sums_vec_offset_t uiContSumIdx = rSubtreeInfo.uiSubtreeOffset;
-             uiContSumIdx < rSubtreeInfo.contSumBinsEnd( ) + rSubtreeInfo.uiSubtreeOffset;
+        for( typename type_defs::sums_vec_offset_t uiContSumIdx = xCurrRoot.contSumBinsBegin( );
+             uiContSumIdx < xCurrRoot.contSumBinsEnd( );
              uiContSumIdx++ )
         {
-            if( vContSums[ uiContSumIdx ].xSubtree.numPoints( ) >= uiMinPoints )
+            auto xChild = xCurrRoot.getSubtree( uiContSumIdx );
+            if( xChild.numPoints( ) >= uiMinPoints )
             {
-                std::array<typename type_defs::coordinate_t, type_defs::d> vBinCordsBegin =
-                    rSubtreeInfo.axisIndicesFromContSumIndex( uiContSumIdx );
-                std::array<typename type_defs::coordinate_t, type_defs::d> vBinCordsEnd =
-                    rSubtreeInfo.axisIndicesFromContSumIndex( uiContSumIdx, 1 );
-                subdivideBin( vContSums[ uiContSumIdx ].xSubtree, vBinCordsBegin, vBinCordsEnd, uiLayer );
-                recursiveSubdivideHelper( vContSums[ uiContSumIdx ].xSubtree, uiLayer + 1, uiMinPoints );
+                subdivideBin( xChild );
+                recursiveSubdivideHelper( xChild, uiMinPoints );
             }
         }
     }
 
     void recursiveSubdivide( typename type_defs::points_vec_offset_t uiMinPoints )
     {
-        recursiveSubdivideHelper( xMainTree, 0, uiMinPoints );
+        recursiveSubdivideHelper( xMainTree, uiMinPoints );
     }
 
     template <typename type_defs::coordinate_t D>
-    std::string printHelper( SubtreeInfo<type_defs>& rSubtreeInfo,
+    std::string printHelper( AnnotatedSubtreeInfo<type_defs> xCurrRoot,
                              std::array<typename type_defs::coordinate_t, type_defs::d>& vAxisIndices,
-                             typename type_defs::coordinate_t uiLayer, std::string sIndet )
+                             std::string sIndet )
     {
         std::string sRet = "";
         // @note this constexpr is required so that the compiler does not have to evaluate an infinite loop
         if constexpr( D == type_defs::d )
         {
-            typename type_defs::sums_vec_offset_t uiContSumIdx =
-                rSubtreeInfo.contSumIndexFromAxisIndices( vAxisIndices );
-            for( typename type_defs::coordinate_t uiX = 0; uiX < uiLayer; uiX++ )
+            typename type_defs::sums_vec_offset_t uiContSumIdx = xCurrRoot.contSumIndexFromAxisIndices( vAxisIndices );
+            auto xChild = xCurrRoot.getSubtree( uiContSumIdx );
+            for( typename type_defs::coordinate_t uiX = 0; uiX < xChild.uiLayer; uiX++ )
                 sRet += sIndet;
             sRet += "Node: " + std::to_string( uiContSumIdx ) +
                     " Cont. Sum: " + std::to_string( vContSums[ uiContSumIdx ].uiVal ) +
-                    " Num. Points: " + std::to_string( vContSums[ uiContSumIdx ].xSubtree.numPoints( ) ) +
-                    " Num. Children: " + std::to_string( vContSums[ uiContSumIdx ].xSubtree.numContSumBins( ) );
+                    " Num. Points: " + std::to_string( xChild.numPoints( ) ) +
+                    " Num. Children: " + std::to_string( xChild.numContSumBins( ) );
             sRet += "\n";
-            if( vContSums[ uiContSumIdx ].xSubtree.uiSubtreeOffset == 0 && uiLayer != 0 )
-                for( typename type_defs::points_vec_offset_t uiP = vContSums[ uiContSumIdx ].xSubtree.uiPointsBegin;
-                     uiP < vContSums[ uiContSumIdx ].xSubtree.uiPointsBegin;
+            if( xChild.contSumBinsBegin( ) == 0 && xChild.uiLayer != 0 )
+                for( typename type_defs::points_vec_offset_t uiP = xChild.pointsBegin( ); uiP < xChild.pointsEnd( );
                      uiP++ )
                 {
-                    for( typename type_defs::coordinate_t uiX = 0; uiX < uiLayer + 1; uiX++ )
+                    for( typename type_defs::coordinate_t uiX = 0; uiX < xChild.uiLayer + 1; uiX++ )
                         sRet += sIndet;
                     sRet += "(";
                     for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
@@ -316,15 +299,15 @@ template <typename type_defs> class Tree
             else
             {
                 std::array<typename type_defs::coordinate_t, type_defs::d> vAxisIndices;
-                sRet += printHelper<0>( vContSums[ uiContSumIdx ].xSubtree, vAxisIndices, uiLayer + 1, sIndet );
+                sRet += printHelper<0>( xChild, vAxisIndices, sIndet );
             }
         }
         else
         {
-            for( typename type_defs::points_vec_offset_t uiI = 0; uiI < rSubtreeInfo.axisSize( D ); uiI++ )
+            for( typename type_defs::points_vec_offset_t uiI = 0; uiI < xCurrRoot.axisSize( D ); uiI++ )
             {
                 vAxisIndices[ D ] = uiI;
-                sRet += printHelper<D + 1>( rSubtreeInfo, vAxisIndices, uiLayer, sIndet );
+                sRet += printHelper<D + 1>( xCurrRoot, vAxisIndices, sIndet );
             }
         }
         return sRet;
@@ -333,7 +316,7 @@ template <typename type_defs> class Tree
     std::string print( )
     {
         std::array<typename type_defs::coordinate_t, type_defs::d> vAxisIndices;
-        return printHelper<0>( xMainTree, vAxisIndices, 0, "  " );
+        return printHelper<0>( xMainTree, vAxisIndices, "  " );
     }
 
     std::string printRaw( )
@@ -368,39 +351,27 @@ template <typename type_defs> class Tree
             sRet += "\n";
             uiI++;
         }
-        sRet += "Bin Cords (size " + std::to_string( vBinCoords.size( ) ) + "):\n";
-        uiI = 0;
-        for( auto xBinCoord : vBinCoords )
-        {
-            sRet += std::to_string( uiI ) + "\t" + std::to_string( xBinCoord ) + "\n";
-            uiI++;
-        }
 
         sRet += "Cont Sums (size " + std::to_string( vContSums.size( ) ) + "):\n";
         uiI = 0;
-        for( auto xSum : vContSums )
+        for( typename type_defs::sums_vec_offset_t uiSubtreeIdx = 0; uiSubtreeIdx < vContSums.size( ); uiSubtreeIdx++ )
         {
+            AnnotatedSubtreeInfo<type_defs> xSum( uiSubtreeIdx, &xBinCoordsGen, &vContSums,
+                                                  std::array<typename type_defs::coordinate_t, type_defs::d>{ },
+                                                  std::array<typename type_defs::coordinate_t, type_defs::d>{ }, 0 );
             sRet += std::to_string( uiI ) //
-                    + "\tval: " + std::to_string( xSum.uiVal ) //
-                    + "\n\tpoints begin: " + std::to_string( xSum.xSubtree.uiPointsBegin ) //
-                    + "\n\tpoints end: " + std::to_string( xSum.xSubtree.uiPointsEnd ) //
-                    + "\n\tsubtree offset: " + std::to_string( xSum.xSubtree.uiSubtreeOffset );
-            for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
-                sRet += "\n\tdimension " + std::to_string( uiD ) + " bin cords: [" +
-                        std::to_string( xSum.xSubtree.vuiSubtreeBinCordsBegin[ uiD ] ) + ", " +
-                        std::to_string( xSum.xSubtree.vuiSubtreeBinCordsEnd[ uiD ] ) + ")";
+                    + "\tval: " + std::to_string( vContSums[ uiSubtreeIdx ].uiVal ) //
+                    + "\n\tpoints begin: " + std::to_string( xSum.pointsBegin( ) ) //
+                    + "\n\tpoints end: " + std::to_string( xSum.pointsEnd( ) ) //
+                    + "\n\tsubtree offset: " + std::to_string( xSum.contSumBinsBegin( ) );
             sRet += "\n";
             uiI++;
         }
 
         sRet += "Root:\n";
-        sRet += "points begin: " + std::to_string( xMainTree.uiPointsBegin ) //
-                + "\npoints end: " + std::to_string( xMainTree.uiPointsEnd ) //
-                + "\nsubtree offset: " + std::to_string( xMainTree.uiSubtreeOffset );
-        for( typename type_defs::coordinate_t uiD = 0; uiD < type_defs::d; uiD++ )
-            sRet += "\ndimension " + std::to_string( uiD ) + " bin cords: [" +
-                    std::to_string( xMainTree.vuiSubtreeBinCordsBegin[ uiD ] ) + ", " +
-                    std::to_string( xMainTree.vuiSubtreeBinCordsEnd[ uiD ] ) + ")";
+        sRet += "points begin: " + std::to_string( xMainTree.pointsBegin( ) ) //
+                + "\npoints end: " + std::to_string( xMainTree.pointsEnd( ) ) //
+                + "\nsubtree offset: " + std::to_string( xMainTree.contSumBinsBegin( ) );
         sRet += "\n";
 
 
@@ -416,9 +387,11 @@ template <typename type_defs> class Tree
 template <typename type_defs> void exportTree( pybind11::module& m, std::string sName )
 {
     pybind11::class_<cstree::Tree<type_defs>>( m, sName.c_str( ) )
-        .def( pybind11::init<std::string>( ) ) // constructor
-        .def( pybind11::init<std::string, size_t>( ) ) // constructor
+        .def( pybind11::init<std::string, typename type_defs::bin_cords_generator>( ) ) // constructor
+        .def( pybind11::init<std::string, typename type_defs::bin_cords_generator, size_t>( ) ) // constructor
         .def( "add_point", &cstree::Tree<type_defs>::addPoint )
+        .def( "sort_points", &cstree::Tree<type_defs>::sortPoints )
+        .def( "add_points", &cstree::Tree<type_defs>::addPoints )
         .def( "__str__", &cstree::Tree<type_defs>::print )
         .def( "str_raw", &cstree::Tree<type_defs>::printRaw )
         .def( "subdivide", &cstree::Tree<type_defs>::recursiveSubdivide )
