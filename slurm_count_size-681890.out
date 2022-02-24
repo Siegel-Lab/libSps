@@ -1,0 +1,30 @@
+1000 points:
+	total of 925455382 overlay integers
+	total of 61944190 cont sum integers
+	total of 36 overlays
+	total of 7.899196576 gb
+10000 points:
+	total of 2208516140 overlay integers
+	total of 7101973928 cont sum integers
+	total of 180 overlays
+	total of 74.483920544 gb
+100000 points:
+	total of 30824708425 overlay integers
+	total of 30700248754 cont sum integers
+	total of 1237 overlays
+	total of 492.199657432 gb
+1000000 points:
+	total of 330734658269 overlay integers
+	total of 170777339635 cont sum integers
+	total of 7063 overlays
+	total of 4012.095983232 gb
+10000000 points:
+	total of 2459119614540 overlay integers
+	total of 1801431400986 cont sum integers
+	total of 34552 overlays
+	total of 34084.408124208 gb
+100000000 points:
+	total of 15253260981934 overlay integers
+	total of 14127946489055 cont sum integers
+	total of 263580 overlays
+	total of 235049.659767912 gb

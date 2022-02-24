@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p fat -c 18 -J count_size --mail-user=markus.rainer.schmidt@gmail.com --mail-type END --time=240:00:00 -o slurm_count_size-%j.out
+#SBATCH -p fat -c 18 -J count_size --mem 383G --mail-user=markus.rainer.schmidt@gmail.com --mail-type END --time=240:00:00 -o slurm_count_size-%j.out
 
 python3 count_size.py
 
