@@ -19,7 +19,7 @@ def parse_heatmap(in_filename, compression):
             yield chr_1, pos_1//compression, chr_2, pos_2//compression, max(mapq_1, mapq_2)
 
 
-def input_to_points(len_file_name, heatmap_filenames, limit=float('inf'), compression=1000):
+def input_to_points(len_file_name, heatmap_filenames, limit=float('inf'), compression=1):
     curr_start = 0
     chr_start_pos = {}
     with open(len_file_name, "r") as len_file:
@@ -115,36 +115,26 @@ def mem(points, axes):
     # the position in the dimension and the continuous sum
     # also the bottom left position of the bin
     overlay_size = sum(len(x)-1 for x in axes) * 2 + len(axes) + 2 + 1
-    overlay_size_2 = sum(max(x)-min(x) if len(x) > 0 else 0 for x in axes) + len(axes) * 2 + 1
-    overlay_fill = sum(len(x) for x in axes) / sum(max(x)-min(x) if len(x) > 0 else 0 for x in axes)
+    #overlay_size_2 = sum(max(x)-min(x) if len(x) > 0 else 0 for x in axes) + len(axes) * 2 + 1
+    overlay_fill = sum(len(x) for x in axes) / max(1,sum(max(x)-min(x) if len(x) > 0 else 0 for x in axes))
     # the position = d-long vec, the cont sum value and the pointer to the description
     intersections = product(len(x) for x in s)//2 + 1 + len(set(points))
     intersections_size = intersections * (len(axes) + 1)
     points_size = len(points) * 2
-    return min(overlay_size, overlay_size_2), points_size, intersections_size, intersections, overlay_fill
+    return overlay_size, points_size, intersections_size, intersections, overlay_fill
 
 
-def compute_mem(points, axes=None):
+def compute_mem(points, l=None, axes=None):
+    if l is None:
+        l = math.log2(len(points))*100
+        print("max points per overlay", l)
+        #l = math.pow(len(points), 1 / len(points[0]))
     if axes is None:
         axes = []
         for d in range(len(points[0])):
             axes.append(list(set(p[d] for p in points)))
-    if len(points) == 0:
-        return 0, 0, 0
-    overlay_size, points_size, intersections_size, intersections, overlay_fill = mem(
-        points, axes)
-    split = split_points(points, axes)
-    split_size = 0
-    for points_split, split_axis in split:
-        split_overlay_size, split_points_size, split_intersections_size, _, _ = mem(
-            points_split, split_axis)
-        split_size += split_overlay_size + split_points_size + split_intersections_size
-    if overlay_size + points_size + intersections_size <= split_size:
-        #start = [min(p[d] for p in points) for d in range(len(points[0]))]
-        #end = [max(p[d] for p in points) for d in range(len(points[0]))]
-        #print("overlay with", len(points), "points")
-        return overlay_size, points_size, intersections_size, 1, len(points), intersections, overlay_fill
-    else:
+    if len(set(points)) > 1 and l < len(points):
+        split = split_points(points, axes)
         del points
         del axes
         split_overlay_size = 0
@@ -155,7 +145,7 @@ def compute_mem(points, axes=None):
         split_intersections = 0
         split_overlay_fill = 0
         for points_split, split_axis in split:
-            a, b, g, c, d, e, f = compute_mem(points_split, split_axis)
+            a, b, g, c, d, e, f = compute_mem(points_split, l, split_axis)
             split_overlay_size += a
             split_points_size += b
             split_intersections_sum += g
@@ -165,6 +155,10 @@ def compute_mem(points, axes=None):
             split_overlay_fill += f
         return split_overlay_size, split_points_size, split_intersections_sum, num_overlays, \
                split_points_sum/len(split), split_intersections/len(split), split_overlay_fill/len(split)
+    else:
+        overlay_size, points_size, intersections_size, intersections, overlay_fill = mem(
+            points, axes)
+        return overlay_size, points_size, intersections_size, 1, len(points), intersections, overlay_fill
 
 def sum_mem(points_l):
     l = []
@@ -209,7 +203,7 @@ if __name__ == "__main__":
         print("\ttotal of", a, "overlay integers = ", 100*a/(a+b+g), "%")
         print("\ttotal of", b, "points integers = ", 100*b/(a+b+g), "%")
         print("\ttotal of", g, "intersection integers = ", 100*g/(a+b+g), "%")
-        print("\ttotal of", c, "overlays")
+        print("\ttotal of", c, "overlays ->" , math.log2(c), "search complexity")
         print("\taverage of", d, "points per overlay")
         print("\taverage of", e, "intersections per overlay")
         print("\taverage overlay fill: ", 100*f, "%")

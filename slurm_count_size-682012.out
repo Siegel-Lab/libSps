@@ -1,0 +1,159 @@
+1000 points:
+max points per overlay 996.7226258835992
+max points per overlay 653.9158811108031
+max points per overlay 664.3856189774724
+max points per overlay 672.7920454563199
+max points per overlay 659.9912842187127
+max points per overlay 687.0364719583405
+max points per overlay 667.2425341971496
+max points per overlay 675.4887502163468
+max points per overlay 645.9431618637298
+max points per overlay 645.9431618637298
+max points per overlay 667.2425341971496
+	total of 7008 overlay integers =  0.016168929505428486 %
+	total of 4004 points integers =  0.009238069882953146 %
+	total of 43331375 intersection integers =  99.97459300061162 %
+	total of 12 overlays -> 3.584962500721156 search complexity
+	average of 136.5 points per overlay
+	average of 490325.0 intersections per overlay
+	average overlay fill:  0.000888165843022634 %
+	total of 0.346739096 gb
+	OR total of 8.8096e-05 gb with runtime penalty of factor 8.220777926280075 memory reduced to: 0.025406999388381632 %
+10000 points:
+max points per overlay 1328.7856641840544
+max points per overlay 995.7102041562287
+max points per overlay 991.4385132155443
+max points per overlay 994.3979914343739
+max points per overlay 997.1543553950772
+max points per overlay 993.5165049603695
+max points per overlay 995.8552715431011
+max points per overlay 1000.4220466318195
+max points per overlay 996.0001932068081
+max points per overlay 998.8684686772166
+max points per overlay 1002.2367813028454
+	total of 124608 overlay integers =  0.004808253736121448 %
+	total of 40004 points integers =  0.001543635901866673 %
+	total of 2591379155 intersection integers =  99.99364811036202 %
+	total of 26 overlays -> 4.700439718141092 search complexity
+	average of 800.4147727272727 points per overlay
+	average of 31310731.443181816 intersections per overlay
+	average overlay fill:  0.019638960246387817 %
+	total of 20.732350136 gb
+	OR total of 0.001316896 gb with runtime penalty of factor 33.14492533750769 memory reduced to: 0.006351889637988121 %
+100000 points:
+max points per overlay 1660.9654901315087
+max points per overlay 1330.5634287546711
+max points per overlay 1328.4679534360391
+max points per overlay 1327.5978964975623
+max points per overlay 1326.7518241801467
+max points per overlay 1328.7712379549448
+max points per overlay 1327.7578002415737
+max points per overlay 1327.6851386917683
+max points per overlay 1331.7412613764868
+max points per overlay 1329.2896755409172
+max points per overlay 1329.03068962579
+	total of 3519787 overlay integers =  0.014282508792457672 %
+	total of 400004 points integers =  0.001623126810519568 %
+	total of 24640118950 intersection integers =  99.98409436439702 %
+	total of 205 overlays -> 7.679480099505446 search complexity
+	average of 977.8480113636364 points per overlay
+	average of 37176414.09019887 intersections per overlay
+	average overlay fill:  0.29081305111287076 %
+	total of 197.152309928 gb
+	OR total of 0.031358328 gb with runtime penalty of factor 39.883849027661796 memory reduced to: 0.01590563560297724 %
+1000000 points:
+max points per overlay 1993.1570012018494
+max points per overlay 1661.1010384121535
+max points per overlay 1660.6593171864554
+max points per overlay 1660.9525054216672
+max points per overlay 1661.1068036000854
+max points per overlay 1660.982801260241
+max points per overlay 1660.1509659255428
+max points per overlay 1661.5356634663879
+max points per overlay 1660.9640474436812
+max points per overlay 1661.0909487788779
+max points per overlay 1661.093831603246
+	total of 83743037 overlay integers =  0.037992094654240166 %
+	total of 4000004 points integers =  0.0018147004936701695 %
+	total of 220334525755 intersection integers =  99.96019320485209 %
+	total of 1497 overlays -> 10.547858506058416 search complexity
+	average of 1326.3619773171165 points per overlay
+	average of 41081311.67421098 intersections per overlay
+	average overlay fill:  0.13120850872136833 %
+	total of 1763.378150368 gb
+	OR total of 0.701944328 gb with runtime penalty of factor 53.44190418517297 memory reduced to: 0.039806795147910336 %
+10000000 points:
+max points per overlay 2325.349680848103
+max points per overlay 1993.3297324496455
+max points per overlay 1992.8632584865593
+max points per overlay 1993.1799382066188
+max points per overlay 1993.2925507018545
+max points per overlay 1993.3097016133747
+max points per overlay 1993.201429323101
+max points per overlay 1993.2738120813283
+max points per overlay 1993.0933643812323
+max points per overlay 1992.967017687863
+max points per overlay 1993.0571322462433
+	total of 3329365571 overlay integers =  0.15086178086887547 %
+	total of 40000004 points integers =  0.0018124990210641374 %
+	total of 2203528598790 intersection integers =  99.84732572011006 %
+	total of 13067 overlays -> 13.673640336144274 search complexity
+	average of 1563.8742853511465 points per overlay
+	average of 54013501.67933217 intersections per overlay
+	average overlay fill:  0.7888641949295415 %
+	total of 17655.18371492 gb
+	OR total of 26.9549246 gb with runtime penalty of factor 61.88227115889299 memory reduced to: 0.15267427988993962 %
+100000000 points:
+max points per overlay 2492.7218423337813
+max points per overlay 2160.5881418426884
+max points per overlay 2160.4469073757264
+max points per overlay 2160.5650870603813
+max points per overlay 2160.677613743497
+max points per overlay 2160.472062023289
+max points per overlay 2160.5699695570725
+max points per overlay 2160.4185352711615
+max points per overlay 2160.538592113977
+max points per overlay 2160.422019865256
+max points per overlay 2160.5911703344295
+max points per overlay 2423.8448037300877
+max points per overlay 2091.48770619475
+max points per overlay 2091.5694870601646
+max points per overlay 2091.719577635012
+max points per overlay 2091.6256344038848
+max points per overlay 2091.529368431883
+max points per overlay 2091.768165060274
+max points per overlay 2091.7213990480973
+max points per overlay 2091.8205220905584
+max points per overlay 2091.6107611313428
+max points per overlay 2091.666965300864
+max points per overlay 2287.1416669883856
+max points per overlay 1955.0652856867248
+max points per overlay 1955.2109938837546
+max points per overlay 1954.652524038946
+max points per overlay 1954.9711355353782
+max points per overlay 1954.952335731848
+max points per overlay 1954.939174411589
+max points per overlay 1955.0245136229648
+max points per overlay 1954.8660131910283
+max points per overlay 1955.1364682559836
+max points per overlay 1954.6691024097659
+max points per overlay 2464.1442562378584
+max points per overlay 2131.8861069365894
+max points per overlay 2131.9847944864177
+max points per overlay 2131.988046167332
+max points per overlay 2132.0532296628303
+max points per overlay 2132.056039109171
+max points per overlay 2131.918036162396
+max points per overlay 2131.9411377069946
+max points per overlay 2131.8781648918416
+max points per overlay 2131.926637647051
+max points per overlay 2131.882135968867
+	total of 19153195383 overlay integers =  0.11355260056682853 %
+	total of 342160028 points integers =  0.0020285472064835806 %
+	total of 16847749681155 intersection integers =  99.88441885222669 %
+	total of 111491 overlays -> 16.766567729161544 search complexity
+	average of 1467.9125741435723 points per overlay
+	average of 49427317.32926841 intersections per overlay
+	average overlay fill:  1.445192795325554 %
+	total of 134937.960292528 gb
+	OR total of 155.962843288 gb with runtime penalty of factor 58.4326576654289 memory reduced to: 0.11558114777331212 %
