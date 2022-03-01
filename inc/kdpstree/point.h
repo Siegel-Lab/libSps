@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bps/type_defs.h"
+#include "kdpstree/type_defs.h"
 
-namespace bps
+namespace kdpstree
 {
 template <typename type_defs> class Point
 {
@@ -15,4 +15,4 @@ template <typename type_defs> class Point
     Point( pos_t vPos, size_t uiDescOffset ) : vPos( vPos ), uiDescOffset( uiDescOffset )
     {}
 };
-} // namespace bps
+} // namespace kdpstree

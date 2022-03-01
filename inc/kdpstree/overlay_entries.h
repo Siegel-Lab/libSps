@@ -1,19 +1,19 @@
 #pragma once
 
-#include "bps/overlay_meta.h"
-#include "bps/type_defs.h"
+#include "kdpstree/type_defs.h"
+#include <functional>
 #include <string>
 
-namespace bps
+
+namespace kdpstree
 {
 
 template <typename type_defs> class OverlayEntries
 {
-    using val_t = typename type_defs::val_t;
-    using vec_generator = typename type_defs::vec_generator;
-    using overlay_entry = typename type_defs::overlay_entry;
-    auto overlay_entry_vec_generator = vec_generator<overlay_entry>( );
-    using overlay_entry_vec = typeof( overlay_entry_vec_generator( "" ) );
+    EXTRACT_TYPE_DEFS; // macro call
+
+    vec_generator_t<overlay_entry_t> overlay_entry_vec_generator = vec_generator_t<overlay_entry_t>( );
+    using overlay_entry_vec_t = typeof( overlay_entry_vec_generator( "" ) );
 
 
     /**
@@ -27,7 +27,7 @@ template <typename type_defs> class OverlayEntries
     size_t getIndex( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
     {
         // prevent write I/O
-        const overlay_entry_vec& vData = this->vData;
+        const overlay_entry_vec_t& vData = this->vData;
 
         size_t uiK = 1;
         size_t uiLastRight = 1;
@@ -58,7 +58,7 @@ template <typename type_defs> class OverlayEntries
     }
 
   public:
-    overlay_entry_vec vData;
+    overlay_entry_vec_t vData;
 
     OverlayEntries( std::string sPrefix ) : vData( overlay_entry_vec_generator( sPrefix + ".overlay_entries" ) )
     {}
@@ -71,14 +71,14 @@ template <typename type_defs> class OverlayEntries
     const val_t& get( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
     {
         // prevent write I/O
-        const overlay_entry_vec& vData = this->vData;
+        const overlay_entry_vec_t& vData = this->vData;
         return vData[ getIndex( uiPos, uiBegin, uiSize ) ].second;
     }
 
     bool has( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
     {
         // prevent write I/O
-        const overlay_entry_vec& vData = this->vData;
+        const overlay_entry_vec_t& vData = this->vData;
         return vData[ getIndex( uiPos, uiBegin, uiSize ) ].first == uiPos;
     }
 
@@ -99,6 +99,11 @@ template <typename type_defs> class OverlayEntries
     {
         forRange( fDo, 0, 1, uiBegin, uiSize );
     }
+
+    size_t size( ) const
+    {
+        return vData.size( );
+    }
 };
 
-} // namespace bps
+} // namespace kdpstree

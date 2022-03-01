@@ -1,7 +1,8 @@
-#include "cstree/default.h"
+#include "kdpstree/default.h"
+#include "kdpstree/tree.h"
 
 int main(){
-    InMemTypeDef<1> xTree;
+    typename kdpstree::Tree<InMemTypeDef<1>> xTree("test");
 
     return 0;
 }

@@ -15,7 +15,7 @@
 #include <vector>
 #include <iostream>
 
-namespace cstree
+namespace kdpstree
 {
 /**
  * @brief A Threadpool.
@@ -200,4 +200,4 @@ inline ThreadPool::~ThreadPool( )
     } // for
 }
 
-} // namespace cstree
+} // namespace kdpstree

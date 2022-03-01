@@ -1,21 +1,23 @@
 #pragma once
 
-#include "bps/type_defs.h"
+#include "kdpstree/type_defs.h"
 #include <string>
 
-namespace bps
+namespace kdpstree
 {
 
 template <typename type_defs> class Desc
 {
-    using vec_generator = typename type_defs::vec_generator;
-    using desc_vec = typeof( vec_generator<char>( )( "" ) );
+    EXTRACT_TYPE_DEFS; // macro call
 
-    desc_vec vData;
+    vec_generator_t<char> vec_generator = vec_generator_t<char>( );
+    using desc_vec_t = typeof( vec_generator( "" ) );
+
+    desc_vec_t vData;
     char cEof;
 
   public:
-    Desc( std::string sPrefix, char cEof ) : vData( vec_generator<char>( )( sPrefix + ".desc" ) ), cEof( cEof )
+    Desc( std::string sPrefix, char cEof ) : vData( vec_generator( sPrefix + ".desc" ) ), cEof( cEof )
     {}
     Desc( std::string sPrefix ) : Desc( sPrefix, std::char_traits<char>::eof( ) )
     {}
@@ -32,11 +34,11 @@ template <typename type_defs> class Desc
     std::string get( size_t uiPos ) const
     {
         std::string sRet = "";
-        typename desc_vec::const_iterator cIter = vData.begin( ) + uiPos;
+        typename desc_vec_t::const_iterator cIter = vData.begin( ) + uiPos;
         while( *cIter != cEof )
             sRet += *( cIter++ );
         return sRet;
     }
 };
 
-} // namespace bps
+} // namespace kdpstree

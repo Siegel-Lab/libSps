@@ -1,11 +1,10 @@
-#include "cstree/default.h"
+#include "kdpstree/default.h"
 
-PYBIND11_MODULE( libcstree, m )
+PYBIND11_MODULE( libKdpsTree, m )
 {
-    exportBinCorrdsGen<InMemTypeDef<1>>( m, "BinCordsGen" );
-    exportTree<InMemTypeDef<1>>( m, "CsTree_1D" );
-    exportTree<InMemTypeDef<2>>( m, "CsTree_2D" );
-    exportTree<InMemTypeDef<3>>( m, "CsTree_3D" );
-    exportTree<InMemTypeDef<4>>( m, "CsTree_4D" );
-    exportTree<InMemTypeDef<5>>( m, "CsTree_5D" );
+    exportTree<InMemTypeDef<1>>( m, "KdpsTree_1D" );
+    exportTree<InMemTypeDef<2>>( m, "KdpsTree_2D" );
+    exportTree<InMemTypeDef<3>>( m, "KdpsTree_3D" );
+    exportTree<InMemTypeDef<4>>( m, "KdpsTree_4D" );
+    exportTree<InMemTypeDef<5>>( m, "KdpsTree_5D" );
 }
