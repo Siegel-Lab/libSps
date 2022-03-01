@@ -4,6 +4,7 @@
 #include "kdpstree/point.h"
 #include "kdpstree/points.h"
 #include "kdpstree/type_defs.h"
+#include <iostream>
 
 
 #if WITH_PYTHON
@@ -29,7 +30,7 @@ template <typename type_defs> class Tree
     using overlay_meta_map_t = typeof( overlay_meta_map_generator( "" ) );
 
     vec_generator_t<coordinate_t> axis_vec_generator = vec_generator_t<coordinate_t>( );
-    using axis_vec_t = typeof( axis_vec_generator( "" ) );
+    using axis_vec_t = typeof( axis_vec_generator( ) );
 
     vec_generator_t<val_t> prefix_sum_vec_generator = vec_generator_t<val_t>( );
     using prefix_sum_vec_t = typeof( prefix_sum_vec_generator( "" ) );
@@ -108,12 +109,17 @@ template <typename type_defs> class Tree
                 // 3) save pointers to the constructed axes
                 vBegins[ uiI ] = vEntries.size( );
                 vSizes[ uiI ] = vTmp.size( );
+                std::cout << uiI << " inc by " << vTmp.size( ) << std::endl;
                 vEntries.incSize( vTmp.size( ) );
 
                 // 4) construct eytzinger representation of sorted compressed axis
                 constructEytzinger( vTmp, vBegins[ uiI ], 0, 1, vTmp.size( ) );
             } // for
 
+            std::cout << " insert ";
+            for( size_t uiI = 0; uiI < d; uiI++ )
+                std::cout << vOverlayPos[ uiI ] << ", ";
+            std::cout << std::endl;
             // insert overaly into correct position in tree
             vMeta.insert( std::pair<overlay_key_t, overlay_meta_t>(
                 overlay_key_t( rDatasetId, vOverlayPos ),
@@ -148,6 +154,7 @@ template <typename type_defs> class Tree
                 }
             }
 
+
             // 2) seperate points in that dimension (by sorting and looking for the split pos)
             vPoints.sortByDim( uiBestDim, uiFrom, uiTo );
             size_t uiAxisSplitIndex = ( vvAxisVecsIntervalEnd[ uiBestDim ] + vvAxisVecsIntervalStart[ uiBestDim ] ) / 2;
@@ -155,7 +162,7 @@ template <typename type_defs> class Tree
             size_t uiPointSplitIndex = uiFrom;
             vPoints.forRange(
                 [ & ]( const point_t& rP ) {
-                    if( rP.vPos[ uiBestDim ] <= uiSplitPos )
+                    if( rP.vPos[ uiBestDim ] < uiSplitPos )
                         uiPointSplitIndex += 1;
                 },
                 uiFrom, uiTo );
@@ -163,6 +170,8 @@ template <typename type_defs> class Tree
             vvAxisVecsIntervalEndNew[ uiBestDim ] = uiAxisSplitIndex;
             std::array<size_t, d> vvAxisVecsIntervalStartNew = vvAxisVecsIntervalStart;
             vvAxisVecsIntervalStartNew[ uiBestDim ] = uiAxisSplitIndex;
+            
+            std::cout << "split dim " << uiBestDim << " at " << uiSplitPos << " into " << 100 * fBestRatio << "%" << std::endl;
 
 
             // 3) recursive calls
@@ -218,26 +227,26 @@ template <typename type_defs> class Tree
     void iterateOverlaysIn( std::function<void( typename overlay_meta_map_t::const_iterator )> fDo,
                             const class_key_t& xDatasetId, const pos_t& vFrom, const pos_t& vTo ) const
     {
-        const pos_t vCurr = vTo;
+        pos_t vCurr = vTo;
         do
         {
-            typename overlay_meta_map_t::const_iterator xIt = getOverlay( xDatasetId, vCurr ) + 1;
+            typename overlay_meta_map_t::const_iterator xIt = ++getOverlay( xDatasetId, vCurr );
             do
             {
                 if( xIt != vMeta.begin( ) )
                     xIt--;
                 fDo( xIt );
-            } while( xIt != vMeta.begin( ) && allDimLarger( xIt->first->second, vFrom ) );
+            } while( xIt != vMeta.begin( ) && allDimLarger( xIt->first.second, vFrom ) );
 
-            if( !someDimLarger( xIt->first->second, vFrom ) )
+            if( !someDimLarger( xIt->first.second, vFrom ) )
                 break;
 
             for( size_t uiI = 0; uiI < d; uiI++ )
             {
-                if( xIt->first->second[ uiI ] <= vFrom[ uiI ] )
+                if( xIt->first.second[ uiI ] <= vFrom[ uiI ] )
                     vCurr[ uiI ] = vTo[ uiI ];
                 else
-                    vCurr[ uiI ] = xIt->first->second[ uiI ];
+                    vCurr[ uiI ] = xIt->first.second[ uiI ];
             }
         } while( true );
     }
@@ -335,8 +344,8 @@ template <typename type_defs> class Tree
                                                                         vvAxisVecsIntervalEnd, //
                                                                         vvPrefixSumVecs, //
                                                                         vInitialPrefixSum );
-        for( size_t uiI = 0; uiI < d; uiI++ )
-            assert( vFinalPrefixSum[ uiI ] == ( uiTo - uiFrom ) );
+        // for( size_t uiI = 0; uiI < d; uiI++ )
+        //    assert( vFinalPrefixSum[ uiI ] == ( uiTo - uiFrom ) );
     }
 
     val_t count( class_key_t xDatasetId, pos_t vFrom, pos_t vTo ) const
@@ -350,7 +359,7 @@ template <typename type_defs> class Tree
         iterateOverlaysIn(
             [ & ]( typename overlay_meta_map_t::const_iterator xIt ) {
                 vPoints.forRange(
-                    [ & ]( point_t& xPoint ) {
+                    [ & ]( const point_t& xPoint ) {
                         for( size_t uiI = 0; uiI < d; uiI++ )
                         {
                             if( xPoint.vPos[ uiI ] >= vTo[ uiI ] )
@@ -371,6 +380,19 @@ template <typename type_defs> class Tree
         iterate( [ & ]( pos_t vPos, std::string sDesc ) { vRet.emplace_back( vPos, sDesc ); }, xDatasetId, vFrom, vTo );
         return vRet;
     }
+
+    std::string print( ) const
+    {
+        std::string sRet = "Meta:";
+        for( auto xPair : vMeta )
+        {
+            sRet += "\nc" + std::to_string( xPair.first.first ) + ", l(";
+            for( size_t uiI = 0; uiI < d; uiI++ )
+                sRet += std::to_string( xPair.first.second[ uiI ] ) + ", ";
+            sRet += ") : " + xPair.second.print( );
+        }
+        return sRet + "\nEntries:\n" + vEntries.print( ) + "Points:\n" + vPoints.print( ) + "Desc:\n" + vDesc.print( );
+    }
 };
 
 } // namespace kdpstree
@@ -385,7 +407,7 @@ template <typename type_defs> void exportTree( pybind11::module& m, std::string 
         .def( "generate_for_points", &kdpstree::Tree<type_defs>::generateForPoints )
         .def( "count", &kdpstree::Tree<type_defs>::count, "" )
         .def( "get", &kdpstree::Tree<type_defs>::get, "" )
-        //.def( "__str__", &kdpstree::Tree<type_defs>::print )
+        .def( "__str__", &kdpstree::Tree<type_defs>::print )
         //.def( "str_raw", &kdpstree::Tree<type_defs>::printRaw )
 
         ;

@@ -77,6 +77,20 @@ template <typename type_defs> class Points
     {
         return vData.size( );
     }
+    
+    std::string print( ) const
+    {
+        std::string sRet = "";
+        size_t uiX = 0;
+        for(const auto& rP : vData)
+        {
+            sRet += std::to_string(uiX++) + ": ( ";
+            for( size_t uiI = 0; uiI < d; uiI++ )
+                sRet += std::to_string(rP.vPos[uiI]) + ", ";
+            sRet += ") : d" + std::to_string(rP.uiDescOffset) + "\n";
+        }
+        return sRet;
+    }
 };
 
 } // namespace kdpstree

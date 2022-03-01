@@ -29,14 +29,17 @@ template <typename type_defs> class OverlayMeta
     const size_t uiPointsEnd;
 
     OverlayMeta( std::array<size_t, d> vEntryBegins, //
-                 std::array<size_t, d> vSizes, //
+                 std::array<size_t, d>
+                     vSizes, //
                  size_t uiPointsBegin, //
                  size_t uiPointsEnd, //
                  const points_t& vPoints, //
                  overlay_entries_t& vEntries, //
                  const axis_vec_t& vvAxisVec, //
-                 std::array<size_t, d> vvAxisVecsIntervalStart, //
-                 std::array<size_t, d> vvAxisVecsIntervalEnd, //
+                 std::array<size_t, d>
+                     vvAxisVecsIntervalStart, //
+                 std::array<size_t, d>
+                     vvAxisVecsIntervalEnd, //
                  std::array<prefix_sum_vec_t, d>& vvPrefixSumVec, //
                  std::array<val_t, d>& vInitialPrefixSum )
         : vEntryBegins( vEntryBegins ), //
@@ -67,6 +70,15 @@ template <typename type_defs> class OverlayMeta
                 }
                 vvPrefixSumVec[ uiI ][ uiX ] += vInitialPrefixSum[ uiI ];
             }
+    }
+
+    std::string print( ) const
+    {
+        std::string sRet = "p" + std::to_string( uiPointsBegin ) + " - p" + std::to_string( uiPointsEnd );
+        for( size_t uiI = 0; uiI < d; uiI++ )
+            sRet += ", ( d" + std::to_string( uiI ) + ": e" + std::to_string( vEntryBegins[ uiI ] ) + ", s" +
+                    std::to_string( vSizes[ uiI ] ) + ")";
+        return sRet;
     }
 };
 

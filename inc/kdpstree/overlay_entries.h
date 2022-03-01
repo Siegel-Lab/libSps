@@ -104,6 +104,15 @@ template <typename type_defs> class OverlayEntries
     {
         return vData.size( );
     }
+    
+    std::string print( ) const
+    {
+        std::string sRet = "";
+        size_t uiI = 0;
+        for(const auto& rX : vData)
+            sRet += std::to_string(uiI++) + ": " + std::to_string(rX.first) + "->" + std::to_string(rX.second) + "\n";
+        return sRet;
+    }
 };
 
 } // namespace kdpstree

@@ -39,6 +39,21 @@ template <typename type_defs> class Desc
             sRet += *( cIter++ );
         return sRet;
     }
+
+    std::string print( ) const
+    {
+        std::string sRet = "0: ";
+        size_t uiI = 0;
+        for( const char& c : vData )
+        {
+            uiI++;
+            if( c == cEof )
+                sRet += "\n" + std::to_string(uiI) + ": ";
+            else
+                sRet += c;
+        }
+        return sRet + "<EoF>\n";
+    }
 };
 
 } // namespace kdpstree
