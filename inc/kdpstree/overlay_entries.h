@@ -3,6 +3,8 @@
 #include "kdpstree/type_defs.h"
 #include <functional>
 #include <string>
+#include <cassert>
+#include <iostream>
 
 
 namespace kdpstree
@@ -31,31 +33,51 @@ template <typename type_defs> class OverlayEntries
 
         size_t uiK = 1;
         size_t uiLastRight = 1;
+        if constexpr( EXPLAIN_QUERY )
+            std::cerr << "\t\t\tbin search for " << uiPos << " between " << uiBegin << " and "
+                      << uiBegin + uiSize << std::endl;
         while( uiK <= uiSize )
         {
             if( vData[ uiK - 1 + uiBegin ].first == uiPos )
+            {
+                if constexpr( EXPLAIN_QUERY )
+                    std::cerr << "\t\t\tbin search found at " << uiK - 1 + uiBegin << std::endl;
                 return uiK - 1 + uiBegin;
+            }
             else if( vData[ uiK - 1 + uiBegin ].first < uiPos )
+            {
+                if constexpr( EXPLAIN_QUERY )
+                    std::cerr << "\t\t\tbin search going right due to val " << vData[ uiK - 1 + uiBegin ].first 
+                              << " at " << uiK - 1 + uiBegin << std::endl;
+                uiLastRight = uiK;
                 uiK = 2 * uiK + 1;
+            }
             else
             {
-                uiLastRight = uiK;
+                if constexpr( EXPLAIN_QUERY )
+                    std::cerr << "\t\t\tbin search going left due to val " << vData[ uiK - 1 + uiBegin ].first 
+                              << " at " << uiK - 1 + uiBegin << std::endl;
                 uiK = 2 * uiK;
             }
         }
         return uiLastRight - 1 + uiBegin;
     }
 
-    size_t forRange( std::function<void( size_t, val_t& )>& fDo, size_t uiI, size_t uiK, size_t uiBegin, size_t uiSize )
+    void forRange( std::function<void( coordinate_t, const val_t& )>& fDo, size_t uiK, size_t uiBegin, size_t uiSize,
+                   coordinate_t uiFrom, coordinate_t uiTo ) const
     {
         if( uiK <= uiSize )
         {
-            uiI = forRange( fDo, uiI, 2 * uiK + 1, uiBegin, uiSize );
-            fDo( uiI++, vData[ uiK - 1 + uiBegin ].second );
-            uiI = forRange( fDo, uiI, 2 * uiK, uiBegin, uiSize );
+            if( vData[ uiK - 1 + uiBegin ].first >= uiFrom )
+                forRange( fDo, 2 * uiK, uiBegin, uiSize );
+            if( vData[ uiK - 1 + uiBegin ].first >= uiFrom && vData[ uiK - 1 + uiBegin ].first < uiTo )
+                fDo( vData[ uiK - 1 + uiBegin ].first, vData[ uiK - 1 + uiBegin ].second );
+            if( vData[ uiK - 1 + uiBegin ].first < uiTo )
+                forRange( fDo, 2 * uiK + 1, uiBegin, uiSize );
         }
-        return uiI;
     }
+
+    const val_t zero = 0;
 
   public:
     overlay_entry_vec_t vData;
@@ -72,7 +94,14 @@ template <typename type_defs> class OverlayEntries
     {
         // prevent write I/O
         const overlay_entry_vec_t& vData = this->vData;
-        return vData[ getIndex( uiPos, uiBegin, uiSize ) ].second;
+        size_t uiIdx = getIndex( uiPos, uiBegin, uiSize );
+        if( vData[uiIdx].first > uiPos )
+        {
+            if constexpr( EXPLAIN_QUERY )
+                std::cerr << "\t\t\treturning zero from overlay since " << uiPos << " is to the bottom of all entries." << std::endl;
+            return zero;
+        }
+        return vData[ uiIdx ].second;
     }
 
     bool has( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
@@ -95,9 +124,15 @@ template <typename type_defs> class OverlayEntries
         return vData[ getIndex( uiPos, uiBegin, uiSize ) ].second;
     }
 
-    void forRange( std::function<void( size_t, val_t& )>& fDo, size_t uiBegin, size_t uiSize )
+    void forRange( std::function<void( coordinate_t, const val_t& )>& fDo, size_t uiBegin, 
+                   size_t uiSize, coordinate_t uiFrom, coordinate_t uiTo ) const
     {
-        forRange( fDo, 0, 1, uiBegin, uiSize );
+        forRange( fDo, 1, uiBegin, uiSize, uiFrom, uiTo );
+    }
+
+    void forRange( std::function<void( coordinate_t, const val_t& )>& fDo, size_t uiBegin, size_t uiSize ) const
+    {
+        forRange( fDo, uiBegin, uiSize, 0, std::numeric_limits<coordinate_t>::max() );
     }
 
     size_t size( ) const
@@ -112,6 +147,11 @@ template <typename type_defs> class OverlayEntries
         for(const auto& rX : vData)
             sRet += std::to_string(uiI++) + ": " + std::to_string(rX.first) + "->" + std::to_string(rX.second) + "\n";
         return sRet;
+    }
+
+    void clear()
+    {
+        vData.clear();
     }
 };
 

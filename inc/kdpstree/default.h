@@ -48,6 +48,8 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               d, //
                               default_class_key_t, //
                               RamVecGenerator, //
-                              RamMapGenerator, //
-                              RamVectorSorter //
+                              RamVectorSorter, //
+                              2, //
+                              size_t, //
+                              true
                               >;

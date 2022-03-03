@@ -54,6 +54,11 @@ template <typename type_defs> class Desc
         }
         return sRet + "<EoF>\n";
     }
+
+    void clear()
+    {
+        vData.clear();
+    }
 };
 
 } // namespace kdpstree

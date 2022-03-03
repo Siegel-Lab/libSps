@@ -48,9 +48,9 @@ template <typename type_defs> class Points
 
     sort_func_t<points_it_t, PointsComperator> sort_points = sort_func_t<points_it_t, PointsComperator>( );
 
+  public:
     points_vec_t vData;
 
-  public:
     Points( std::string sPrefix ) : vData( points_vec_generator( sPrefix + ".points" ) )
     {}
 
@@ -59,13 +59,14 @@ template <typename type_defs> class Points
         vData.push_back( point_t( vPos, uiDescOffset ) );
     }
 
-    void forRange( std::function<void( const point_t& )> fDo, size_t uiFrom, size_t uiTo ) const
+    void forRange( std::function<bool( const point_t& )> fDo, size_t uiFrom, size_t uiTo ) const
     {
         assert( uiTo >= uiFrom );
 
         const_points_it_t itEnd = vData.begin( ) + uiTo;
-        for( const_points_it_t cIter = vData.begin( ) + uiFrom; cIter != itEnd; cIter++ )
-            fDo( *cIter );
+        bool bContinue = true;
+        for( const_points_it_t cIter = vData.begin( ) + uiFrom; cIter != itEnd && bContinue; cIter++ )
+            bContinue = fDo( *cIter );
     }
 
     void sortByDim( size_t uiDim, size_t uiFrom, size_t uiTo )
@@ -90,6 +91,11 @@ template <typename type_defs> class Points
             sRet += ") : d" + std::to_string(rP.uiDescOffset) + "\n";
         }
         return sRet;
+    }
+
+    void clear()
+    {
+        vData.clear();
     }
 };
 
