@@ -65,16 +65,18 @@ template <typename type_defs> class OverlayEntries
     }
 
     void forRange( std::function<void( coordinate_t, const val_t& )>& fDo, size_t uiK, size_t uiBegin, size_t uiSize,
-                   coordinate_t uiFrom, coordinate_t uiTo ) const
+                   coordinate_t uiFrom, coordinate_t uiTo, bool bHaveGoneLeft ) const
     {
         if( uiK <= uiSize )
         {
             if( vData[ uiK - 1 + uiBegin ].first >= uiFrom )
-                forRange( fDo, 2 * uiK, uiBegin, uiSize, uiFrom, uiTo );
-            if( vData[ uiK - 1 + uiBegin ].first >= uiFrom && vData[ uiK - 1 + uiBegin ].first < uiTo )
+                forRange( fDo, 2 * uiK, uiBegin, uiSize, uiFrom, uiTo, true );
+            bool bLeftOk = vData[ uiK - 1 + uiBegin ].first < uiTo;
+            bool bRightOk = vData[ uiK - 1 + uiBegin ].first >= uiFrom || 2 * uiK > uiSize;
+            if( bLeftOk && bRightOk )
                 fDo( vData[ uiK - 1 + uiBegin ].first, vData[ uiK - 1 + uiBegin ].second );
             if( vData[ uiK - 1 + uiBegin ].first < uiTo )
-                forRange( fDo, 2 * uiK + 1, uiBegin, uiSize, uiFrom, uiTo );
+                forRange( fDo, 2 * uiK + 1, uiBegin, uiSize, uiFrom, uiTo, bHaveGoneLeft );
         }
     }
 
@@ -134,7 +136,7 @@ template <typename type_defs> class OverlayEntries
     void forRange( std::function<void( coordinate_t, const val_t& )> fDo, size_t uiBegin, size_t uiSize,
                    coordinate_t uiFrom, coordinate_t uiTo ) const
     {
-        forRange( fDo, 1, uiBegin, uiSize, uiFrom, uiTo );
+        forRange( fDo, 1, uiBegin, uiSize, uiFrom, uiTo, false );
     }
 
     void forRange( std::function<void( coordinate_t, const val_t& )> fDo, size_t uiBegin, size_t uiSize ) const
