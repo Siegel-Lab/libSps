@@ -27,6 +27,7 @@ template <typename type_defs> class OverlayEntries
      * @param uiSize
      * @return size_t
      */
+    template<bool SILENT>
     size_t getIndex( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
     {
         // prevent write I/O
@@ -34,20 +35,20 @@ template <typename type_defs> class OverlayEntries
 
         size_t uiK = 1;
         size_t uiLastRight = 1;
-        if constexpr( EXPLAIN_QUERY )
+        if constexpr( EXPLAIN_QUERY && !SILENT )
             std::cerr << "\t\t\tbin search for " << uiPos << " between " << uiBegin << " and " << uiBegin + uiSize
                       << std::endl;
         while( uiK <= uiSize )
         {
             if( vData[ uiK - 1 + uiBegin ].first == uiPos )
             {
-                if constexpr( EXPLAIN_QUERY )
+                if constexpr( EXPLAIN_QUERY && !SILENT )
                     std::cerr << "\t\t\tbin search found at " << uiK - 1 + uiBegin << std::endl;
                 return uiK - 1 + uiBegin;
             }
             else if( vData[ uiK - 1 + uiBegin ].first < uiPos )
             {
-                if constexpr( EXPLAIN_QUERY )
+                if constexpr( EXPLAIN_QUERY && !SILENT )
                     std::cerr << "\t\t\tbin search going right due to val " << vData[ uiK - 1 + uiBegin ].first
                               << " at " << uiK - 1 + uiBegin << std::endl;
                 uiLastRight = uiK;
@@ -55,7 +56,7 @@ template <typename type_defs> class OverlayEntries
             }
             else
             {
-                if constexpr( EXPLAIN_QUERY )
+                if constexpr( EXPLAIN_QUERY && !SILENT )
                     std::cerr << "\t\t\tbin search going left due to val " << vData[ uiK - 1 + uiBegin ].first << " at "
                               << uiK - 1 + uiBegin << std::endl;
                 uiK = 2 * uiK;
@@ -97,7 +98,7 @@ template <typename type_defs> class OverlayEntries
     {
         // prevent write I/O
         const overlay_entry_vec_t& vData = this->vData;
-        size_t uiIdx = getIndex( uiPos, uiBegin, uiSize );
+        size_t uiIdx = getIndex<true>( uiPos, uiBegin, uiSize );
         if( vData[ uiIdx ].first > uiPos )
         {
             if constexpr( EXPLAIN_QUERY )
@@ -117,7 +118,7 @@ template <typename type_defs> class OverlayEntries
     {
         // prevent write I/O
         const overlay_entry_vec_t& vData = this->vData;
-        return vData[ getIndex( uiPos, uiBegin, uiSize ) ].first == uiPos;
+        return vData[ getIndex<true>( uiPos, uiBegin, uiSize ) ].first == uiPos;
     }
 
     /**
@@ -130,7 +131,7 @@ template <typename type_defs> class OverlayEntries
      */
     val_t& variableGet( coordinate_t uiPos, size_t uiBegin, size_t uiSize )
     {
-        return vData[ getIndex( uiPos, uiBegin, uiSize ) ].second;
+        return vData[ getIndex<true>( uiPos, uiBegin, uiSize ) ].second;
     }
 
     void forRange( std::function<void( coordinate_t, const val_t& )> fDo, size_t uiBegin, size_t uiSize,

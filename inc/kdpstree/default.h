@@ -42,14 +42,12 @@ using default_coordinate_t = uint32_t;
 using default_val_t = uint32_t;
 using default_class_key_t = uint16_t;
 
-template <size_t d>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
-                              d, //
                               default_class_key_t, //
                               RamVecGenerator, //
                               RamVectorSorter, //
-                              2, //
+                              8, //
                               size_t, //
-                              true
+                              true // explain
                               >;

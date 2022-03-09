@@ -8,7 +8,6 @@ namespace kdpstree
 
 template <typename _coordinate_t, //
           typename _val_t, //
-          size_t _d, //
           typename _class_key_t, //
           template <typename> typename _vec_generator, //
           template <typename, typename> typename _sort_func_t, //
@@ -21,7 +20,7 @@ class TypeDefs
   public:
     using coordinate_t = _coordinate_t;
     using val_t = _val_t;
-    static const _coordinate_t d = _d;
+    static const _coordinate_t d = 2; // @todo remove
     using pos_t = std::array<coordinate_t, d>;
     using class_key_t = _class_key_t;
 
