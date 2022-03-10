@@ -2,5 +2,5 @@
 
 PYBIND11_MODULE( libKdpsTree, m )
 {
-    exportTree<InMemTypeDef>( m, "KdpsTree" );
+    exportTree<InMemTypeDef<1>>( m, "KdpsTree_1L" );
 }

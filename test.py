@@ -1,7 +1,7 @@
 from build.libKdpsTree import *
 import random
 
-print_all = True
+print_all = False
 
 
 def fixed(tree, d, points, x=0):

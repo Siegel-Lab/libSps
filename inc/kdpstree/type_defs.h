@@ -8,6 +8,7 @@ namespace kdpstree
 
 template <typename _coordinate_t, //
           typename _val_t, //
+          size_t _layers, //
           typename _class_key_t, //
           template <typename> typename _vec_generator, //
           template <typename, typename> typename _sort_func_t, //
@@ -20,7 +21,10 @@ class TypeDefs
   public:
     using coordinate_t = _coordinate_t;
     using val_t = _val_t;
-    static const _coordinate_t d = 2; // @todo remove
+    static const size_t LAYERS = _layers;
+    //using cnt_t = std::array<val_t, 2>;
+    using data_t = std::array<val_t, LAYERS>;
+    static const coordinate_t d = 2; // @todo remove
     using pos_t = std::array<coordinate_t, d>;
     using class_key_t = _class_key_t;
 
@@ -30,7 +34,7 @@ class TypeDefs
 
     template <typename it_t, typename cmp_t> using sort_func_t = _sort_func_t<it_t, cmp_t>;
 
-    using overlay_entry_t = std::pair<coordinate_t, val_t>;
+    using overlay_entry_t = std::pair<coordinate_t, data_t>;
 
     static constexpr bool EXPLAIN_QUERY = _explain;
 
@@ -44,6 +48,12 @@ class TypeDefs
                                                                                                                        \
     using val_t = typename type_defs::val_t;                                                                           \
                                                                                                                        \
+    //using cnt_t = typename type_defs::cnt_t;                                                                         \
+                                                                                                                       \
+    using data_t = typename type_defs::data_t;                                                                         \
+                                                                                                                       \
+    static const size_t LAYERS = type_defs::LAYERS;                                                                    \
+                                                                                                                       \
     static const coordinate_t d = type_defs::d;                                                                        \
                                                                                                                        \
     using pos_t = typename type_defs::pos_t;                                                                           \
@@ -52,7 +62,7 @@ class TypeDefs
                                                                                                                        \
     using overlay_key_t = typename type_defs::overlay_key_t;                                                           \
                                                                                                                        \
-    template <typename val_t> using vec_generator_t = typename type_defs::template vec_generator_t<val_t>;             \
+    template <typename val_type_t> using vec_generator_t = typename type_defs::template vec_generator_t<val_type_t>;   \
                                                                                                                        \
     template <typename it_t, typename cmp_t>                                                                           \
     using sort_func_t = typename type_defs::template sort_func_t<it_t, cmp_t>;                                         \

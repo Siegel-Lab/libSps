@@ -30,19 +30,64 @@ template <typename type_defs> class Points
         PointsComperator( size_t uiDim ) : uiDim( uiDim )
         {}
 
-        bool operator( )( const point_t& a, const point_t& b ) const
+        virtual bool operator( )( const point_t& a, const point_t& b ) const
         {
-            return a.vPos[ uiDim ] < b.vPos[ uiDim ];
+            return a.vFrom[ uiDim ] < b.vFrom[ uiDim ];
         }
 
-        coordinate_t min_value( ) const
+        virtual coordinate_t min_value( ) const
         {
             return 0;
         };
 
-        coordinate_t max_value( ) const
+        virtual coordinate_t max_value( ) const
         {
             return std::numeric_limits<coordinate_t>::max( );
+        };
+    };
+
+    struct PointsLayerComperator: public PointsComperator 
+    {
+        using PointsComperator::PointsComperator;
+
+        virtual bool operator( )( const point_t& a, const point_t& b ) const
+        {
+            if(a.uiLayer == b.uiLayer)
+                return PointsComperator::operator()(a, b);
+            return a.uiLayer < b.uiLayer;
+        }
+
+        virtual coordinate_t max_value( ) const
+        {
+            return LAYER;
+        };
+    };
+
+
+    struct PointsEndComperator: public PointsComperator
+    {
+        using PointsComperator::PointsComperator;
+
+        virtual bool operator( )( const point_t& a, const point_t& b ) const
+        {
+            return a.vTo[ uiDim ] < b.vTo[ uiDim ];
+        }
+    };
+    
+    struct PointsLayerEndComperator: public PointsEndComperator
+    {
+        using PointsEndComperator::PointsEndComperator;
+
+        virtual bool operator( )( const point_t& a, const point_t& b ) const
+        {
+            if(a.uiLayer == b.uiLayer)
+                return PointsEndComperator::operator()(a, b);
+            return a.uiLayer < b.uiLayer;
+        }
+
+        virtual coordinate_t max_value( ) const
+        {
+            return LAYER;
         };
     };
 
@@ -54,9 +99,9 @@ template <typename type_defs> class Points
     Points( std::string sPrefix ) : vData( points_vec_generator( sPrefix + ".points" ) )
     {}
 
-    size_t add( pos_t vPos, size_t uiDescOffset )
+    size_t add( pos_t vFrom, pos_t vTo, size_t uiDescOffset, size_t uiLayer )
     {
-        vData.push_back( point_t( vPos, uiDescOffset ) );
+        vData.push_back( point_t( vFrom, vTo, uiDescOffset, uiLayer ) );
     }
 
     void forRange( std::function<bool( const point_t& )> fDo, size_t uiFrom, size_t uiTo ) const
@@ -73,24 +118,23 @@ template <typename type_defs> class Points
     {
         sort_points( vData.begin( ) + uiFrom, vData.begin( ) + uiTo, PointsComperator( uiDim ) );
     }
+    void sortByLayerAndDim( size_t uiDim, size_t uiFrom, size_t uiTo )
+    {
+        sort_points( vData.begin( ) + uiFrom, vData.begin( ) + uiTo, PointsLayerComperator( uiDim ) );
+    }
+
+    void sortEndByDim( size_t uiDim, size_t uiFrom, size_t uiTo )
+    {
+        sort_points( vData.begin( ) + uiFrom, vData.begin( ) + uiTo, PointsEndComperator( uiDim ) );
+    }
+    void sortEndByLayerAndDim( size_t uiDim, size_t uiFrom, size_t uiTo )
+    {
+        sort_points( vData.begin( ) + uiFrom, vData.begin( ) + uiTo, PointsLayerEndComperator( uiDim ) );
+    }
 
     size_t size( ) const
     {
         return vData.size( );
-    }
-    
-    std::string print( ) const
-    {
-        std::string sRet = "";
-        size_t uiX = 0;
-        for(const auto& rP : vData)
-        {
-            sRet += std::to_string(uiX++) + ": ( ";
-            for( size_t uiI = 0; uiI < d; uiI++ )
-                sRet += std::to_string(rP.vPos[uiI]) + ", ";
-            sRet += ") : d" + std::to_string(rP.uiDescOffset) + "\n";
-        }
-        return sRet;
     }
 
     void clear()
@@ -98,5 +142,14 @@ template <typename type_defs> class Points
         vData.clear();
     }
 };
+
+std::ostream& operator<<(std::ostream& os, const Points& vPoints)
+{
+    os << "Points:" << std::endl;
+    size_t uiX = 0;
+    for(const auto& rP : vData)
+        os << uiX++ << ": " << rP << std::endl;
+    return os;
+}
 
 } // namespace kdpstree

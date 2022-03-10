@@ -2,7 +2,7 @@
 #include "kdpstree/tree.h"
 
 int main(){
-    typename kdpstree::Tree<InMemTypeDef> xTree("test");
+    typename kdpstree::Tree<InMemTypeDef<1>> xTree("test");
 
     return 0;
 }

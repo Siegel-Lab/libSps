@@ -65,7 +65,7 @@ template <typename type_defs> class OverlayEntries
         return uiLastRight - 1 + uiBegin;
     }
 
-    void forRange( std::function<void( coordinate_t, const val_t& )>& fDo, size_t uiK, size_t uiBegin, size_t uiSize,
+    void forRange( std::function<void( coordinate_t, const data_t& )>& fDo, size_t uiK, size_t uiBegin, size_t uiSize,
                    coordinate_t uiFrom, coordinate_t uiTo, bool bHaveGoneLeft ) const
     {
         if( uiK <= uiSize )
@@ -81,7 +81,7 @@ template <typename type_defs> class OverlayEntries
         }
     }
 
-    const val_t zero = 0;
+    const data_t zero = 0;
 
   public:
     overlay_entry_vec_t vData;
@@ -94,7 +94,7 @@ template <typename type_defs> class OverlayEntries
         vData.resize( vData.size( ) + uiNum );
     }
 
-    const val_t& get( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
+    const data_t& get( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
     {
         // prevent write I/O
         const overlay_entry_vec_t& vData = this->vData;
@@ -109,7 +109,7 @@ template <typename type_defs> class OverlayEntries
         return vData[ uiIdx ].second;
     }
 
-    const val_t& getLast( size_t uiBegin, size_t uiSize ) const
+    const data_t& getLast( size_t uiBegin, size_t uiSize ) const
     {
         return get( std::numeric_limits<coordinate_t>::max( ), uiBegin, uiSize );
     }
@@ -127,20 +127,20 @@ template <typename type_defs> class OverlayEntries
      * @param uiPos
      * @param uiBegin
      * @param uiSize
-     * @return val_t&
+     * @return data_t&
      */
-    val_t& variableGet( coordinate_t uiPos, size_t uiBegin, size_t uiSize )
+    data_t& variableGet( coordinate_t uiPos, size_t uiBegin, size_t uiSize )
     {
         return vData[ getIndex<true>( uiPos, uiBegin, uiSize ) ].second;
     }
 
-    void forRange( std::function<void( coordinate_t, const val_t& )> fDo, size_t uiBegin, size_t uiSize,
+    void forRange( std::function<void( coordinate_t, const data_t& )> fDo, size_t uiBegin, size_t uiSize,
                    coordinate_t uiFrom, coordinate_t uiTo ) const
     {
         forRange( fDo, 1, uiBegin, uiSize, uiFrom, uiTo, false );
     }
 
-    void forRange( std::function<void( coordinate_t, const val_t& )> fDo, size_t uiBegin, size_t uiSize ) const
+    void forRange( std::function<void( coordinate_t, const data_t& )> fDo, size_t uiBegin, size_t uiSize ) const
     {
         forRange( fDo, uiBegin, uiSize, 0, std::numeric_limits<coordinate_t>::max( ) );
     }
