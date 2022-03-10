@@ -44,30 +44,6 @@ template <typename type_defs> class OverlayKdTree
           vLeaves( overlay_meta_vec_generator( sPrefix + ".overlay_leaves" ) ) //
     {}
 
-    std::string print( ) const
-    {
-        std::string sRet = "Roots:\n";
-        for( size_t uiI = 0; uiI < vRoots.size( ); uiI++ )
-            sRet += std::to_string( uiI ) + ": c" + std::to_string( std::get<0>( vRoots[ uiI ] ) ) + " -> o" +
-                    std::to_string( std::get<1>( vRoots[ uiI ] ) ) +
-                    ( std::get<2>( vRoots[ uiI ] ) ? " leaf\n" : " branch\n" );
-        sRet += "Branches:\n";
-        for( size_t uiI = 0; uiI < vTree.size( ); uiI++ )
-        {
-            sRet += std::to_string( uiI ) + ": d" + std::to_string( vTree[ uiI ].uiSplitDimension );
-            for( size_t uiA = 0; uiA < b; uiA++ )
-                if( std::get<1>( vTree[ uiI ].vChildren[ uiA ] ) != std::numeric_limits<offset_t>::max( ) )
-                    sRet += " (p" + std::to_string( std::get<0>( vTree[ uiI ].vChildren[ uiA ] ) ) + ", o" +
-                            std::to_string( std::get<1>( vTree[ uiI ].vChildren[ uiA ] ) ) +
-                            ( std::get<2>( vTree[ uiI ].vChildren[ uiA ] ) ? ", leaf)" : ", branch)" );
-            sRet += "\n";
-        }
-        sRet += "Leaves:\n";
-        for( size_t uiI = 0; uiI < vLeaves.size( ); uiI++ )
-            sRet += std::to_string( uiI ) + ": " + vLeaves[ uiI ].print( ) + "\n";
-        return sRet;
-    }
-
     void clear()
     {
         vTree.clear();
@@ -75,5 +51,31 @@ template <typename type_defs> class OverlayKdTree
         vLeaves.clear();
     }
 };
+
+template <typename type_defs>
+std::ostream& operator<<(std::ostream& os, const OverlayKdTree<type_defs>& rTree)
+{
+    os << "Roots:" << std::endl;
+    for( size_t uiI = 0; uiI < rTree.vRoots.size( ); uiI++ )
+        os << uiI << ": c" << std::get<0>( rTree.vRoots[uiI] ) << " -> o" 
+           << std::get<1>( rTree.vRoots[uiI] ) << ( std::get<2>( rTree.vRoots[uiI] ) ? " leaf" : " branch" ) 
+           << std::endl;
+    os << "Branches:" << std::endl;
+    for( size_t uiI = 0; uiI < rTree.vTree.size( ); uiI++ )
+    {
+        os << uiI << ": d" << rTree.vTree[ uiI ].uiSplitDimension;
+        for( size_t uiA = 0; uiA < type_defs::b; uiA++ )
+            if( std::get<1>( rTree.vTree[ uiI ].vChildren[ uiA ] ) != std::numeric_limits<typename type_defs::offset_t>::max( ) )
+                os << uiA << ": (p" << std::get<0>(rTree.vTree[ uiI ].vChildren[ uiA ]) << ", o" 
+                   << std::get<1>( rTree.vTree[ uiI ].vChildren[ uiA ] ) 
+                   << ( std::get<2>( rTree.vTree[uiI].vChildren[ uiA ] ) ? " leaf) " : " branch) " );
+        os << std::endl;
+    }
+    os << "Leaves:" << std::endl;
+    for( size_t uiI = 0; uiI < rTree.vLeaves.size( ); uiI++ )
+        os << uiI << ": " << rTree.vLeaves[ uiI ] << std::endl;
+    return os;
+}
+
 
 } // namespace kdpstree

@@ -6,24 +6,24 @@ namespace kdpstree
 {
 template <typename type_defs> class Point
 {
-    using pos_t = typename type_defs::pos_t;
+    EXTRACT_TYPE_DEFS; // macro call
 
   public:
-    pos_t vFrom;
-    pos_t vTo;
+    pos_t vPos;
     size_t uiDescOffset;
-    size_t uiLayer;
+    layers_t uiLayer;
 
-    Point( pos_t vFrom, pos_t vTo, size_t uiDescOffset, size_t uiLayer ) : vFrom( vFrom ), vTo( vTo ), 
-                                                                           uiDescOffset( uiDescOffset ), 
-                                                                           uiLayer(uiLayer)
+    Point( pos_t vPos, size_t uiDescOffset, layers_t uiLayer )
+        : vPos( vPos ), uiDescOffset( uiDescOffset ), uiLayer( uiLayer )
+    {}
+
+    Point( ) : vPos{ }, uiDescOffset( 0 ), uiLayer( 0 )
     {}
 };
 
-
-std::ostream& operator<<(std::ostream& os, const Point& xPoint)
+template <typename type_defs> std::ostream& operator<<( std::ostream& os, const Point<type_defs>& xPoint )
 {
-    os << xPoint.vFrom << " - " << xPoint.vTo << " l" << xPoint.uiLayer << " d" << xPoint.uiDescOffset;
+    os << xPoint.vPos << " l" << (size_t)xPoint.uiLayer << " d" << xPoint.uiDescOffset;
     return os;
 }
 

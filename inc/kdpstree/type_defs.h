@@ -8,6 +8,7 @@ namespace kdpstree
 
 template <typename _coordinate_t, //
           typename _val_t, //
+          typename _layers_t, //
           size_t _layers, //
           typename _class_key_t, //
           template <typename> typename _vec_generator, //
@@ -21,7 +22,8 @@ class TypeDefs
   public:
     using coordinate_t = _coordinate_t;
     using val_t = _val_t;
-    static const size_t LAYERS = _layers;
+    using layers_t = _layers_t;
+    static const layers_t LAYERS = _layers;
     //using cnt_t = std::array<val_t, 2>;
     using data_t = std::array<val_t, LAYERS>;
     static const coordinate_t d = 2; // @todo remove
@@ -48,7 +50,9 @@ class TypeDefs
                                                                                                                        \
     using val_t = typename type_defs::val_t;                                                                           \
                                                                                                                        \
-    //using cnt_t = typename type_defs::cnt_t;                                                                         \
+    using layers_t = typename type_defs::layers_t;                                                                     \
+                                                                                                                       \
+    /*using cnt_t = typename type_defs::cnt_t;*/                                                                       \
                                                                                                                        \
     using data_t = typename type_defs::data_t;                                                                         \
                                                                                                                        \

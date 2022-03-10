@@ -40,16 +40,18 @@ template <typename key_t, typename val_t> struct RamMapGenerator
 
 using default_coordinate_t = uint32_t;
 using default_val_t = uint32_t;
+using default_layer_t = uint8_t;
 using default_class_key_t = uint16_t;
 
 template<size_t layers>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
+                              default_layer_t, //
                               layers, //
                               default_class_key_t, //
                               RamVecGenerator, //
                               RamVectorSorter, //
                               8, //
                               size_t, //
-                              false // explain
+                              true // explain
                               >;

@@ -5,6 +5,11 @@
 
 namespace kdpstree
 {
+    
+template <typename type_defs> class Desc;
+
+template <typename type_defs>
+std::ostream& operator<<(std::ostream& os, const Desc<type_defs>& rDesc);
 
 template <typename type_defs> class Desc
 {
@@ -15,6 +20,8 @@ template <typename type_defs> class Desc
 
     desc_vec_t vData;
     char cEof;
+    
+    friend std::ostream& operator<< <>(std::ostream& os, const Desc& rTree);
 
   public:
     Desc( std::string sPrefix, char cEof ) : vData( vec_generator( sPrefix + ".desc" ) ), cEof( cEof )
@@ -40,25 +47,28 @@ template <typename type_defs> class Desc
         return sRet;
     }
 
-    std::string print( ) const
-    {
-        std::string sRet = "0: ";
-        size_t uiI = 0;
-        for( const char& c : vData )
-        {
-            uiI++;
-            if( c == cEof )
-                sRet += "\n" + std::to_string(uiI) + ": ";
-            else
-                sRet += c;
-        }
-        return sRet + "<EoF>\n";
-    }
-
     void clear()
     {
         vData.clear();
     }
 };
+
+template <typename type_defs>
+std::ostream& operator<<(std::ostream& os, const Desc<type_defs>& rDesc)
+{
+    os << "0: ";
+    size_t uiI = 0;
+    for( const char& c : rDesc.vData )
+    {
+        uiI++;
+        if( c == rDesc.cEof )
+            os << std::endl << uiI << ": ";
+        else
+            os << c;
+    }
+    os << "<EoF>" << std::endl;
+    return os;
+}
+
 
 } // namespace kdpstree

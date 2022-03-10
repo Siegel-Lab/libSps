@@ -34,15 +34,17 @@ template <typename type_defs> class OverlayMeta
           uiPointsEnd( uiPointsEnd )
     {
     }
-
-    std::string print( ) const
-    {
-        std::string sRet = "p" + std::to_string( uiPointsBegin ) + " - p" + std::to_string( uiPointsEnd );
-        for( size_t uiI = 0; uiI < d; uiI++ )
-            sRet += ", ( d" + std::to_string( uiI ) + ": e" + std::to_string( vEntryBegins[ uiI ] ) + ", s" +
-                    std::to_string( vSizes[ uiI ] ) + ")";
-        return sRet;
-    }
 };
+
+
+template <typename type_defs>
+std::ostream& operator<<(std::ostream& os, const OverlayMeta<type_defs>& rMeta)
+{
+    os << "p" << rMeta.uiPointsBegin << " - p" << rMeta.uiPointsEnd;
+    for( size_t uiI = 0; uiI < type_defs::d; uiI++ )
+        os << ", (d" << uiI << ": e" << rMeta.vEntryBegins[ uiI ] << ", s" << rMeta.vSizes[ uiI ] << ")";
+    return os;
+}
+
 
 } // namespace kdpstree
