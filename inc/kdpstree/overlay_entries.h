@@ -1,12 +1,11 @@
 #pragma once
 
-#include "kdpstree/util.h"
 #include "kdpstree/type_defs.h"
+#include "kdpstree/util.h"
 #include <cassert>
 #include <functional>
 #include <iostream>
 #include <string>
-
 
 
 namespace kdpstree
@@ -16,8 +15,7 @@ template <typename type_defs> class OverlayEntries
 {
     EXTRACT_TYPE_DEFS; // macro call
 
-    vec_generator_t<overlay_entry_t> overlay_entry_vec_generator = vec_generator_t<overlay_entry_t>( );
-    using overlay_entry_vec_t = typeof( overlay_entry_vec_generator( "" ) );
+    EXTRACT_VEC_GENERATOR( entry, overlay_entry_t ); // macro call
 
 
     /**
@@ -28,11 +26,10 @@ template <typename type_defs> class OverlayEntries
      * @param uiSize
      * @return size_t
      */
-    template<bool SILENT>
-    size_t getIndex( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
+    template <bool SILENT> size_t getIndex( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
     {
         // prevent write I/O
-        const overlay_entry_vec_t& vData = this->vData;
+        const entry_vec_t& vData = this->vData;
 
         size_t uiK = 1;
         size_t uiLastRight = 1;
@@ -82,12 +79,14 @@ template <typename type_defs> class OverlayEntries
         }
     }
 
-    const data_t zero {};
+    const data_t zero{ };
 
   public:
-    overlay_entry_vec_t vData;
+    entry_file_t xFile;
+    entry_vec_t vData;
 
-    OverlayEntries( std::string sPrefix ) : vData( overlay_entry_vec_generator( sPrefix + ".overlay_entries" ) )
+    OverlayEntries( std::string sPrefix )
+        : xFile( entry_vec_generator.file( sPrefix + ".overlay_entries" ) ), vData( entry_vec_generator.vec( xFile ) )
     {}
 
     void incSize( size_t uiNum )
@@ -98,7 +97,7 @@ template <typename type_defs> class OverlayEntries
     const data_t& get( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
     {
         // prevent write I/O
-        const overlay_entry_vec_t& vData = this->vData;
+        const entry_vec_t& vData = this->vData;
         size_t uiIdx = getIndex<true>( uiPos, uiBegin, uiSize );
         if( vData[ uiIdx ].first > uiPos )
         {
@@ -118,7 +117,7 @@ template <typename type_defs> class OverlayEntries
     bool has( coordinate_t uiPos, size_t uiBegin, size_t uiSize ) const
     {
         // prevent write I/O
-        const overlay_entry_vec_t& vData = this->vData;
+        const entry_vec_t& vData = this->vData;
         return vData[ getIndex<true>( uiPos, uiBegin, uiSize ) ].first == uiPos;
     }
 
@@ -157,29 +156,25 @@ template <typename type_defs> class OverlayEntries
     }
 };
 
-template<typename T, size_t N>
-std::ostream& operator<<(std::ostream &out, const std::array<T, N>& array)
+template <typename T, size_t N> std::ostream& operator<<( std::ostream& out, const std::array<T, N>& array )
 {
     out << "[";
-    if (N > 0)
-        out << array[0];
-    for(size_t uiI = 1; uiI < N; uiI++)
-        out << ", " << array[uiI];
+    if( N > 0 )
+        out << array[ 0 ];
+    for( size_t uiI = 1; uiI < N; uiI++ )
+        out << ", " << array[ uiI ];
     out << "]";
     return out;
 }
 
 
-
-template<typename T1, typename T2>
-std::ostream& operator<<(std::ostream &out, const std::pair<T1, T2>& pair)
+template <typename T1, typename T2> std::ostream& operator<<( std::ostream& out, const std::pair<T1, T2>& pair )
 {
     out << "(" << pair.first << ", " << pair.second << ")";
     return out;
 }
 
-template <typename type_defs>
-std::ostream& operator<<(std::ostream& os, const OverlayEntries<type_defs>& rEntries)
+template <typename type_defs> std::ostream& operator<<( std::ostream& os, const OverlayEntries<type_defs>& rEntries )
 {
     size_t uiI = 0;
     for( const typename type_defs::overlay_entry_t& rX : rEntries.vData )

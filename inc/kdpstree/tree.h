@@ -78,17 +78,11 @@ template <typename type_defs> class Tree
     using points_t = Points<type_defs>;
     using desc_t = Desc<type_defs>;
 
-    vec_generator_t<coordinate_t> cord_vec_generator = vec_generator_t<coordinate_t>( );
-    using cord_vec_t = typeof( cord_vec_generator( ) );
+    
+    EXTRACT_TMP_VEC_GENERATOR(cord, coordinate_t); // macro call
 
-    vec_generator_t<std::pair<coordinate_t, data_t>> axis_vec_generator = vec_generator_t<std::pair<coordinate_t, data_t>>( );
-    using axis_vec_t = typeof( axis_vec_generator( ) );
-
-    vec_generator_t<data_t> prefix_sum_vec_generator = vec_generator_t<data_t>( );
-    using prefix_sum_vec_t = typeof( prefix_sum_vec_generator( "" ) );
-
-    vec_generator_t<point_t> point_vec_generator = vec_generator_t<point_t>( );
-    using point_vec_t = typeof( point_vec_generator( ) );
+    using axis_t = std::pair<coordinate_t, data_t>;
+    EXTRACT_TMP_VEC_GENERATOR(axis, axis_t); // macro call
 
     friend std::ostream& operator<< <>(std::ostream& os, const Tree& rTree);
 
@@ -160,7 +154,7 @@ template <typename type_defs> class Tree
                 if constexpr( EXPLAIN_QUERY )
                     std::cerr << "\tgenerating axis for dimension=" << uiI << std::endl;
                 // 2) fill a temp vec with the values
-                auto vTmp = axis_vec_generator( );
+                auto vTmp = axis_vec_generator.vec( );
                 if constexpr( EXPLAIN_QUERY )
                 {
                     std::cerr << "\tuiAxisCoordinatesStart/End=" << vAxisFrom[uiI] << " "
@@ -182,9 +176,6 @@ template <typename type_defs> class Tree
                 }
 
                 pos_t vPos = vOverlayTopRight;
-                for( size_t uiA = 0; uiA < d; uiA++ )
-                    if(vPos[uiA] < std::numeric_limits<coordinate_t>::max())
-                        ++vPos[uiA];
                 vPos[ uiI ] = vOverlayBottomLeft[ uiI ];
                 if constexpr( EXPLAIN_QUERY )
                     std::cerr << "\toverlay init val pos=" << vPos << std::endl;
@@ -280,7 +271,7 @@ template <typename type_defs> class Tree
             // insert overlay into correct position in tree
 
             offset_t uiMyOffset = vTree.vLeaves.size( );
-            vTree.vLeaves.emplace_back( vBegins, vSizes, uiFrom, uiTo );
+            vTree.vLeaves.push_back( overlay_meta_t( vBegins, vSizes, uiFrom, uiTo ) );
 
             fRegisterMeInTree( uiMyOffset, true );
         }
@@ -398,8 +389,7 @@ template <typename type_defs> class Tree
             // 3) insert new kd-tree nodes
 
             offset_t uiMyOffset = vTree.vTree.size( );
-            vTree.vTree.emplace_back( );
-            vTree.vTree[ uiMyOffset ].uiSplitDimension = uiBestDim;
+            vTree.vTree.push_back( typename OverlayKdTree<type_defs>::OverlayKdTreeNode(uiBestDim) );
             for( size_t uiA = 0; uiA < b; uiA++ )
             {
                 std::get<0>( vTree.vTree[ uiMyOffset ].vChildren[ uiA ] ) = std::numeric_limits<coordinate_t>::max( );
@@ -449,19 +439,24 @@ template <typename type_defs> class Tree
             if(!bRegistered)
                 fRegisterMeInTree( uiMyOffset, false );
             assert( uiFrom == uiTo );
+            
+            if constexpr( EXPLAIN_QUERY )
+                std::cerr << "split in dimension " << uiBestDim << " done. (" << uiMyOffset << ": " 
+                          << (size_t)vTree.vTree[uiMyOffset].uiSplitDimension << ")" << std::endl;
         }
     }
 
     template<bool SILENT>
     std::pair<pos_t, const overlay_meta_t*> getOverlay( const class_key_t& xDatasetId, const pos_t& vPos ) const
     {
-        for( size_t uiI = 0; uiI < vTree.vRoots.size( ); uiI++ )
+        auto cIter = vTree.vRoots.begin( );
+        while(cIter != vTree.vRoots.end())
         {
-            if( std::get<0>( vTree.vRoots[ uiI ] ) == xDatasetId )
+            if( std::get<0>( *cIter ) == xDatasetId )
             {
                 pos_t vBottomLeft{ };
-                size_t uiCurr = std::get<1>( vTree.vRoots[ uiI ] );
-                bool bIsLeaf = std::get<2>( vTree.vRoots[ uiI ] );
+                size_t uiCurr = std::get<1>( *cIter );
+                bool bIsLeaf = std::get<2>( *cIter );
                 while( !bIsLeaf )
                 {
                     assert( uiCurr < vTree.vTree.size( ) );
@@ -486,6 +481,7 @@ template <typename type_defs> class Tree
                     std::cerr << "\t\toverlay index: " << uiCurr << std::endl;
                 return std::make_pair( vBottomLeft, &vTree.vLeaves[ uiCurr ] );
             }
+            ++cIter;
         }
         throw std::runtime_error( "getOverlay: dataset Id not found" );
     }
@@ -676,7 +672,7 @@ template <typename type_defs> class Tree
             vOverlayTopRight[ uiI ] = std::numeric_limits<coordinate_t>::max( );
 
             vPoints.sortByDim(uiI, uiFrom, uiTo);
-            vAxisCoordinates[ uiI ] = cord_vec_generator( );
+            vAxisCoordinates[ uiI ] = cord_vec_generator.vec( );
             vPoints.forRange(
                 [ & ]( const point_t& rP2 ) {
                     if( vAxisCoordinates[ uiI ].size() == 0 || vAxisCoordinates[ uiI ].back() < rP2.vPos[ uiI ] )
@@ -689,7 +685,7 @@ template <typename type_defs> class Tree
         generateForPointsHelper(
             xDatasetId, //
             [ & ]( size_t uiOffsetNode, bool bIsLeaf ) {
-                vTree.vRoots.emplace_back( xDatasetId, uiOffsetNode, bIsLeaf );
+                vTree.vRoots.push_back( std::make_tuple( xDatasetId, uiOffsetNode, bIsLeaf ) );
             },
             uiMaxPointsPerOverlay, //
             uiFrom, //

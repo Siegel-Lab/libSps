@@ -1,2 +1,5 @@
 build/*
 *.bin
+test/*
+stxxl.errlog
+stxxl.log

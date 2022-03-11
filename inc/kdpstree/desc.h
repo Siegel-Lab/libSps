@@ -15,16 +15,19 @@ template <typename type_defs> class Desc
 {
     EXTRACT_TYPE_DEFS; // macro call
 
-    vec_generator_t<char> vec_generator = vec_generator_t<char>( );
-    using desc_vec_t = typeof( vec_generator( "" ) );
+    EXTRACT_VEC_GENERATOR(desc, char); // macro call
 
+    desc_file_t xFile;
     desc_vec_t vData;
     char cEof;
     
     friend std::ostream& operator<< <>(std::ostream& os, const Desc& rTree);
 
   public:
-    Desc( std::string sPrefix, char cEof ) : vData( vec_generator( sPrefix + ".desc" ) ), cEof( cEof )
+    Desc( std::string sPrefix, char cEof ) : 
+        xFile( desc_vec_generator.file(sPrefix + ".desc") ), 
+        vData( desc_vec_generator.vec( xFile ) ), 
+        cEof( cEof )
     {}
     Desc( std::string sPrefix ) : Desc( sPrefix, std::char_traits<char>::eof( ) )
     {}
@@ -58,13 +61,15 @@ std::ostream& operator<<(std::ostream& os, const Desc<type_defs>& rDesc)
 {
     os << "0: ";
     size_t uiI = 0;
-    for( const char& c : rDesc.vData )
+    auto cIter = rDesc.vData.begin( );
+    while( cIter != rDesc.vData.end() )
     {
         uiI++;
-        if( c == rDesc.cEof )
+        if( *cIter == rDesc.cEof )
             os << std::endl << uiI << ": ";
         else
-            os << c;
+            os << *cIter;
+        ++cIter;
     }
     os << "<EoF>" << std::endl;
     return os;

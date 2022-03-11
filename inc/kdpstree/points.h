@@ -18,8 +18,8 @@ template <typename type_defs> class Points
 
     using point_t = Point<type_defs>;
 
-    vec_generator_t<point_t> points_vec_generator = vec_generator_t<point_t>( );
-    using points_vec_t = typeof( points_vec_generator( "" ) );
+    EXTRACT_VEC_GENERATOR(points, point_t); // macro call
+
     using points_it_t = typename points_vec_t::iterator;
     using const_points_it_t = typename points_vec_t::const_iterator;
 
@@ -71,9 +71,10 @@ template <typename type_defs> class Points
     sort_func_t<points_it_t, PointsLayerComperator> sort_layer_points = sort_func_t<points_it_t, PointsLayerComperator>( );
 
   public:
+    points_file_t xFile;
     points_vec_t vData;
 
-    Points( std::string sPrefix ) : vData( points_vec_generator( sPrefix + ".points" ) )
+    Points( std::string sPrefix ) : xFile(points_vec_generator.file( sPrefix + ".points" )), vData(points_vec_generator.vec( xFile ))
     {}
 
     size_t add( pos_t vPos, size_t uiDescOffset, layers_t uiLayer )

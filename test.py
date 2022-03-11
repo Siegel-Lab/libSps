@@ -4,15 +4,18 @@ import random
 print_all = False
 
 
-def fixed(tree, l, points, x=0):
+def fixed(tree, l, points, x=0, d=2):
     for idx, (pos, layer) in enumerate(points):
         tree.add_point(pos, layer, "p" + str(idx))
-    tree.generate_for_points(x, 2, 0, len(points))
+    if d == 2:
+        tree.generate_for_points(x, 2, 0, len(points))
+    else:
+        tree.generate()
     if print_all:
         print(tree)
         print("generated")
     for (p1, layer1) in points:
-        for (p2, layer2) in points + [([max(p[i] for (p, _) in points)+1 for i in range(2)], 0)]:
+        for (p2, layer2) in points + [([max(p[i] for (p, _) in points)+1 for i in range(d)], 0)]:
             if all(a < b for a, b in zip(p1, p2)):
                 cnt = tree.count(x, p1, p2)
                 itr = tree.get(x, p1, p2)
@@ -40,7 +43,23 @@ def test(tree, l, n=30):
                     print("adding", points[-1])
             fixed(tree, l, points, x)
 
+def test_array(tree, l, n=30):
+    for x in range(1, n):
+        for _ in range(min(x*2, 100)):
+            tree.clear()
+            points = []
+            for _ in range(x):
+                points.append((random.choice(range(x)), random.choice(range(l))))
+                if print_all:
+                    print("adding", points[-1])
+            fixed(tree, l, points, x, d=1)
+
 
 random.seed(6846854546132)
 #fixed(KdpsTree_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
-test(KdpsTree_2L("test/blub2"), 2)
+
+test_array(PsArray2("test/blub3"), 2)
+test_array(PsArray9("test/blub3"), 9)
+
+test(KdpsTree2("test/blub2"), 2)
+test(KdpsTree9("test/blub9"), 9)
