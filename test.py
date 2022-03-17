@@ -5,7 +5,7 @@ os.environ["STXXLERRLOGFILE"] = "/dev/null"
 from build.libKdpsTree import *
 import random
 
-print_all = True
+print_all = False
 
 
 def fixed(tree, l, points, x=0, d=2):

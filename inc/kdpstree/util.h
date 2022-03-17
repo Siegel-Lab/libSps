@@ -72,4 +72,14 @@ template <typename... TS> ostream& operator<<( ostream& out, const stxxl::vector
     out << "}";
     return out;
 }
+
+
+template <typename stream_t, typename T> std::optional<stream_t>& operator<<( std::optional<stream_t>& out, 
+                                                                              const T& rT )
+{
+    if(out)
+        *out << rT;
+    return out;
+}
+
 } // namespace std

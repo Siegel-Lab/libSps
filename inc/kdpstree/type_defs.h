@@ -16,7 +16,8 @@ template <typename _coordinate_t, //
           template <typename, typename> typename _sort_func_t, //
           size_t _b, //
           typename _offset_t, //
-          bool _explain //
+          bool _explain, //
+          typename _progress_stream_t
           >
 class TypeDefs
 {
@@ -46,6 +47,8 @@ class TypeDefs
     static const size_t b = _b;
 
     using offset_t = _offset_t;
+
+    using progress_stream_t = _progress_stream_t;
 };
 
 #define EXTRACT_TYPE_DEFS                                                                                              \
@@ -84,7 +87,9 @@ class TypeDefs
                                                                                                                        \
     static const size_t b = type_defs::b;                                                                              \
                                                                                                                        \
-    using offset_t = typename type_defs::offset_t;
+    using offset_t = typename type_defs::offset_t;                                                                     \
+                                                                                                                       \
+    using progress_stream_t = typename type_defs::progress_stream_t;
 
 
 #define EXTRACT_TMP_VEC_GENERATOR_HELPER( name, content_t )                                                            \

@@ -6,9 +6,27 @@
 #include <stxxl/io>
 #include <stxxl/sort>
 #include <stxxl/vector>
+#include <chrono>
 
 
 using namespace kdpstree;
+
+struct StdOutProgressStream
+{
+    std::chrono::time_point<std::chrono::high_resolution_clock> xLastPrint{};
+
+    template<typename T>
+    StdOutProgressStream& operator<<(const T& sStr)
+    {
+        auto xCurr = std::chrono::high_resolution_clock::now();
+        if(std::chrono::duration<double, std::chrono::seconds>(xCurr-xLastPrint).count() > 1)
+        {
+            std::cout << sStr << std::flush;
+            xLastPrint = xCurr;
+        }
+        return *this;
+    }
+};
 
 template <typename val_t> struct TmpVecGenerator
 {
@@ -45,7 +63,7 @@ template <typename it_t, typename cmp_t> struct RamVectorSorter
     }
 };
 
-static const bool EXPLAIN = true;
+static const bool EXPLAIN = false;
 static const size_t B = 170;
 
 using default_coordinate_t = uint32_t;
@@ -64,7 +82,8 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               RamVectorSorter, //
                               B, //
                               size_t, //
-                              EXPLAIN // explain
+                              EXPLAIN, // explain
+                              StdOutProgressStream
                               >;
 
 
@@ -106,5 +125,6 @@ using OnDiskTypeDef = TypeDefs<default_coordinate_t, //
                                DiskVectorSorter, //
                                B, //
                                size_t, //
-                               EXPLAIN // explain
+                               EXPLAIN, // explain
+                               StdOutProgressStream
                                >;
