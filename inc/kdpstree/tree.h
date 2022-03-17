@@ -346,20 +346,23 @@ template <typename type_defs> class Tree
                           << vPoints.vData[ uiFrom ].vPos[ uiBestDim ] << " end "
                           << vPoints.vData[ uiTo - 1 ].vPos[ uiBestDim ] << " with max count " << uiBestCount
                           << std::endl;
-            // @todo could be a bin search
-            vPoints.forRange(
-                [ & ]( const point_t& rP ) {
-                    for( size_t uiA = 1; uiA <= b; uiA++ )
-                        if( rP.vPos[ uiBestDim ] >= uiAxisSplitPos[ b - uiA ] )
-                        {
-                            if constexpr( EXPLAIN_QUERY )
-                                std::cerr << "point " << rP << std::endl;
-                            uiCountInSplit[ b - uiA ] += 1;
-                            break;
-                        }
-                    return true;
-                },
-                uiFrom, uiTo );
+            offset_t uiCurrPos = uiFrom;
+            for( size_t uiA = 0; uiA + 1 < b; uiA++ )
+            {
+                offset_t uiX = vPoints.lowerBound(
+                    uiCurrPos, uiTo,
+                    [ & ]( const point_t& rP ) { return rP.vPos[ uiBestDim ] < uiAxisSplitPos[ uiA + 1 ]; } );
+                uiCountInSplit[ uiA ] = uiX - uiCurrPos;
+                uiCurrPos = uiX;
+            }
+            uiCountInSplit[ b - 1 ] = uiTo - uiCurrPos;
+            if constexpr( EXPLAIN_QUERY )
+                vPoints.forRange(
+                    [ & ]( const point_t& rP ) {
+                        std::cerr << "point " << rP << std::endl;
+                        return true;
+                    },
+                    uiFrom, uiTo );
 
             // 2.3 move all empty bins to end of array
             size_t uiNextNonEmpty = 0;
