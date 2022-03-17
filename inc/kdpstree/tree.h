@@ -307,17 +307,17 @@ template <typename type_defs> class Tree
                            uiAxisSplitPos[ uiA ] < vOverlayTopRight[ uiI ] )
                         ++uiAxisSplitPos[ uiA ];
                 std::array<size_t, b> uiCountInSplit{ };
-                vPoints.forRange(
-                    [ & ]( const point_t& rP ) {
-                        for( size_t uiA = 1; uiA <= b; uiA++ )
-                            if( rP.vPos[ uiI ] >= uiAxisSplitPos[ b - uiA ] )
-                            {
-                                uiCountInSplit[ b - uiA ] += 1;
-                                break;
-                            }
-                        return true;
-                    },
-                    uiFrom, uiTo );
+                
+                offset_t uiCurrPos = uiFrom;
+                for( size_t uiA = 0; uiA + 1 < b; uiA++ )
+                {
+                    offset_t uiX = vPoints.lowerBound(
+                        uiCurrPos, uiTo,
+                        [ & ]( const point_t& rP ) { return rP.vPos[ uiI ] < uiAxisSplitPos[ uiA + 1 ]; } );
+                    uiCountInSplit[ uiA ] = uiX - uiCurrPos;
+                    uiCurrPos = uiX;
+                }
+                uiCountInSplit[ b - 1 ] = uiTo - uiCurrPos;
 
                 size_t uiMaxCount = 0;
                 for( size_t uiA = 0; uiA < b; uiA++ )
