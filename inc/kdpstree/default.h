@@ -19,7 +19,7 @@ struct StdOutProgressStream
     StdOutProgressStream& operator<<(const T& sStr)
     {
         auto xCurr = std::chrono::high_resolution_clock::now();
-        if(std::chrono::duration<double, std::chrono::seconds>(xCurr-xLastPrint).count() > 1)
+        if(std::chrono::duration<double>(xCurr-xLastPrint).count() > 1)
         {
             std::cout << sStr << std::flush;
             xLastPrint = xCurr;
