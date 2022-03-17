@@ -405,12 +405,12 @@ template <typename type_defs> class Tree
                     vAxisTos[ uiA ][ uiI ] = vAxisTo[ uiI ];
                 }
                 vAxisFroms[ uiA ][ uiBestDim ] = uiA == 0 ? vAxisFrom[ uiBestDim ] : vAxisTos[ uiLastA ][ uiBestDim ];
-                vAxisTos[ uiA ][ uiBestDim ] = vAxisFroms[ uiA ][ uiBestDim ];
-                // @todo could be a bin search
-                while( vAxisTos[ uiA ][ uiBestDim ] < vAxisTo[ uiBestDim ] &&
-                       ( uiNextA == b ||
-                         vAxisCoordinates[ uiBestDim ][ vAxisTos[ uiA ][ uiBestDim ] ] < uiAxisSplitPos[ uiNextA ] ) )
-                    ++vAxisTos[ uiA ][ uiBestDim ];
+
+                vAxisTos[ uiA ][ uiBestDim ] = std::lower_bound(
+                    vAxisCoordinates[ uiBestDim ].begin() + vAxisFroms[ uiA ][ uiBestDim ],
+                    vAxisCoordinates[ uiBestDim ].begin() + vAxisTo[ uiBestDim ],
+                    uiAxisSplitPos[ uiNextA ]
+                ) - vAxisCoordinates[ uiBestDim ].begin();
 
                 if constexpr( EXPLAIN_QUERY )
                 {
