@@ -21,10 +21,17 @@ template <typename type_defs> class Point
     {}
 };
 
-template <typename type_defs> std::ostream& operator<<( std::ostream& os, const Point<type_defs>& xPoint )
+
+} // namespace kdpstree
+
+namespace std
+{
+
+template <typename type_defs>
+std::ostream& operator<<( std::ostream& os, const typename kdpstree::Point<type_defs>& xPoint )
 {
     os << xPoint.vPos << " l" << (size_t)xPoint.uiLayer << " d" << xPoint.uiDescOffset;
     return os;
 }
 
-} // namespace kdpstree
+} // namespace std

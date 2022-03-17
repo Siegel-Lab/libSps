@@ -1,7 +1,7 @@
 #pragma once
 
-#include "kdpstree/tree.h"
 #include "kdpstree/psarray.h"
+#include "kdpstree/tree.h"
 
 #include <stxxl/io>
 #include <stxxl/sort>
@@ -14,13 +14,13 @@ template <typename val_t> struct TmpVecGenerator
 {
     using vec_t = std::vector<val_t>;
 
-    vec_t vec(  )
+    vec_t vec( )
     {
         return vec_t( );
     }
 };
 
-template <typename val_t> struct RamVecGenerator
+template <typename val_t, size_t ele_per_block> struct RamVecGenerator
 {
     using file_t = size_t;
     using vec_t = std::vector<val_t>;
@@ -45,6 +45,9 @@ template <typename it_t, typename cmp_t> struct RamVectorSorter
     }
 };
 
+static const bool EXPLAIN = true;
+static const size_t B = 170;
+
 using default_coordinate_t = uint32_t;
 using default_val_t = uint32_t;
 using default_layer_t = uint8_t;
@@ -59,17 +62,19 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               TmpVecGenerator, //
                               RamVecGenerator, //
                               RamVectorSorter, //
-                              8, //
+                              B, //
                               size_t, //
-                              false // explain
+                              EXPLAIN // explain
                               >;
 
 
-template <typename val_t> struct DiskVecGenerator
+template <typename val_t, size_t ele_per_block> struct DiskVecGenerator
 {
     using file_t = stxxl::syscall_file;
-    
-    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 4, 2, sizeof(val_t) * 4 * 1024>::result;
+
+    using vec_t =
+        typename stxxl::VECTOR_GENERATOR<val_t, 1, ( 1024 * 1024 * 1024 ) / ( sizeof( val_t ) * ele_per_block ),
+                                         sizeof( val_t ) * ele_per_block>::result;
 
     vec_t vec( file_t& rFile )
     {
@@ -99,7 +104,7 @@ using OnDiskTypeDef = TypeDefs<default_coordinate_t, //
                                TmpVecGenerator, //
                                DiskVecGenerator, //
                                DiskVectorSorter, //
-                               8, //
+                               B, //
                                size_t, //
-                               false // explain
+                               EXPLAIN // explain
                                >;

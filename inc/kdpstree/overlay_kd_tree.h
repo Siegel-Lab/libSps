@@ -10,32 +10,54 @@
 namespace kdpstree
 {
 
+template <size_t A, size_t B> struct AssertDiv
+{
+    static_assert( A % B == 0 );
+    static constexpr size_t result = A / B;
+};
+
 
 template <typename type_defs> class OverlayKdTree
 {
     EXTRACT_TYPE_DEFS; // macro call
 
   public:
-    class OverlayKdTreeNode
+    class UnalignedOverlayKdTreeNode
     {
       public:
         uint8_t uiSplitDimension;
         // split coordinate, pointer, points to leave
         std::array<std::tuple<coordinate_t, offset_t, bool>, b> vChildren;
 
-        OverlayKdTreeNode( uint8_t uiSplitDimension ) : uiSplitDimension( uiSplitDimension )
+        UnalignedOverlayKdTreeNode( uint8_t uiSplitDimension ) : uiSplitDimension( uiSplitDimension )
         {}
 
-        OverlayKdTreeNode( ) : OverlayKdTreeNode( 0 )
+        UnalignedOverlayKdTreeNode( ) : UnalignedOverlayKdTreeNode( 0 )
         {}
 
     }; // struct
+    class OverlayKdTreeNode : public UnalignedOverlayKdTreeNode
+    {
+      public:
+        using UnalignedOverlayKdTreeNode::UnalignedOverlayKdTreeNode;
 
-    EXTRACT_VEC_GENERATOR( branch, OverlayKdTreeNode ); // macro call
+      private:
+        static constexpr size_t ALIGN_TO = 4096;
+
+        static_assert( sizeof( UnalignedOverlayKdTreeNode ) <= ALIGN_TO );
+        // make sure sizeof(this) % 4096 == 0
+        std::array<char, ALIGN_TO % sizeof( UnalignedOverlayKdTreeNode )> __buffer;
+    }; // struct
+
+    static constexpr size_t uiOverlayKdTreeNodeEle = AssertDiv<4096, sizeof( OverlayKdTreeNode )>::result;
+    EXTRACT_VEC_GENERATOR_ELE( branch, OverlayKdTreeNode, uiOverlayKdTreeNodeEle ); // macro call
+
     using root_t = std::tuple<class_key_t, offset_t, bool>;
     EXTRACT_VEC_GENERATOR( root, root_t ); // macro call
+
     using overlay_meta_t = OverlayMeta<type_defs>;
-    EXTRACT_VEC_GENERATOR( leaf, overlay_meta_t ); // macro call
+    static constexpr size_t uiOverlayMetaEle = AssertDiv<4096, sizeof( overlay_meta_t )>::result;
+    EXTRACT_VEC_GENERATOR_ELE( leaf, overlay_meta_t, uiOverlayMetaEle ); // macro call
 
     branch_file_t xTreeFile;
     branch_vec_t vTree;
@@ -61,7 +83,13 @@ template <typename type_defs> class OverlayKdTree
     }
 };
 
-template <typename type_defs> std::ostream& operator<<( std::ostream& os, const OverlayKdTree<type_defs>& rTree )
+
+} // namespace kdpstree
+
+namespace std
+{
+template <typename type_defs>
+ostream& operator<<( ostream& os, const typename kdpstree::OverlayKdTree<type_defs>& rTree )
 {
     os << "Roots:" << std::endl;
     for( size_t uiI = 0; uiI < rTree.vRoots.size( ); uiI++ )
@@ -84,6 +112,4 @@ template <typename type_defs> std::ostream& operator<<( std::ostream& os, const 
         os << uiI << ": " << rTree.vLeaves[ uiI ] << std::endl;
     return os;
 }
-
-
-} // namespace kdpstree
+} // namespace std

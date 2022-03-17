@@ -1,6 +1,9 @@
 #pragma once
 
+#include "kdpstree/util.h"
+
 #include "kdpstree/type_defs.h"
+#include "kdpstree/desc.h"
 
 
 #if WITH_PYTHON
@@ -29,8 +32,15 @@ template <typename type_defs> class PsArray
             : uiClass( uiClass ), uiLayer( uiLayer ), uiPos( uiPos ), uiDescOffset( uiDescOffset )
         {}
 
-        Entry( ) : uiClass(0), uiLayer(0), uiPos( 0 ), uiDescOffset( 0 )
+        Entry( ) : uiClass( 0 ), uiLayer( 0 ), uiPos( 0 ), uiDescOffset( 0 )
         {}
+
+        friend std::ostream& operator<<( std::ostream& os, const Entry& rEntry )
+        {
+            os << "c" << rEntry.uiClass << ", l" << (size_t)rEntry.uiLayer << ", p" << rEntry.uiPos << ", d"
+               << rEntry.uiDescOffset;
+            return os;
+        }
     };
 
     EXTRACT_VEC_GENERATOR( entry, Entry ); // macro call
@@ -66,18 +76,25 @@ template <typename type_defs> class PsArray
         };
     };
 
-    typename entry_vec_t::const_iterator iteratorFor( class_key_t uiClass, layers_t uiLayer, coordinate_t uiPos, 
+    typename entry_vec_t::const_iterator iteratorFor( class_key_t uiClass, layers_t uiLayer, coordinate_t uiPos,
                                                       offset_t uiStart, offset_t uiEnd ) const
     {
-        return std::lower_bound( vEntries.begin( ) + uiStart, vEntries.begin( ) + uiEnd,
-                                          Entry( uiClass, uiLayer, uiPos, 0 ), EntryComperator( ) );
+        auto xRet = std::lower_bound( vEntries.begin( ) + uiStart,
+                                      uiEnd >= vEntries.size( ) ? vEntries.end( ) : vEntries.begin( ) + uiEnd,
+                                      Entry( uiClass, uiLayer, uiPos, 0 ), EntryComperator( ) );
+
+        if constexpr( EXPLAIN_QUERY )
+            std::cerr << "iteratorFor: iterator pos: " << xRet - vEntries.begin( ) << std::endl;
+        return xRet;
     }
 
     val_t countToZero( class_key_t uiClass, layers_t uiLayer, coordinate_t uiPos, offset_t uiStart,
                        offset_t uiEnd ) const
     {
-        return (val_t)( iteratorFor( uiClass, uiLayer, uiPos, uiStart, uiEnd ) - vEntries.begin( ) ) -
-               (val_t)uiStart;
+        auto xIt = iteratorFor( uiClass, uiLayer, uiPos, uiStart, uiEnd );
+        if( xIt == vEntries.end( ) )
+            return vEntries.size( ) - uiStart;
+        return (val_t)( xIt - vEntries.begin( ) ) - (val_t)uiStart;
     }
 
     val_t countHelper( class_key_t uiClass, layers_t uiLayer, coordinate_t uiFrom, coordinate_t uiTo, offset_t uiStart,
@@ -90,17 +107,20 @@ template <typename type_defs> class PsArray
     void genClassLayerCache( )
     {
         vClassLayerCache.clear( );
-        class_key_t uiLastClass = vEntries.back( ).uiClass;
-        offset_t uiSum = 0;
-        for( class_key_t uiI = 0; uiI <= uiLastClass; uiI++ )
+        if( vEntries.size( ) > 0 )
         {
-            vClassLayerCache.emplace_back( );
-            for( class_key_t uiJ = 0; uiJ < LAYERS; uiJ++ )
+            class_key_t uiLastClass = vEntries.back( ).uiClass;
+            offset_t uiSum = 0;
+            for( class_key_t uiI = 0; uiI <= uiLastClass; uiI++ )
             {
-                vClassLayerCache.back( )[ uiJ ].first = uiSum;
-                uiSum += countToZero( uiI, uiJ, std::numeric_limits<coordinate_t>::max( ), uiSum,
-                                      vClassLayerCache.size( ) );
-                vClassLayerCache.back( )[ uiJ ].second = uiSum;
+                vClassLayerCache.emplace_back( );
+                for( class_key_t uiJ = 0; uiJ < LAYERS; uiJ++ )
+                {
+                    vClassLayerCache.back( )[ uiJ ].first = uiSum;
+                    uiSum += countToZero( uiI, uiJ, std::numeric_limits<coordinate_t>::max( ), uiSum,
+                                          vClassLayerCache.size( ) );
+                    vClassLayerCache.back( )[ uiJ ].second = uiSum;
+                }
             }
         }
     }
@@ -119,6 +139,11 @@ template <typename type_defs> class PsArray
         vEntries.push_back( Entry( uiClass, uiLayer, uiPos, vDesc.add( sDesc ) ) );
     }
 
+    void addPointArray( class_key_t uiClass, std::array<coordinate_t, 1> vPos, layers_t uiLayer, std::string sDesc )
+    {
+        addPoint( uiClass, vPos[ 0 ], uiLayer, sDesc );
+    }
+
     sort_func_t<typename entry_vec_t::iterator, EntryComperator> sort_points =
         sort_func_t<typename entry_vec_t::iterator, EntryComperator>( );
 
@@ -126,6 +151,11 @@ template <typename type_defs> class PsArray
     {
         sort_points( vEntries.begin( ), vEntries.end( ), EntryComperator( ) );
         genClassLayerCache( );
+    }
+
+    void generate2( class_key_t, size_t, size_t, size_t )
+    {
+        generate( );
     }
 
     val_t countOne( class_key_t uiClass, layers_t uiLayer, coordinate_t uiFrom, coordinate_t uiTo ) const
@@ -136,10 +166,16 @@ template <typename type_defs> class PsArray
 
     std::array<val_t, LAYERS> count( class_key_t uiClass, coordinate_t uiFrom, coordinate_t uiTo ) const
     {
-        std::array<val_t, LAYERS> vRet {};
+        std::array<val_t, LAYERS> vRet{ };
         for( class_key_t uiJ = 0; uiJ < LAYERS; uiJ++ )
-            vRet[uiJ] = countOne(uiClass, uiJ, uiFrom, uiTo);
+            vRet[ uiJ ] = countOne( uiClass, uiJ, uiFrom, uiTo );
         return vRet;
+    }
+
+    std::array<val_t, LAYERS> countArray( class_key_t uiClass, std::array<coordinate_t, 1> vFrom,
+                                          std::array<coordinate_t, 1> vTo ) const
+    {
+        return count( uiClass, vFrom[ 0 ], vTo[ 0 ] );
     }
 
     void clear( )
@@ -149,22 +185,65 @@ template <typename type_defs> class PsArray
         vDesc.clear( );
     }
 
-    std::array<std::vector<std::pair<coordinate_t, std::string>>, LAYERS> get(class_key_t uiClass, 
-                        coordinate_t uiFrom, coordinate_t uiTo) const
+    std::array<std::vector<std::pair<coordinate_t, std::string>>, LAYERS> get( class_key_t uiClass, coordinate_t uiFrom,
+                                                                               coordinate_t uiTo ) const
     {
-
-        std::array<std::vector<std::pair<coordinate_t, std::string>>, LAYERS> vRet {};
+        std::array<std::vector<std::pair<coordinate_t, std::string>>, LAYERS> vRet{ };
         for( class_key_t uiJ = 0; uiJ < LAYERS; uiJ++ )
         {
-            auto xIt = iteratorFor(uiClass, uiJ, uiFrom, vClassLayerCache[ uiClass ][ uiJ ].first,
-                            vClassLayerCache[ uiClass ][ uiJ ].second);
-            while(xIt->uiClass == uiClass && xIt->uiLayer == uiJ && xIt->uiPos < uiTo)
-            {   
-                vRet[uiJ].emplace_back(xIt->uiPos, vDesc.get(xIt->uiDescOffset));
+            auto xIt = iteratorFor( uiClass, uiJ, uiFrom, vClassLayerCache[ uiClass ][ uiJ ].first,
+                                    vClassLayerCache[ uiClass ][ uiJ ].second );
+            if constexpr( EXPLAIN_QUERY )
+                std::cerr << "get: iterator pos: " << xIt - vEntries.begin( ) << std::endl;
+            while( xIt != vEntries.end( ) && xIt->uiClass == uiClass && xIt->uiLayer == uiJ && xIt->uiPos < uiTo )
+            {
+                vRet[ uiJ ].emplace_back( xIt->uiPos, vDesc.get( xIt->uiDescOffset ) );
                 ++xIt;
             }
         }
         return vRet;
+    }
+
+    std::array<std::vector<std::pair<std::array<coordinate_t, 1>, std::string>>, LAYERS>
+    getArray( class_key_t uiClass, std::array<coordinate_t, 1> vFrom, std::array<coordinate_t, 1> vTo ) const
+    {
+        std::array<std::vector<std::pair<std::array<coordinate_t, 1>, std::string>>, LAYERS> vRet{ };
+        for( class_key_t uiJ = 0; uiJ < LAYERS; uiJ++ )
+        {
+            auto xIt = iteratorFor( uiClass, uiJ, vFrom[ 0 ], vClassLayerCache[ uiClass ][ uiJ ].first,
+                                    vClassLayerCache[ uiClass ][ uiJ ].second );
+
+            if constexpr( EXPLAIN_QUERY )
+                std::cerr << "getArray: iterator pos: " << xIt - vEntries.begin( ) << " " << uiClass << " " << uiJ
+                          << std::endl;
+            while( xIt != vEntries.end( ) && xIt->uiClass == uiClass && xIt->uiLayer == uiJ && xIt->uiPos < vTo[ 0 ] )
+            {
+                vRet[ uiJ ].emplace_back( std::array<coordinate_t, 1>{ xIt->uiPos }, vDesc.get( xIt->uiDescOffset ) );
+                ++xIt;
+            }
+        }
+        return vRet;
+    }
+
+    friend std::ostream& operator<<( std::ostream& os, const PsArray& rArray )
+    {
+        os << "Cache:" << std::endl;
+        for( size_t uiI = 0; uiI < rArray.vClassLayerCache.size( ); uiI++ )
+            os << rArray.vClassLayerCache[ uiI ] << std::endl;
+
+        os << "Array:" << std::endl;
+        for( size_t uiI = 0; uiI < rArray.vEntries.size( ); uiI++ )
+            os << rArray.vEntries[ uiI ] << std::endl;
+
+        os << "Desc:" << std::endl << rArray.vDesc << std::endl;
+        return os;
+    }
+
+    std::string print( )
+    {
+        std::stringstream ss;
+        ss << *this << std::endl;
+        return ss.str( );
     }
 };
 
@@ -177,10 +256,15 @@ template <typename type_defs> void exportArray( pybind11::module& m, std::string
     pybind11::class_<kdpstree::PsArray<type_defs>>( m, sName.c_str( ) )
         .def( pybind11::init<std::string>( ) ) // constructor
         .def( "add_point", &kdpstree::PsArray<type_defs>::addPoint )
+        .def( "add_point", &kdpstree::PsArray<type_defs>::addPointArray )
         .def( "generate", &kdpstree::PsArray<type_defs>::generate )
+        .def( "generate", &kdpstree::PsArray<type_defs>::generate2 )
         .def( "get", &kdpstree::PsArray<type_defs>::get )
-        .def( "count", &kdpstree::PsArray<type_defs>::count, "" )
+        .def( "get", &kdpstree::PsArray<type_defs>::getArray )
+        .def( "count", &kdpstree::PsArray<type_defs>::count )
+        .def( "count", &kdpstree::PsArray<type_defs>::countArray )
         .def( "clear", &kdpstree::PsArray<type_defs>::clear )
+        .def( "__str__", &kdpstree::PsArray<type_defs>::print )
 
         ;
 }

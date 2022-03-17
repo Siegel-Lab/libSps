@@ -6,6 +6,7 @@
 #include <fstream>
 #include <functional>
 #include <future>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <mutex>
@@ -13,7 +14,6 @@
 #include <stdexcept>
 #include <thread>
 #include <vector>
-#include <iostream>
 
 namespace kdpstree
 {

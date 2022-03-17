@@ -12,7 +12,7 @@ template <typename _coordinate_t, //
           size_t _layers, //
           typename _class_key_t, //
           template <typename> typename _tmp_vec_generator, //
-          template <typename> typename _vec_generator, //
+          template <typename, size_t> typename _vec_generator, //
           template <typename, typename> typename _sort_func_t, //
           size_t _b, //
           typename _offset_t, //
@@ -34,7 +34,8 @@ class TypeDefs
     using overlay_key_t = std::pair<class_key_t, pos_t>;
 
     template <typename val_type_t> using tmp_vec_generator = _tmp_vec_generator<val_type_t>;
-    template <typename val_type_t> using vec_generator_t = _vec_generator<val_type_t>;
+    template <typename val_type_t, size_t ele_per_block>
+    using vec_generator_t = _vec_generator<val_type_t, ele_per_block>;
 
     template <typename it_t, typename cmp_t> using sort_func_t = _sort_func_t<it_t, cmp_t>;
 
@@ -71,7 +72,8 @@ class TypeDefs
     template <typename val_type_t>                                                                                     \
     using tmp_vec_generator = typename type_defs::template tmp_vec_generator<val_type_t>;                              \
                                                                                                                        \
-    template <typename val_type_t> using vec_generator_t = typename type_defs::template vec_generator_t<val_type_t>;   \
+    template <typename val_type_t, size_t ele_per_block>                                                               \
+    using vec_generator_t = typename type_defs::template vec_generator_t<val_type_t, ele_per_block>;                   \
                                                                                                                        \
     template <typename it_t, typename cmp_t>                                                                           \
     using sort_func_t = typename type_defs::template sort_func_t<it_t, cmp_t>;                                         \
@@ -85,22 +87,34 @@ class TypeDefs
     using offset_t = typename type_defs::offset_t;
 
 
-#define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
-                                                                                                                       \
-    using name##_vec_generator_t = vec_generator_t<content_t>;                                                         \
+#define EXTRACT_TMP_VEC_GENERATOR_HELPER( name, content_t )                                                            \
                                                                                                                        \
     name##_vec_generator_t name##_vec_generator = name##_vec_generator_t( );                                           \
                                                                                                                        \
-    using name##_vec_t = typename name##_vec_generator_t::vec_t;                                                       \
+    using name##_vec_t = typename name##_vec_generator_t::vec_t;
+
+#define EXTRACT_VEC_GENERATOR_HELPER( name, content_t )                                                                \
+                                                                                                                       \
+    EXTRACT_TMP_VEC_GENERATOR_HELPER( name, content_t );                                                               \
                                                                                                                        \
     using name##_file_t = typename name##_vec_generator_t::file_t
+
+#define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
+                                                                                                                       \
+    using name##_vec_generator_t = vec_generator_t<content_t, 4 * 1024>;                                               \
+                                                                                                                       \
+    EXTRACT_VEC_GENERATOR_HELPER( name, content_t );
+
+#define EXTRACT_VEC_GENERATOR_ELE( name, content_t, ele_per_block )                                                    \
+                                                                                                                       \
+    using name##_vec_generator_t = vec_generator_t<content_t, ele_per_block>;                                          \
+                                                                                                                       \
+    EXTRACT_VEC_GENERATOR_HELPER( name, content_t )
 
 #define EXTRACT_TMP_VEC_GENERATOR( name, content_t )                                                                   \
                                                                                                                        \
     using name##_vec_generator_t = tmp_vec_generator<content_t>;                                                       \
                                                                                                                        \
-    name##_vec_generator_t name##_vec_generator = name##_vec_generator_t( );                                           \
-                                                                                                                       \
-    using name##_vec_t = typename name##_vec_generator_t::vec_t;
+    EXTRACT_TMP_VEC_GENERATOR_HELPER( name, content_t );
 
 } // namespace kdpstree

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "kdpstree/type_defs.h"
 #include "kdpstree/util.h"
+
+#include "kdpstree/type_defs.h"
 #include <cassert>
 #include <functional>
 #include <iostream>
@@ -156,30 +157,18 @@ template <typename type_defs> class OverlayEntries
     }
 };
 
-template <typename T, size_t N> std::ostream& operator<<( std::ostream& out, const std::array<T, N>& array )
+
+} // namespace kdpstree
+
+namespace std
 {
-    out << "[";
-    if( N > 0 )
-        out << array[ 0 ];
-    for( size_t uiI = 1; uiI < N; uiI++ )
-        out << ", " << array[ uiI ];
-    out << "]";
-    return out;
-}
 
-
-template <typename T1, typename T2> std::ostream& operator<<( std::ostream& out, const std::pair<T1, T2>& pair )
-{
-    out << "(" << pair.first << ", " << pair.second << ")";
-    return out;
-}
-
-template <typename type_defs> std::ostream& operator<<( std::ostream& os, const OverlayEntries<type_defs>& rEntries )
+template <typename type_defs> ostream& operator<<( ostream& os, const kdpstree::OverlayEntries<type_defs>& rEntries )
 {
     size_t uiI = 0;
     for( const typename type_defs::overlay_entry_t& rX : rEntries.vData )
-        os << uiI++ << ": " << rX << std::endl;
+        os << uiI++ << ": " << rX << endl;
     return os;
 }
 
-} // namespace kdpstree
+} // namespace std

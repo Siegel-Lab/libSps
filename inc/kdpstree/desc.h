@@ -5,29 +5,36 @@
 
 namespace kdpstree
 {
-    
+
 template <typename type_defs> class Desc;
 
-template <typename type_defs>
-std::ostream& operator<<(std::ostream& os, const Desc<type_defs>& rDesc);
+}
+
+namespace std
+{
+
+template <typename type_defs> ostream& operator<<( ostream& os, const typename kdpstree::Desc<type_defs>& rDesc );
+
+} // namespace std
+
+namespace kdpstree
+{
 
 template <typename type_defs> class Desc
 {
     EXTRACT_TYPE_DEFS; // macro call
 
-    EXTRACT_VEC_GENERATOR(desc, char); // macro call
+    EXTRACT_VEC_GENERATOR( desc, char ); // macro call
 
     desc_file_t xFile;
     desc_vec_t vData;
     char cEof;
-    
-    friend std::ostream& operator<< <>(std::ostream& os, const Desc& rTree);
+
+    friend std::ostream& std::operator<<<>( std::ostream& os, const Desc& rTree );
 
   public:
-    Desc( std::string sPrefix, char cEof ) : 
-        xFile( desc_vec_generator.file(sPrefix + ".desc") ), 
-        vData( desc_vec_generator.vec( xFile ) ), 
-        cEof( cEof )
+    Desc( std::string sPrefix, char cEof )
+        : xFile( desc_vec_generator.file( sPrefix + ".desc" ) ), vData( desc_vec_generator.vec( xFile ) ), cEof( cEof )
     {}
     Desc( std::string sPrefix ) : Desc( sPrefix, std::char_traits<char>::eof( ) )
     {}
@@ -50,19 +57,23 @@ template <typename type_defs> class Desc
         return sRet;
     }
 
-    void clear()
+    void clear( )
     {
-        vData.clear();
+        vData.clear( );
     }
 };
 
-template <typename type_defs>
-std::ostream& operator<<(std::ostream& os, const Desc<type_defs>& rDesc)
+} // namespace kdpstree
+
+namespace std
+{
+
+template <typename type_defs> ostream& operator<<( ostream& os, const typename kdpstree::Desc<type_defs>& rDesc )
 {
     os << "0: ";
     size_t uiI = 0;
     auto cIter = rDesc.vData.begin( );
-    while( cIter != rDesc.vData.end() )
+    while( cIter != rDesc.vData.end( ) )
     {
         uiI++;
         if( *cIter == rDesc.cEof )
@@ -76,4 +87,4 @@ std::ostream& operator<<(std::ostream& os, const Desc<type_defs>& rDesc)
 }
 
 
-} // namespace kdpstree
+} // namespace std

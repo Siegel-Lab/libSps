@@ -1,16 +1,17 @@
+import os
+os.environ["STXXLLOGFILE"] = "/dev/null"
+os.environ["STXXLERRLOGFILE"] = "/dev/null"
+
 from build.libKdpsTree import *
 import random
 
-print_all = False
+print_all = True
 
 
 def fixed(tree, l, points, x=0, d=2):
     for idx, (pos, layer) in enumerate(points):
-        tree.add_point(pos, layer, "p" + str(idx))
-    if d == 2:
-        tree.generate_for_points(x, 2, 0, len(points))
-    else:
-        tree.generate()
+        tree.add_point(x, pos, layer, "p" + str(idx))
+    tree.generate(x, 2, 0, len(points))
     if print_all:
         print(tree)
         print("generated")
@@ -49,7 +50,7 @@ def test_array(tree, l, n=30):
             tree.clear()
             points = []
             for _ in range(x):
-                points.append((random.choice(range(x)), random.choice(range(l))))
+                points.append(([random.choice(range(x))], random.choice(range(l))))
                 if print_all:
                     print("adding", points[-1])
             fixed(tree, l, points, x, d=1)
@@ -58,8 +59,5 @@ def test_array(tree, l, n=30):
 random.seed(6846854546132)
 #fixed(KdpsTree_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
 
-test_array(PsArray2("test/blub3"), 2)
-test_array(PsArray9("test/blub3"), 9)
-
-test(KdpsTree2("test/blub2"), 2)
-test(KdpsTree9("test/blub9"), 9)
+test(KdpsTree("test/blub2"), SETTINGS.NUM_LAYERS)
+test_array(PsArray("test/blub3"), SETTINGS.NUM_LAYERS)

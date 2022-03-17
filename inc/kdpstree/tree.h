@@ -1,11 +1,12 @@
 #pragma once
 
+#include "kdpstree/util.h"
+
 #include "kdpstree/overlay_kd_tree.h"
 #include "kdpstree/overlay_meta.h"
 #include "kdpstree/point.h"
 #include "kdpstree/points.h"
 #include "kdpstree/type_defs.h"
-#include "kdpstree/util.h"
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -19,53 +20,57 @@
 namespace kdpstree
 {
 
-template<typename T, size_t N>
-std::array<T, N>& operator+=(std::array<T, N>& vA, const std::array<T, N>& vB)
+template <typename T, size_t N> std::array<T, N>& operator+=( std::array<T, N>& vA, const std::array<T, N>& vB )
 {
-    for(size_t uiI = 0; uiI < N; uiI++)
-        vA[uiI] += vB[uiI];
+    for( size_t uiI = 0; uiI < N; uiI++ )
+        vA[ uiI ] += vB[ uiI ];
     return vA;
 }
 
-template<typename T, size_t N>
-std::array<T, N>& operator-=(std::array<T, N>& vA, const std::array<T, N>& vB)
+template <typename T, size_t N> std::array<T, N>& operator-=( std::array<T, N>& vA, const std::array<T, N>& vB )
 {
-    for(size_t uiI = 0; uiI < N; uiI++)
-        vA[uiI] -= vB[uiI];
+    for( size_t uiI = 0; uiI < N; uiI++ )
+        vA[ uiI ] -= vB[ uiI ];
     return vA;
 }
 
 
-template<typename T, size_t N>
-bool oneSmaller(std::array<T, N>& vA, std::array<T, N>& vB)
+template <typename T, size_t N> bool oneSmaller( std::array<T, N>& vA, std::array<T, N>& vB )
 {
-    for(size_t uiI = 0; uiI < N; uiI++)
-        if(vA[uiI] < vB[uiI])
+    for( size_t uiI = 0; uiI < N; uiI++ )
+        if( vA[ uiI ] < vB[ uiI ] )
             return true;
     return false;
 }
 
-template<typename T, size_t N>
-bool oneLarger(std::array<T, N>& vA, T uiAs)
+template <typename T, size_t N> bool oneLarger( std::array<T, N>& vA, T uiAs )
 {
-    for(size_t uiI = 0; uiI < N; uiI++)
-        if(vA[uiI] > uiAs)
+    for( size_t uiI = 0; uiI < N; uiI++ )
+        if( vA[ uiI ] > uiAs )
             return true;
     return false;
 }
 
-template<typename T, size_t N>
-std::array<T, N>& operator*=(std::array<T, N>& vA, T uiB)
+template <typename T, size_t N> std::array<T, N>& operator*=( std::array<T, N>& vA, T uiB )
 {
-    for(size_t uiI = 0; uiI < N; uiI++)
-        vA[uiI] *= uiB;
+    for( size_t uiI = 0; uiI < N; uiI++ )
+        vA[ uiI ] *= uiB;
     return vA;
 }
 
 template <typename type_defs> class Tree;
 
-template <typename type_defs>
-std::ostream& operator<<(std::ostream& os, const Tree<type_defs>& rTree);
+} // namespace kdpstree
+
+namespace std
+{
+
+template <typename type_defs> ostream& operator<<( ostream& os, const typename kdpstree::Tree<type_defs>& rTree );
+
+}
+
+namespace kdpstree
+{
 
 template <typename type_defs> class Tree
 {
@@ -78,13 +83,13 @@ template <typename type_defs> class Tree
     using points_t = Points<type_defs>;
     using desc_t = Desc<type_defs>;
 
-    
-    EXTRACT_TMP_VEC_GENERATOR(cord, coordinate_t); // macro call
+
+    EXTRACT_TMP_VEC_GENERATOR( cord, coordinate_t ); // macro call
 
     using axis_t = std::pair<coordinate_t, data_t>;
-    EXTRACT_TMP_VEC_GENERATOR(axis, axis_t); // macro call
+    EXTRACT_TMP_VEC_GENERATOR( axis, axis_t ); // macro call
 
-    friend std::ostream& operator<< <>(std::ostream& os, const Tree& rTree);
+    friend std::ostream& std::operator<<<>( std::ostream& os, const Tree& rTree );
 
     overlay_kd_tree_t vTree;
     overlay_entries_t vEntries;
@@ -117,10 +122,8 @@ template <typename type_defs> class Tree
                                   size_t uiMaxPointsPerOverlay, size_t uiFrom, size_t uiTo,
                                   std::array<coordinate_t, d> vOverlayBottomLeft,
                                   std::array<coordinate_t, d> vOverlayTopRight,
-                                  const std::array<cord_vec_t, d>& vAxisCoordinates,
-                                  std::array<size_t, d> vAxisFrom,
-                                  std::array<size_t, d> vAxisTo
-                                   )
+                                  const std::array<cord_vec_t, d>& vAxisCoordinates, std::array<size_t, d> vAxisFrom,
+                                  std::array<size_t, d> vAxisTo )
     {
         if( uiFrom == uiTo )
             return;
@@ -142,7 +145,7 @@ template <typename type_defs> class Tree
         {
             // @todo should be own function
             if constexpr( EXPLAIN_QUERY )
-                std::cerr << "generating overlay: " << vTree.vLeaves.size( ) << " from: " << vOverlayBottomLeft 
+                std::cerr << "generating overlay: " << vTree.vLeaves.size( ) << " from: " << vOverlayBottomLeft
                           << " to: " << vOverlayTopRight << std::endl;
             // recursion termination
             std::array<size_t, d> vBegins{ };
@@ -157,16 +160,11 @@ template <typename type_defs> class Tree
                 auto vTmp = axis_vec_generator.vec( );
                 if constexpr( EXPLAIN_QUERY )
                 {
-                    std::cerr << "\tuiAxisCoordinatesStart/End=" << vAxisFrom[uiI] << " "
-                              << vAxisTo[uiI] 
-                              << " from/to pos " 
-                              << vAxisCoordinates[uiI][vAxisFrom[uiI]] << " " 
-                              << vAxisCoordinates[uiI][vAxisTo[uiI]-1] 
-                              << " overlay start/end " 
-                              << vOverlayBottomLeft[uiI] << " " 
-                              << vOverlayTopRight[uiI]
-                              << std::endl;
-                              
+                    std::cerr << "\tuiAxisCoordinatesStart/End=" << vAxisFrom[ uiI ] << " " << vAxisTo[ uiI ]
+                              << " from/to pos " << vAxisCoordinates[ uiI ][ vAxisFrom[ uiI ] ] << " "
+                              << vAxisCoordinates[ uiI ][ vAxisTo[ uiI ] - 1 ] << " overlay start/end "
+                              << vOverlayBottomLeft[ uiI ] << " " << vOverlayTopRight[ uiI ] << std::endl;
+
                     vPoints.forRange(
                         [ & ]( const point_t& rP ) {
                             std::cerr << "\t\tpoint " << rP << std::endl;
@@ -181,16 +179,15 @@ template <typename type_defs> class Tree
                     std::cerr << "\toverlay init val pos=" << vPos << std::endl;
                 data_t uiInitVal = countToZero<true>( xDatasetId, vPos );
                 if constexpr( EXPLAIN_QUERY )
-                    std::cerr << "\toverlay axis init val=" 
-                                << uiInitVal << std::endl;
+                    std::cerr << "\toverlay axis init val=" << uiInitVal << std::endl;
 
                 vPos = vOverlayBottomLeft;
                 if constexpr( EXPLAIN_QUERY )
                     std::cerr << "\toverlay bottom left corner pos=" << vPos << std::endl;
                 uiInitVal -= countToZero<true>( xDatasetId, vPos );
                 if constexpr( EXPLAIN_QUERY )
-                    std::cerr << "\toverlay axis init val - bottom left corner=" 
-                                << uiInitVal << std::endl << "\tuiFrom: " << uiFrom << " uiTo: " << uiTo << std::endl;
+                    std::cerr << "\toverlay axis init val - bottom left corner=" << uiInitVal << std::endl
+                              << "\tuiFrom: " << uiFrom << " uiTo: " << uiTo << std::endl;
 
                 vPoints.sortByLayerAndDim( uiI, uiFrom, uiTo );
 
@@ -202,53 +199,68 @@ template <typename type_defs> class Tree
                         },
                         uiFrom, uiTo );
 
+                std::array<offset_t, LAYERS> vPointsStartIt;
+                std::array<offset_t, LAYERS> vPointsCurrIt;
+                for( size_t uiA = 0; uiA < LAYERS; uiA++ )
+                {
+                    vPointsStartIt[ uiA ] =
+                        vPoints.lowerBound( uiA > 0 ? vPointsStartIt[ uiA - 1 ] : uiFrom, uiTo,
+                                            [ & ]( const point_t& rP ) { return rP.uiLayer < uiA; } );
+                    vPointsCurrIt[ uiA ] = vPointsStartIt[ uiA ];
+                }
+
                 // @todo should not be lambda function
-                auto fForPos = [&](coordinate_t uiCoord){
+                auto fForPos = [ & ]( coordinate_t uiCoord ) {
                     data_t uiVal = uiInitVal;
 
-                    std::array<coordinate_t, d> vStart{};
-                    std::array<coordinate_t, d> vEnd{};
+                    std::array<coordinate_t, d> vStart{ };
+                    std::array<coordinate_t, d> vEnd{ };
                     pos_t vPos = vOverlayBottomLeft;
-                    vPos[uiI] = uiCoord + 1;
+                    vPos[ uiI ] = uiCoord + 1;
                     if constexpr( EXPLAIN_QUERY )
                         std::cerr << "\toverlay axis pos=" << uiCoord << " precurser pos=" << vPos << std::endl;
 
                     uiVal += countToZero<true>( xDatasetId, vPos );
 
                     if constexpr( EXPLAIN_QUERY )
-                        std::cerr << "\toverlay axis pos=" << uiCoord 
-                                  << " init val - bottom left corner + precursers =" 
-                                    << uiVal << std::endl;
+                        std::cerr << "\toverlay axis pos=" << uiCoord
+                                  << " init val - bottom left corner + precursers =" << uiVal << std::endl;
 
                     // set point iterator to correct position
-                    size_t uiPointsStartIt = uiFrom;
-                    for(size_t uiA = 0; uiA < LAYERS; uiA++)
+                    for( size_t uiA = 0; uiA < LAYERS; uiA++ )
                     {
-                        // @todo could be bin search
-                        while(uiPointsStartIt < uiTo && vPoints.vData[ uiPointsStartIt ].uiLayer < uiA)
-                            ++uiPointsStartIt;
-                        size_t uiPointsEndIt = uiPointsStartIt;
-                        while(uiPointsEndIt < uiTo && vPoints.vData[ uiPointsEndIt ].uiLayer == uiA 
-                                  && vPoints.vData[ uiPointsEndIt ].vPos[ uiI ] <= uiCoord)
-                            ++uiPointsEndIt;
+                        offset_t uiPointsEndIt = vPoints.lowerBound(
+                            vPointsCurrIt[ uiA ],
+                            uiA + 1 < LAYERS ? vPointsCurrIt[ uiA + 1 ] : uiTo,
+                            [ & ]( const point_t& rP ) { return rP.uiLayer <= uiA && rP.vPos[ uiI ] <= uiCoord; } );
+                        assert( vPoints.vData[ vPointsCurrIt[ uiA ] ].uiLayer == uiA ||
+                                vPointsCurrIt[ uiA ] == uiPointsEndIt );
 
-                        uiVal[uiA] += uiPointsEndIt - uiPointsStartIt;
+                        if constexpr( EXPLAIN_QUERY )
+                            std::cerr << "\t\tpos=" << uiCoord << " layer=" << uiA << " from=" 
+                                      << vPointsStartIt[ uiA ] << " to=" << uiPointsEndIt << std::endl;
 
+                        uiVal[ uiA ] += uiPointsEndIt - vPointsStartIt[ uiA ];
+                        vPointsCurrIt[ uiA ] = uiPointsEndIt;
                     }
+
                     if constexpr( EXPLAIN_QUERY )
                         std::cerr << "\toverlay axis pos=" << uiCoord
-                                << " init val - bottom left corner + precursers + points ="
-                                << uiVal << std::endl;
+                                  << " init val - bottom left corner + precursers + points =" << uiVal << std::endl;
 
-                    if( ( vTmp.size() == 0 || oneSmaller(vTmp.back().second, uiVal) ) && oneLarger(uiVal, (val_t)0))
+                    if( ( vTmp.size( ) == 0 || oneSmaller( vTmp.back( ).second, uiVal ) ) &&
+                        oneLarger( uiVal, (val_t)0 ) )
                         vTmp.emplace_back( uiCoord, uiVal );
                 };
 
-                fForPos( vOverlayBottomLeft[uiI] );
-                for(size_t uiJ = vAxisFrom[uiI]; uiJ < vAxisTo[uiI]; uiJ++)
-                    fForPos( vAxisCoordinates[uiI][uiJ] );
+                fForPos( vOverlayBottomLeft[ uiI ] );
+                for( size_t uiJ = vAxisFrom[ uiI ]; uiJ < vAxisTo[ uiI ]; uiJ++ )
+                    fForPos( vAxisCoordinates[ uiI ][ uiJ ] );
 
-                assert(vTmp.size() > 0);
+                for( size_t uiA = 0; uiA < LAYERS - 1; uiA++ )
+                    assert( vPointsCurrIt[ uiA ] == vPointsStartIt[uiA + 1] );
+                assert( vPointsCurrIt[ LAYERS - 1 ] == uiTo );
+                assert( vTmp.size( ) > 0 );
 
                 if constexpr( EXPLAIN_QUERY )
                     for( size_t uiX = 0; uiX < vTmp.size( ); uiX++ )
@@ -291,8 +303,8 @@ template <typename type_defs> class Tree
                 for( size_t uiA = 0; uiA < b; uiA++ )
                     uiAxisSplitPos[ uiA ] = vPoints.vData[ ( uiA * ( uiTo - uiFrom ) ) / b + uiFrom ].vPos[ uiI ];
                 for( size_t uiA = 1; uiA < b; uiA++ )
-                    while(uiAxisSplitPos[ uiA - 1 ] >= uiAxisSplitPos[ uiA ] && 
-                          uiAxisSplitPos[ uiA ] < vOverlayTopRight[uiI])
+                    while( uiAxisSplitPos[ uiA - 1 ] >= uiAxisSplitPos[ uiA ] &&
+                           uiAxisSplitPos[ uiA ] < vOverlayTopRight[ uiI ] )
                         ++uiAxisSplitPos[ uiA ];
                 std::array<size_t, b> uiCountInSplit{ };
                 vPoints.forRange(
@@ -324,8 +336,8 @@ template <typename type_defs> class Tree
             for( size_t uiA = 0; uiA < b; uiA++ )
                 uiAxisSplitPos[ uiA ] = vPoints.vData[ ( uiA * ( uiTo - uiFrom ) ) / b + uiFrom ].vPos[ uiBestDim ];
             for( size_t uiA = 1; uiA < b; uiA++ )
-                while(uiAxisSplitPos[ uiA - 1 ] >= uiAxisSplitPos[ uiA ] && 
-                      uiAxisSplitPos[ uiA ] < vOverlayTopRight[uiBestDim])
+                while( uiAxisSplitPos[ uiA - 1 ] >= uiAxisSplitPos[ uiA ] &&
+                       uiAxisSplitPos[ uiA ] < vOverlayTopRight[ uiBestDim ] )
                     ++uiAxisSplitPos[ uiA ];
             uiAxisSplitPos[ 0 ] = vOverlayBottomLeft[ uiBestDim ];
             std::array<size_t, b> uiCountInSplit{ };
@@ -349,36 +361,59 @@ template <typename type_defs> class Tree
                 },
                 uiFrom, uiTo );
 
+            // 2.3 move all empty bins to end of array
+            size_t uiNextNonEmpty = 0;
+            for( size_t uiA = 0; uiA < b; uiA++ )
+            {
+                while( uiNextNonEmpty < b && uiCountInSplit[ uiNextNonEmpty ] == 0 )
+                    ++uiNextNonEmpty;
+
+                if( uiNextNonEmpty == b )
+                {
+                    uiAxisSplitPos[ uiA ] = vOverlayTopRight[ uiBestDim ];
+                    uiCountInSplit[ uiA ] = 0;
+                }
+                else
+                {
+                    uiAxisSplitPos[ uiA ] = uiAxisSplitPos[ uiNextNonEmpty ];
+                    uiCountInSplit[ uiA ] = uiCountInSplit[ uiNextNonEmpty ];
+                }
+                if( uiNextNonEmpty < b )
+                    ++uiNextNonEmpty;
+            }
+
+
             // 2.2) seperate axis coordinates into bins
             std::array<std::array<size_t, d>, b> vAxisFroms;
             std::array<std::array<size_t, d>, b> vAxisTos;
             size_t uiA = 0;
-            while( uiA < b && uiCountInSplit[uiA] == 0 )
+            while( uiA < b && uiCountInSplit[ uiA ] == 0 )
                 ++uiA;
             size_t uiLastA = 0;
             while( uiA < b )
             {
                 size_t uiNextA = uiA + 1;
-                while(uiNextA < b && uiCountInSplit[uiNextA] == 0)
+                while( uiNextA < b && uiCountInSplit[ uiNextA ] == 0 )
                     ++uiNextA;
 
                 for( size_t uiI = 0; uiI < d; uiI++ )
                 {
-                    vAxisFroms[uiA][uiI] = vAxisFrom[uiI];
-                    vAxisTos[uiA][uiI] = vAxisTo[uiI];
+                    vAxisFroms[ uiA ][ uiI ] = vAxisFrom[ uiI ];
+                    vAxisTos[ uiA ][ uiI ] = vAxisTo[ uiI ];
                 }
-                vAxisFroms[uiA][uiBestDim] = uiA == 0 ? vAxisFrom[uiBestDim] : vAxisTos[uiLastA][uiBestDim];
-                vAxisTos[uiA][uiBestDim] = vAxisFroms[uiA][uiBestDim];
+                vAxisFroms[ uiA ][ uiBestDim ] = uiA == 0 ? vAxisFrom[ uiBestDim ] : vAxisTos[ uiLastA ][ uiBestDim ];
+                vAxisTos[ uiA ][ uiBestDim ] = vAxisFroms[ uiA ][ uiBestDim ];
                 // @todo could be a bin search
-                while(vAxisTos[uiA][uiBestDim] < vAxisTo[uiBestDim] && 
-                        (uiNextA == b || vAxisCoordinates[uiBestDim][vAxisTos[uiA][uiBestDim]] < uiAxisSplitPos[uiNextA]))
-                    ++vAxisTos[uiA][uiBestDim];
+                while( vAxisTos[ uiA ][ uiBestDim ] < vAxisTo[ uiBestDim ] &&
+                       ( uiNextA == b ||
+                         vAxisCoordinates[ uiBestDim ][ vAxisTos[ uiA ][ uiBestDim ] ] < uiAxisSplitPos[ uiNextA ] ) )
+                    ++vAxisTos[ uiA ][ uiBestDim ];
 
                 if constexpr( EXPLAIN_QUERY )
                 {
-                    std::cerr << "\taxis from " << vAxisFroms[uiA] << " to " << vAxisTos[uiA] << std::endl;
-                    std::cerr << "\tcoords: " << vAxisCoordinates[uiBestDim][vAxisFroms[uiA][uiBestDim]] << " " 
-                              << vAxisCoordinates[uiBestDim][vAxisTos[uiA][uiBestDim]-1] << std::endl;
+                    std::cerr << "\taxis from " << vAxisFroms[ uiA ] << " to " << vAxisTos[ uiA ] << std::endl;
+                    std::cerr << "\tcoords: " << vAxisCoordinates[ uiBestDim ][ vAxisFroms[ uiA ][ uiBestDim ] ] << " "
+                              << vAxisCoordinates[ uiBestDim ][ vAxisTos[ uiA ][ uiBestDim ] - 1 ] << std::endl;
                     std::cerr << "\tat coordinate " << uiAxisSplitPos[ uiA ] << " containing " << uiCountInSplit[ uiA ]
                               << " points" << std::endl;
                 }
@@ -389,7 +424,7 @@ template <typename type_defs> class Tree
             // 3) insert new kd-tree nodes
 
             offset_t uiMyOffset = vTree.vTree.size( );
-            vTree.vTree.push_back( typename OverlayKdTree<type_defs>::OverlayKdTreeNode(uiBestDim) );
+            vTree.vTree.push_back( typename OverlayKdTree<type_defs>::OverlayKdTreeNode( uiBestDim ) );
             for( size_t uiA = 0; uiA < b; uiA++ )
             {
                 std::get<0>( vTree.vTree[ uiMyOffset ].vChildren[ uiA ] ) = std::numeric_limits<coordinate_t>::max( );
@@ -404,7 +439,7 @@ template <typename type_defs> class Tree
 
                 vOverlayBottomLeft[ uiBestDim ] = uiAxisSplitPos[ uiA ];
                 size_t uiB = uiA + 1;
-                while(uiB < b && uiCountInSplit[ uiB ] == 0 )
+                while( uiB < b && uiCountInSplit[ uiB ] == 0 )
                     uiB++;
                 if( uiB < b )
                     vOverlayTopRight[ uiBestDim ] = uiAxisSplitPos[ uiB ];
@@ -427,30 +462,39 @@ template <typename type_defs> class Tree
                         std::get<1>( vTree.vTree[ uiMyOffset ].vChildren[ uiA ] ) = uiOffsetNode;
                         std::get<2>( vTree.vTree[ uiMyOffset ].vChildren[ uiA ] ) = bIsLeaf;
 
-                        if(!bRegistered)
+                        if( !bRegistered )
                             fRegisterMeInTree( uiMyOffset, false );
                         bRegistered = true;
                     },
-                    uiMaxPointsPerOverlay, uiFrom, uiFrom + uiCountInSplit[ uiA ], vOverlayBottomLeft,
-                    vOverlayTopRight, vAxisCoordinates, vAxisFroms[uiA], vAxisTos[uiA] );
+                    uiMaxPointsPerOverlay, uiFrom, uiFrom + uiCountInSplit[ uiA ], vOverlayBottomLeft, vOverlayTopRight,
+                    vAxisCoordinates, vAxisFroms[ uiA ], vAxisTos[ uiA ] );
 
                 uiFrom += uiCountInSplit[ uiA ];
             }
-            if(!bRegistered)
+            if( !bRegistered )
                 fRegisterMeInTree( uiMyOffset, false );
             assert( uiFrom == uiTo );
-            
+
             if constexpr( EXPLAIN_QUERY )
-                std::cerr << "split in dimension " << uiBestDim << " done. (" << uiMyOffset << ": " 
-                          << (size_t)vTree.vTree[uiMyOffset].uiSplitDimension << ")" << std::endl;
+                std::cerr << "split in dimension " << uiBestDim << " done. (" << uiMyOffset << ": "
+                          << (size_t)vTree.vTree[ uiMyOffset ].uiSplitDimension << ")" << std::endl;
         }
     }
 
-    template<bool SILENT>
+    struct CompOverlay
+    {
+        bool operator( )( coordinate_t uiPos, const std::tuple<coordinate_t, offset_t, bool>& rEle )
+        {
+            return uiPos < std::get<0>( rEle );
+        }
+    };
+
+    template <bool SILENT>
     std::pair<pos_t, const overlay_meta_t*> getOverlay( const class_key_t& xDatasetId, const pos_t& vPos ) const
     {
+        // @todo should be bin search
         auto cIter = vTree.vRoots.begin( );
-        while(cIter != vTree.vRoots.end())
+        while( cIter != vTree.vRoots.end( ) )
         {
             if( std::get<0>( *cIter ) == xDatasetId )
             {
@@ -460,21 +504,20 @@ template <typename type_defs> class Tree
                 while( !bIsLeaf )
                 {
                     assert( uiCurr < vTree.vTree.size( ) );
-                    bool bSet = false;
-                    for( size_t uiA = 1; uiA <= b; uiA++ )
-                        if( std::get<0>( vTree.vTree[ uiCurr ].vChildren[ b - uiA ] ) <=
-                            vPos[ vTree.vTree[ uiCurr ].uiSplitDimension ] && 
-                            std::get<1>( vTree.vTree[ uiCurr ].vChildren[ b - uiA ] ) != std::numeric_limits<offset_t>::max( ))
-                        {
-                            vBottomLeft[ vTree.vTree[ uiCurr ].uiSplitDimension ] =
-                                std::get<0>( vTree.vTree[ uiCurr ].vChildren[ b - uiA ] );
-                            bIsLeaf = std::get<2>( vTree.vTree[ uiCurr ].vChildren[ b - uiA ] );
-                            uiCurr = std::get<1>( vTree.vTree[ uiCurr ].vChildren[ b - uiA ] );
-                            bSet = true;
-                            break;
-                        }
-                    if( !bSet )
+                    auto xIt = std::upper_bound( vTree.vTree[ uiCurr ].vChildren.begin( ),
+                                                 vTree.vTree[ uiCurr ].vChildren.end( ),
+                                                 vPos[ vTree.vTree[ uiCurr ].uiSplitDimension ],
+                                                 CompOverlay( ) );
+                    if( xIt == vTree.vTree[ uiCurr ].vChildren.begin( ) )
                         return std::make_pair( vBottomLeft, nullptr );
+                    else
+                    {
+                        --xIt;
+                        if( std::get<1>( *xIt ) == std::numeric_limits<offset_t>::max( ) )
+                            return std::make_pair( vBottomLeft, nullptr );
+                        bIsLeaf = std::get<2>( *xIt );
+                        uiCurr = std::get<1>( *xIt );
+                    }
                 }
                 assert( uiCurr < vTree.vLeaves.size( ) );
                 if constexpr( EXPLAIN_QUERY && !SILENT )
@@ -529,10 +572,9 @@ template <typename type_defs> class Tree
     }
 
 
-    template<bool SILENT>
-    data_t countToZero( const overlay_meta_t& rO, pos_t vPos ) const
+    template <bool SILENT> data_t countToZero( const overlay_meta_t& rO, pos_t vPos ) const
     {
-        data_t uiRet{};
+        data_t uiRet{ };
         for( size_t uiI = 0; uiI < d; uiI++ )
         {
             if constexpr( EXPLAIN_QUERY && !SILENT )
@@ -543,20 +585,20 @@ template <typename type_defs> class Tree
             uiRet += uiVal;
         }
 
-        data_t uiVal{};
+        data_t uiVal{ };
         vPoints.forRange(
             [ & ]( const point_t& rP ) {
                 bool bToTopRight = true;
-                for(size_t uiI = 0; uiI < d; uiI++)
+                for( size_t uiI = 0; uiI < d; uiI++ )
                     bToTopRight = bToTopRight && ( rP.vPos[ uiI ] > vPos[ uiI ] );
                 if( bToTopRight )
-                    uiVal[rP.uiLayer] += 1;
+                    uiVal[ rP.uiLayer ] += 1;
                 return true;
             },
             rO.uiPointsBegin, rO.uiPointsEnd );
         if constexpr( EXPLAIN_QUERY && !SILENT )
-            std::cerr << "\t\toverlay number of points: " << uiVal
-                      << " of total: " << rO.uiPointsEnd - rO.uiPointsBegin << std::endl;
+            std::cerr << "\t\toverlay number of points: " << uiVal << " of total: " << rO.uiPointsEnd - rO.uiPointsBegin
+                      << std::endl;
         uiRet += uiVal;
 
         uiVal = vEntries.getLast( rO.vEntryBegins[ 0 ], rO.vSizes[ 0 ] );
@@ -567,20 +609,19 @@ template <typename type_defs> class Tree
         return uiRet;
     }
 
-    template<bool SILENT>
-    data_t countToZero( class_key_t xDatasetId, pos_t vPos ) const
+    template <bool SILENT> data_t countToZero( class_key_t xDatasetId, pos_t vPos ) const
     {
         if constexpr( EXPLAIN_QUERY && !SILENT )
             std::cerr << "\t\tcountToZero" << std::endl;
         if( vTree.vRoots.size( ) == 0 )
-            return data_t{}; // return zero
+            return data_t{ }; // return zero
         for( size_t uiI = 0; uiI < d; uiI++ )
         {
             if( vPos[ uiI ] == 0 )
             {
                 if constexpr( EXPLAIN_QUERY && !SILENT )
                     std::cerr << "\t\tdimension: " << uiI << " is zero. result must be zero as well." << std::endl;
-                return data_t{}; // return zero
+                return data_t{ }; // return zero
             }
             else
                 --vPos[ uiI ];
@@ -591,7 +632,7 @@ template <typename type_defs> class Tree
             if constexpr( EXPLAIN_QUERY && !SILENT )
                 std::cerr << "\t\tpoint is to the bottom left of most bottom left overlay. result must be zero."
                           << std::endl;
-            return data_t{}; // return zero
+            return data_t{ }; // return zero
         }
         if constexpr( EXPLAIN_QUERY && !SILENT )
         {
@@ -603,9 +644,9 @@ template <typename type_defs> class Tree
         return countToZero<SILENT>( *rO.second, vPos );
     }
 
-    template<bool SILENT>
+    template <bool SILENT>
     data_t countHelper( const class_key_t& xDatasetId, const pos_t& vFrom, const pos_t& vTo, pos_t& vCurr,
-                       size_t uiDCurr, size_t uiNumStart ) const
+                        size_t uiDCurr, size_t uiNumStart ) const
     {
         if( uiDCurr == d )
         {
@@ -654,12 +695,12 @@ template <typename type_defs> class Tree
         return vPoints.size( );
     }
 
-    size_t addPoint( pos_t vPos, layers_t uiLayer, std::string sDesc )
+    size_t addPoint( class_key_t, pos_t vPos, layers_t uiLayer, std::string sDesc )
     {
         vPoints.add( vPos, vDesc.add( sDesc ), uiLayer );
     }
 
-    void generateForPoints( class_key_t xDatasetId, size_t uiMaxPointsPerOverlay, size_t uiFrom, size_t uiTo )
+    void generate( class_key_t xDatasetId, size_t uiMaxPointsPerOverlay, size_t uiFrom, size_t uiTo )
     {
         std::array<coordinate_t, d> vOverlayBottomLeft{ };
         std::array<coordinate_t, d> vOverlayTopRight{ };
@@ -671,16 +712,16 @@ template <typename type_defs> class Tree
         {
             vOverlayTopRight[ uiI ] = std::numeric_limits<coordinate_t>::max( );
 
-            vPoints.sortByDim(uiI, uiFrom, uiTo);
+            vPoints.sortByDim( uiI, uiFrom, uiTo );
             vAxisCoordinates[ uiI ] = cord_vec_generator.vec( );
             vPoints.forRange(
                 [ & ]( const point_t& rP2 ) {
-                    if( vAxisCoordinates[ uiI ].size() == 0 || vAxisCoordinates[ uiI ].back() < rP2.vPos[ uiI ] )
+                    if( vAxisCoordinates[ uiI ].size( ) == 0 || vAxisCoordinates[ uiI ].back( ) < rP2.vPos[ uiI ] )
                         vAxisCoordinates[ uiI ].push_back( rP2.vPos[ uiI ] );
                     return true;
                 },
                 uiFrom, uiTo );
-            vTo[uiI] = vAxisCoordinates[uiI].size();
+            vTo[ uiI ] = vAxisCoordinates[ uiI ].size( );
         }
         generateForPointsHelper(
             xDatasetId, //
@@ -697,8 +738,7 @@ template <typename type_defs> class Tree
             vTo );
     }
 
-    template<bool SILENT>
-    data_t count( class_key_t xDatasetId, pos_t vFrom, pos_t vTo ) const
+    template <bool SILENT> data_t count( class_key_t xDatasetId, pos_t vFrom, pos_t vTo ) const
     {
         pos_t vCurr{ };
         if constexpr( EXPLAIN_QUERY && !SILENT )
@@ -707,7 +747,7 @@ template <typename type_defs> class Tree
         return countHelper<SILENT>( xDatasetId, vFrom, vTo, vCurr, 0, 0 );
     }
 
-    void iterate( std::function<void( pos_t, layers_t, std::string )> fDo, class_key_t xDatasetId, pos_t vFrom, 
+    void iterate( std::function<void( pos_t, layers_t, std::string )> fDo, class_key_t xDatasetId, pos_t vFrom,
                   pos_t vTo ) const
     {
         iterateOverlaysIn(
@@ -729,33 +769,45 @@ template <typename type_defs> class Tree
             xDatasetId, vFrom, vTo );
     }
 
-    std::array<std::vector<std::pair<pos_t, std::string>>, LAYERS> get( class_key_t xDatasetId, pos_t vFrom, pos_t vTo ) const
+    std::array<std::vector<std::pair<pos_t, std::string>>, LAYERS> get( class_key_t xDatasetId, pos_t vFrom,
+                                                                        pos_t vTo ) const
     {
         std::array<std::vector<std::pair<pos_t, std::string>>, LAYERS> vRet;
-        iterate( [ & ]( pos_t vPos, layers_t uiLayer, std::string sDesc ) { vRet[uiLayer].emplace_back( vPos, sDesc ); }, xDatasetId, vFrom, vTo );
+        iterate(
+            [ & ]( pos_t vPos, layers_t uiLayer, std::string sDesc ) { vRet[ uiLayer ].emplace_back( vPos, sDesc ); },
+            xDatasetId, vFrom, vTo );
         return vRet;
     }
 
-    std::string print()
+    std::string print( )
     {
         std::stringstream ss;
         ss << *this << std::endl;
-        return ss.str();
+        return ss.str( );
+    }
+
+    size_t size( ) const
+    {
+        return vPoints.size( );
     }
 };
 
 
-template <typename type_defs>
-std::ostream& operator<<(std::ostream& os, const Tree<type_defs>& rTree)
+} // namespace kdpstree
+
+namespace std
 {
-    os << "Tree:" << std::endl << rTree.vTree 
-       << "Entries:" << std::endl << rTree.vEntries 
-       << "Points:" << std::endl << rTree.vPoints
-       <<"Desc:" << std::endl << rTree.vDesc << std::endl;
+template <typename type_defs> ostream& operator<<( ostream& os, const typename kdpstree::Tree<type_defs>& rTree )
+{
+    os << "Tree:" << std::endl
+       << rTree.vTree << "Entries:" << std::endl
+       << rTree.vEntries << "Points:" << std::endl
+       << rTree.vPoints << "Desc:" << std::endl
+       << rTree.vDesc << std::endl;
     return os;
 }
+} // namespace std
 
-} // namespace kdpstree
 
 #if WITH_PYTHON
 template <typename type_defs> void exportTree( pybind11::module& m, std::string sName )
@@ -764,10 +816,11 @@ template <typename type_defs> void exportTree( pybind11::module& m, std::string 
         .def( pybind11::init<std::string>( ) ) // constructor
         .def( "add_point", &kdpstree::Tree<type_defs>::addPoint )
         .def( "num_points", &kdpstree::Tree<type_defs>::numPoints )
-        .def( "generate_for_points", &kdpstree::Tree<type_defs>::generateForPoints )
+        .def( "generate", &kdpstree::Tree<type_defs>::generate )
         .def( "count", &kdpstree::Tree<type_defs>::template count<false>, "" )
         .def( "get", &kdpstree::Tree<type_defs>::get, "" )
         .def( "__str__", &kdpstree::Tree<type_defs>::print )
+        .def( "__len__", &kdpstree::Tree<type_defs>::size )
         .def( "clear", &kdpstree::Tree<type_defs>::clear )
 
         ;
