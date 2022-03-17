@@ -495,41 +495,40 @@ template <typename type_defs> class Tree
     template <bool SILENT>
     std::pair<pos_t, const overlay_meta_t*> getOverlay( const class_key_t& xDatasetId, const pos_t& vPos ) const
     {
-        // @todo should be bin search
-        auto cIter = vTree.vRoots.begin( );
-        while( cIter != vTree.vRoots.end( ) )
+        auto cIter = std::lower_bound(vTree.vRoots.begin( ), vTree.vRoots.end( ), xDatasetId, 
+            [&]( const std::tuple<class_key_t, offset_t, bool>& rA, const class_key_t& xDatasetId ){
+            return std::get<0>( rA ) < xDatasetId;
+        });
+
+        if(cIter == vTree.vRoots.end( ) || std::get<0>( *cIter ) != xDatasetId)
+            throw std::runtime_error( "getOverlay: dataset Id not found" );
+        
+        pos_t vBottomLeft{ };
+        size_t uiCurr = std::get<1>( *cIter );
+        bool bIsLeaf = std::get<2>( *cIter );
+        while( !bIsLeaf )
         {
-            if( std::get<0>( *cIter ) == xDatasetId )
+            assert( uiCurr < vTree.vTree.size( ) );
+            auto xIt = std::upper_bound( vTree.vTree[ uiCurr ].vChildren.begin( ),
+                                            vTree.vTree[ uiCurr ].vChildren.end( ),
+                                            vPos[ vTree.vTree[ uiCurr ].uiSplitDimension ],
+                                            CompOverlay( ) );
+            if( xIt == vTree.vTree[ uiCurr ].vChildren.begin( ) )
+                return std::make_pair( vBottomLeft, nullptr );
+            else
             {
-                pos_t vBottomLeft{ };
-                size_t uiCurr = std::get<1>( *cIter );
-                bool bIsLeaf = std::get<2>( *cIter );
-                while( !bIsLeaf )
-                {
-                    assert( uiCurr < vTree.vTree.size( ) );
-                    auto xIt = std::upper_bound( vTree.vTree[ uiCurr ].vChildren.begin( ),
-                                                 vTree.vTree[ uiCurr ].vChildren.end( ),
-                                                 vPos[ vTree.vTree[ uiCurr ].uiSplitDimension ],
-                                                 CompOverlay( ) );
-                    if( xIt == vTree.vTree[ uiCurr ].vChildren.begin( ) )
-                        return std::make_pair( vBottomLeft, nullptr );
-                    else
-                    {
-                        --xIt;
-                        if( std::get<1>( *xIt ) == std::numeric_limits<offset_t>::max( ) )
-                            return std::make_pair( vBottomLeft, nullptr );
-                        bIsLeaf = std::get<2>( *xIt );
-                        uiCurr = std::get<1>( *xIt );
-                    }
-                }
-                assert( uiCurr < vTree.vLeaves.size( ) );
-                if constexpr( EXPLAIN_QUERY && !SILENT )
-                    std::cerr << "\t\toverlay index: " << uiCurr << std::endl;
-                return std::make_pair( vBottomLeft, &vTree.vLeaves[ uiCurr ] );
+                --xIt;
+                if( std::get<1>( *xIt ) == std::numeric_limits<offset_t>::max( ) )
+                    return std::make_pair( vBottomLeft, nullptr );
+                bIsLeaf = std::get<2>( *xIt );
+                uiCurr = std::get<1>( *xIt );
             }
-            ++cIter;
         }
-        throw std::runtime_error( "getOverlay: dataset Id not found" );
+        assert( uiCurr < vTree.vLeaves.size( ) );
+        if constexpr( EXPLAIN_QUERY && !SILENT )
+            std::cerr << "\t\toverlay index: " << uiCurr << std::endl;
+        return std::make_pair( vBottomLeft, &vTree.vLeaves[ uiCurr ] );
+            
     }
 
     void iterateOverlaysIn( std::function<void( const overlay_meta_t& )> fDo, size_t uiCurr, bool bIsLeaf,
@@ -568,10 +567,16 @@ template <typename type_defs> class Tree
         for( size_t uiI = 0; uiI < d; uiI++ )
             if( vFrom[ uiI ] >= vTo[ uiI ] )
                 return;
-        for( size_t uiI = 0; uiI < vTree.vRoots.size( ); uiI++ )
-            if( std::get<0>( vTree.vRoots[ uiI ] ) == xDatasetId )
-                iterateOverlaysIn( fDo, std::get<1>( vTree.vRoots[ uiI ] ), std::get<2>( vTree.vRoots[ uiI ] ), vFrom,
-                                   vTo );
+
+        auto cIter = std::lower_bound(vTree.vRoots.begin( ), vTree.vRoots.end( ), xDatasetId, 
+            [&]( const std::tuple<class_key_t, offset_t, bool>& rA, const class_key_t& xDatasetId ){
+            return std::get<0>( rA ) < xDatasetId;
+        });
+
+        if(cIter == vTree.vRoots.end( ) || std::get<0>( *cIter ) != xDatasetId)
+            throw std::runtime_error( "getOverlay: dataset Id not found" );
+
+        iterateOverlaysIn( fDo, std::get<1>( *cIter ), std::get<2>( *cIter ), vFrom, vTo );
     }
 
 
