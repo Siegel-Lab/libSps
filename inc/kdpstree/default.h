@@ -16,17 +16,26 @@ struct StdOutProgressStream
 {
     std::chrono::time_point<std::chrono::high_resolution_clock> xLastPrint{};
 
+    bool printAgain()
+    {
+        auto xCurr = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> xTime = xCurr - xLastPrint;
+        if(xTime.count() <= 1000)
+            return false;
+        xLastPrint = xCurr;
+        return true;
+    }
+
     template<typename T>
     StdOutProgressStream& operator<<(const T& sStr)
     {
-        auto xCurr = std::chrono::high_resolution_clock::now();
-        if(std::chrono::duration<double>(xCurr-xLastPrint).count() > 1)
-        {
-            std::cout << sStr << std::flush;
-            xLastPrint = xCurr;
-        }
+        std::cout << sStr << std::flush;
         return *this;
     }
+
+    StdOutProgressStream() :
+        xLastPrint(std::chrono::high_resolution_clock::now())
+    {}
 };
 
 template <typename val_t> struct TmpVecGenerator
@@ -70,7 +79,7 @@ static const size_t B = 170;
 using default_coordinate_t = uint32_t;
 using default_val_t = uint32_t;
 using default_layer_t = uint8_t;
-using default_class_key_t = uint16_t;
+using default_class_key_t = uint16_t; // @todo should be uint8_t
 
 template <size_t layers>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
@@ -82,6 +91,22 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               RamVecGenerator, //
                               RamVectorSorter, //
                               B, //
+                              size_t, //
+                              EXPLAIN, // explain
+                              StdOutProgressStream
+                              >;
+                            
+static const size_t B_TEST = 3;
+template <size_t layers>
+using TestTypeDef = TypeDefs<default_coordinate_t, //
+                              default_val_t, //
+                              default_layer_t, //
+                              layers, //
+                              default_class_key_t, //
+                              TmpVecGenerator, //
+                              RamVecGenerator, //
+                              RamVectorSorter, //
+                              B_TEST, //
                               size_t, //
                               EXPLAIN, // explain
                               StdOutProgressStream

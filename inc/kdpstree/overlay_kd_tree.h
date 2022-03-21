@@ -39,11 +39,11 @@ template <typename type_defs> class OverlayKdTree
     class OverlayKdTreeNode : public UnalignedOverlayKdTreeNode
     {
       private:
-        static constexpr size_t ALIGN_TO = 4096;
+        static constexpr size_t ALIGN_TO = nextPower2(sizeof( UnalignedOverlayKdTreeNode ));
 
         static_assert( sizeof( UnalignedOverlayKdTreeNode ) <= ALIGN_TO );
-        // make sure sizeof(this) % 4096 == 0
-        std::array<char, ALIGN_TO % sizeof( UnalignedOverlayKdTreeNode )> __buffer {};
+        // make sure this is aligned to the next power of two (block load optimization of stxxl::vector)
+        std::array<char, ALIGN_TO - sizeof( UnalignedOverlayKdTreeNode ) % ALIGN_TO> __buffer {};
 
       public:
         using UnalignedOverlayKdTreeNode::UnalignedOverlayKdTreeNode;

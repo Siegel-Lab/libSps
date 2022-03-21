@@ -83,3 +83,23 @@ template <typename stream_t, typename T> std::optional<stream_t>& operator<<( st
 }
 
 } // namespace std
+
+namespace kdpstree{
+
+// taken from https://www.techiedelight.com/round-next-highest-power-2/
+size_t constexpr nextPower2(size_t n)
+{
+    // decrement `n` (to handle the case when `n` itself is a power of 2)
+    n--;
+ 
+    // set all bits after the last set bit
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+ 
+    // increment `n` and return
+    return ++n;
+}
+}

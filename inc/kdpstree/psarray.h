@@ -65,7 +65,7 @@ template <typename type_defs> class PsArray
 
         Entry min_value( ) const
         {
-            return Entry{ };
+            return Entry();
         };
 
         Entry max_value( ) const
@@ -106,23 +106,29 @@ template <typename type_defs> class PsArray
 
     void genClassLayerCache( )
     {
+        std::cout << std::endl;
         vClassLayerCache.clear( );
         if( vEntries.size( ) > 0 )
         {
             class_key_t uiLastClass = vEntries.back( ).uiClass;
+            std::cout << "uiLastClass=" << uiLastClass << std::endl;
             offset_t uiSum = 0;
             for( class_key_t uiI = 0; uiI <= uiLastClass; uiI++ )
             {
                 vClassLayerCache.emplace_back( );
-                for( class_key_t uiJ = 0; uiJ < LAYERS; uiJ++ )
+                for( layers_t uiJ = 0; uiJ < LAYERS; uiJ++ )
                 {
                     vClassLayerCache.back( )[ uiJ ].first = uiSum;
                     uiSum += countToZero( uiI, uiJ, std::numeric_limits<coordinate_t>::max( ), uiSum,
-                                          vClassLayerCache.size( ) );
+                                          vEntries.size( ) );
                     vClassLayerCache.back( )[ uiJ ].second = uiSum;
                 }
             }
         }
+        
+        std::cout << "Cache (" << vEntries.size( ) << "):" << std::endl;
+        for( size_t uiI = 0; uiI < vClassLayerCache.size( ); uiI++ )
+            std::cout << vClassLayerCache[ uiI ] << std::endl;
     }
 
     PsArray( std::string sPrefix )

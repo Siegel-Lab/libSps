@@ -15,6 +15,8 @@
 #if WITH_PYTHON
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+//#include "kdpstree/util/pybind11.h"
 #endif
 
 namespace kdpstree
@@ -98,7 +100,7 @@ template <typename type_defs> class Tree
 
     /**
      * @brief  see https://algorithmica.org/en/eytzinger
-     * @todo this should be a static B-tree, where 
+     * @todo this should be a static B-tree, where
      *
      * @tparam axis_vec_t
      * @param vAxisVec
@@ -258,7 +260,6 @@ template <typename type_defs> class Tree
 
                 for( size_t uiA = 0; uiA < LAYERS - 1; uiA++ )
                     assert( vPointsCurrIt[ uiA ] == vPointsStartIt[ uiA + 1 ] );
-                assert( vPointsCurrIt[ LAYERS - 1 ] == uiTo );
                 assert( vTmp.size( ) > 0 );
 
                 if constexpr( EXPLAIN_QUERY )
@@ -286,8 +287,9 @@ template <typename type_defs> class Tree
 
             fRegisterMeInTree( uiMyOffset, true );
 
-            xProg << "\r\033[KGenerated overlays for " << uiTo << " out of " << vPoints.size( ) << " points. That's " 
-                  << (100.0*uiTo) / vPoints.size( ) << "%...";
+            if( xProg && xProg->printAgain( ) )
+                xProg << "\r\033[KGenerated overlays for " << uiTo << " out of " << vPoints.size( )
+                      << " points. That's " << ( 100.0 * uiTo ) / vPoints.size( ) << "%...";
         }
         else
         {
@@ -408,19 +410,17 @@ template <typename type_defs> class Tree
                 }
                 vAxisFroms[ uiA ][ uiBestDim ] = uiA == 0 ? vAxisFrom[ uiBestDim ] : vAxisTos[ uiLastA ][ uiBestDim ];
 
-                if(uiNextA < b)
+                if( uiNextA < b )
                 {
-                    auto xEnd = vAxisTo[ uiBestDim ] < vAxisCoordinates[ uiBestDim ].size() 
-                            ? vAxisCoordinates[ uiBestDim ].begin( ) + vAxisTo[ uiBestDim ]
-                            : vAxisCoordinates[ uiBestDim ].end( );
-                    auto xRet = std::lower_bound( 
-                        vAxisCoordinates[ uiBestDim ].begin( ) + vAxisFroms[ uiA ][ uiBestDim ],
-                        xEnd,
-                        uiAxisSplitPos[ uiNextA ] 
-                    );
-                    vAxisTos[ uiA ][ uiBestDim ] = xRet != xEnd 
-                                ? xRet - vAxisCoordinates[ uiBestDim ].begin( ) 
-                                : vAxisCoordinates[ uiBestDim ].size( );
+                    auto xEnd = vAxisTo[ uiBestDim ] < vAxisCoordinates[ uiBestDim ].size( )
+                                    ? vAxisCoordinates[ uiBestDim ].begin( ) + vAxisTo[ uiBestDim ]
+                                    : vAxisCoordinates[ uiBestDim ].end( );
+                    auto xRet =
+                        std::lower_bound( vAxisCoordinates[ uiBestDim ].begin( ) + vAxisFroms[ uiA ][ uiBestDim ],
+                                          xEnd,
+                                          uiAxisSplitPos[ uiNextA ] );
+                    vAxisTos[ uiA ][ uiBestDim ] = xRet != xEnd ? xRet - vAxisCoordinates[ uiBestDim ].begin( )
+                                                                : vAxisCoordinates[ uiBestDim ].size( );
                 }
 
                 if constexpr( EXPLAIN_QUERY )
@@ -715,6 +715,7 @@ template <typename type_defs> class Tree
 
     void addPoint( class_key_t, pos_t vPos, layers_t uiLayer, std::string sDesc )
     {
+        assert(uiLayer < LAYERS);
         vPoints.add( vPos, vDesc.add( sDesc ), uiLayer );
     }
 
@@ -744,11 +745,11 @@ template <typename type_defs> class Tree
                 uiFrom, uiTo );
             vTo[ uiI ] = vAxisCoordinates[ uiI ].size( );
         }
-
         xProg << "\r\033[KGenerating overlays...";
         generateForPointsHelper(
             xDatasetId, //
             [ & ]( size_t uiOffsetNode, bool bIsLeaf ) {
+                assert( vTree.vRoots.size( ) == 0 || std::get<0>( vTree.vRoots.back( ) ) < xDatasetId );
                 vTree.vRoots.push_back( std::make_tuple( xDatasetId, uiOffsetNode, bIsLeaf ) );
             },
             uiMaxPointsPerOverlay, //
@@ -760,7 +761,6 @@ template <typename type_defs> class Tree
             vFrom, //
             vTo, //
             xProg );
-
         xProg << "\r\033[KDone.\n";
     }
 
@@ -773,7 +773,7 @@ template <typename type_defs> class Tree
         return countHelper<SILENT>( xDatasetId, vFrom, vTo, vCurr, 0, 0 );
     }
 
-    void iterate( std::function<void( pos_t, layers_t, std::string )> fDo, class_key_t xDatasetId, pos_t vFrom,
+    void iterate( std::function<void( pos_t, layers_t, std::string )> fDo, const class_key_t& xDatasetId, pos_t vFrom,
                   pos_t vTo ) const
     {
         iterateOverlaysIn(
@@ -795,12 +795,17 @@ template <typename type_defs> class Tree
             xDatasetId, vFrom, vTo );
     }
 
-    std::array<std::vector<std::pair<pos_t, std::string>>, LAYERS> get( class_key_t xDatasetId, pos_t vFrom,
-                                                                        pos_t vTo ) const
+    using vec_return_get_t = std::vector<std::pair<pos_t, std::string>>;
+    using return_get_t = std::array<vec_return_get_t, LAYERS>;
+
+    return_get_t get( class_key_t xDatasetId, pos_t vFrom, pos_t vTo ) const
     {
-        std::array<std::vector<std::pair<pos_t, std::string>>, LAYERS> vRet;
+        return_get_t vRet {};
+        //for( size_t uiI = 0; uiI < LAYERS; uiI++ )
+        //    vRet[ uiI ] = std::make_shared<vec_return_get_t>( );
+
         iterate(
-            [ & ]( pos_t vPos, layers_t uiLayer, std::string sDesc ) { vRet[ uiLayer ].emplace_back( vPos, sDesc ); },
+            [ & ]( pos_t vPos, layers_t uiLayer, std::string sDesc ) { assert(uiLayer < vRet.size()); vRet[ uiLayer ].emplace_back( vPos, sDesc ); },
             xDatasetId, vFrom, vTo );
         return vRet;
     }
@@ -836,18 +841,23 @@ template <typename type_defs> ostream& operator<<( ostream& os, const typename k
 
 
 #if WITH_PYTHON
+template <typename type_defs> void exportStream( pybind11::module& m, std::string sName )
+{
+    pybind11::class_<typename type_defs::progress_stream_t>( m, sName.c_str( ) );
+}
 template <typename type_defs> void exportTree( pybind11::module& m, std::string sName )
 {
-    pybind11::class_<typename type_defs::progress_stream_t>( m, ("__"+sName+"_prog").c_str( ) );
-
+    //pybind11::bind_vector<typename kdpstree::Tree<type_defs>::vec_return_get_t,
+    //                      std::shared_ptr<typename kdpstree::Tree<type_defs>::vec_return_get_t>>(
+    //    m, ( "__" + sName + "_vec_return_get" ).c_str( ) );
     pybind11::class_<kdpstree::Tree<type_defs>>( m, sName.c_str( ) )
         .def( pybind11::init<std::string>( ) ) // constructor
         .def( "add_point", &kdpstree::Tree<type_defs>::addPoint )
         .def( "num_points", &kdpstree::Tree<type_defs>::numPoints )
         .def( "generate", &kdpstree::Tree<type_defs>::generate, pybind11::arg( "xDatasetId" ),
               pybind11::arg( "uiMaxPointsPerOverlay" ), pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-              pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t() )
-              //pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
+              pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( ) )
+        // pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
         .def( "count", &kdpstree::Tree<type_defs>::template count<false>, "" )
         .def( "get", &kdpstree::Tree<type_defs>::get, "" )
         .def( "__str__", &kdpstree::Tree<type_defs>::print )

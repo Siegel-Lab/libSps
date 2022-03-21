@@ -48,11 +48,11 @@ template <typename type_defs> class OverlayMeta : public UnalignedOverlayMeta<ty
     using UnalignedOverlayMeta<type_defs>::UnalignedOverlayMeta;
 
   private:
-    static constexpr size_t ALIGN_TO = 64;
+    static constexpr size_t ALIGN_TO = nextPower2(sizeof(  UnalignedOverlayMeta<type_defs> ));
 
     static_assert( sizeof( UnalignedOverlayMeta<type_defs> ) <= ALIGN_TO );
     // make sure sizeof(this) % 4096 == 0
-    std::array<char, ALIGN_TO % sizeof( UnalignedOverlayMeta<type_defs> )> __buffer;
+    std::array<char, ALIGN_TO - sizeof( UnalignedOverlayMeta<type_defs> ) % ALIGN_TO> __buffer;
 }; // struct
 
 
