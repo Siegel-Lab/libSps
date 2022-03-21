@@ -25,10 +25,10 @@ class TypeDefs
     using coordinate_t = _coordinate_t;
     using val_t = _val_t;
     using layers_t = _layers_t;
-    static const layers_t LAYERS = _layers;
+    static constexpr layers_t LAYERS = _layers;
     // using cnt_t = std::array<val_t, 2>;
     using data_t = std::array<val_t, LAYERS>;
-    static const coordinate_t d = 2; // @todo remove
+    static constexpr coordinate_t d = 2; // @todo remove
     using pos_t = std::array<coordinate_t, d>;
     using class_key_t = _class_key_t;
 
@@ -44,7 +44,7 @@ class TypeDefs
 
     static constexpr bool EXPLAIN_QUERY = _explain;
 
-    static const size_t b = _b;
+    static constexpr size_t b = _b;
 
     using offset_t = _offset_t;
 
@@ -62,9 +62,9 @@ class TypeDefs
                                                                                                                        \
     using data_t = typename type_defs::data_t;                                                                         \
                                                                                                                        \
-    static const size_t LAYERS = type_defs::LAYERS;                                                                    \
+    static constexpr size_t LAYERS = type_defs::LAYERS;                                                                \
                                                                                                                        \
-    static const coordinate_t d = type_defs::d;                                                                        \
+    static constexpr coordinate_t d = type_defs::d;                                                                    \
                                                                                                                        \
     using pos_t = typename type_defs::pos_t;                                                                           \
                                                                                                                        \
@@ -85,7 +85,7 @@ class TypeDefs
                                                                                                                        \
     static constexpr bool EXPLAIN_QUERY = type_defs::EXPLAIN_QUERY;                                                    \
                                                                                                                        \
-    static const size_t b = type_defs::b;                                                                              \
+    static constexpr size_t b = type_defs::b;                                                                          \
                                                                                                                        \
     using offset_t = typename type_defs::offset_t;                                                                     \
                                                                                                                        \

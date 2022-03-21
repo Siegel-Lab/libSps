@@ -78,7 +78,7 @@ template <typename type_defs> class Points
         : xFile( points_vec_generator.file( sPrefix + ".points" ) ), vData( points_vec_generator.vec( xFile ) )
     {}
 
-    size_t add( pos_t vPos, size_t uiDescOffset, layers_t uiLayer )
+    void add( pos_t vPos, size_t uiDescOffset, layers_t uiLayer )
     {
         vData.push_back( point_t( vPos, uiDescOffset, uiLayer ) );
     }

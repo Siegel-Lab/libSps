@@ -7,6 +7,7 @@
 #include <stxxl/sort>
 #include <stxxl/vector>
 #include <chrono>
+#include <iostream>
 
 
 using namespace kdpstree;

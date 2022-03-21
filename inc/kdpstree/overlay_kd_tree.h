@@ -27,7 +27,7 @@ template <typename type_defs> class OverlayKdTree
       public:
         uint8_t uiSplitDimension;
         // split coordinate, pointer, points to leave
-        std::array<std::tuple<coordinate_t, offset_t, bool>, b> vChildren;
+        std::array<std::tuple<coordinate_t, offset_t, bool>, b> vChildren {};
 
         UnalignedOverlayKdTreeNode( uint8_t uiSplitDimension ) : uiSplitDimension( uiSplitDimension )
         {}
@@ -38,15 +38,16 @@ template <typename type_defs> class OverlayKdTree
     }; // struct
     class OverlayKdTreeNode : public UnalignedOverlayKdTreeNode
     {
-      public:
-        using UnalignedOverlayKdTreeNode::UnalignedOverlayKdTreeNode;
-
       private:
         static constexpr size_t ALIGN_TO = 4096;
 
         static_assert( sizeof( UnalignedOverlayKdTreeNode ) <= ALIGN_TO );
         // make sure sizeof(this) % 4096 == 0
-        std::array<char, ALIGN_TO % sizeof( UnalignedOverlayKdTreeNode )> __buffer;
+        std::array<char, ALIGN_TO % sizeof( UnalignedOverlayKdTreeNode )> __buffer {};
+
+      public:
+        using UnalignedOverlayKdTreeNode::UnalignedOverlayKdTreeNode;
+
     }; // struct
 
     static constexpr size_t uiOverlayKdTreeNodeEle = AssertDiv<4096, sizeof( OverlayKdTreeNode )>::result;

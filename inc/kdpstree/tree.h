@@ -214,8 +214,6 @@ template <typename type_defs> class Tree
                 auto fForPos = [ & ]( coordinate_t uiCoord ) {
                     data_t uiVal = uiInitVal;
 
-                    std::array<coordinate_t, d> vStart{ };
-                    std::array<coordinate_t, d> vEnd{ };
                     pos_t vPos = vOverlayBottomLeft;
                     vPos[ uiI ] = uiCoord + 1;
                     if constexpr( EXPLAIN_QUERY )
@@ -715,7 +713,7 @@ template <typename type_defs> class Tree
         return vPoints.size( );
     }
 
-    size_t addPoint( class_key_t, pos_t vPos, layers_t uiLayer, std::string sDesc )
+    void addPoint( class_key_t, pos_t vPos, layers_t uiLayer, std::string sDesc )
     {
         vPoints.add( vPos, vDesc.add( sDesc ), uiLayer );
     }
