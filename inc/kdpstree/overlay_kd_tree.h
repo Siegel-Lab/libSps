@@ -67,12 +67,12 @@ template <typename type_defs> class OverlayKdTree
     leaf_file_t xLeavesFile;
     leaf_vec_t vLeaves;
 
-    OverlayKdTree( std::string sPrefix )
-        : xTreeFile( branch_vec_generator.file( sPrefix + ".overlay_branches" ) ), //
+    OverlayKdTree( std::string sPrefix, bool bWrite )
+        : xTreeFile( branch_vec_generator.file( sPrefix + ".overlay_branches", bWrite ) ), //
           vTree( branch_vec_generator.vec( xTreeFile ) ), //
-          xRootsFile( root_vec_generator.file( sPrefix + ".overlay_roots" ) ), //
+          xRootsFile( root_vec_generator.file( sPrefix + ".overlay_roots", bWrite ) ), //
           vRoots( root_vec_generator.vec( xRootsFile ) ), //
-          xLeavesFile( leaf_vec_generator.file( sPrefix + ".overlay_leaves" ) ), //
+          xLeavesFile( leaf_vec_generator.file( sPrefix + ".overlay_leaves", bWrite ) ), //
           vLeaves( leaf_vec_generator.vec( xLeavesFile ) ) //
     {}
 

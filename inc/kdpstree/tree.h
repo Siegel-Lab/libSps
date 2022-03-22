@@ -126,7 +126,7 @@ template <typename type_defs> class Tree
                                   std::array<coordinate_t, d> vOverlayBottomLeft,
                                   std::array<coordinate_t, d> vOverlayTopRight,
                                   const std::array<cord_vec_t, d>& vAxisCoordinates, std::array<size_t, d> vAxisFrom,
-                                  std::array<size_t, d> vAxisTo, std::optional<progress_stream_t> xProg )
+                                  std::array<size_t, d> vAxisTo, std::optional<progress_stream_t>& xProg )
     {
         if( uiFrom == uiTo )
             return;
@@ -157,6 +157,7 @@ template <typename type_defs> class Tree
             // for each dimension
             for( size_t uiI = 0; uiI < d; uiI++ )
             {
+                Profiler xProfiler("init");
                 if constexpr( EXPLAIN_QUERY )
                     std::cerr << "\tgenerating axis for dimension=" << uiI << std::endl;
                 // 2) fill a temp vec with the values
@@ -211,6 +212,7 @@ template <typename type_defs> class Tree
                                             [ & ]( const point_t& rP ) { return rP.uiLayer < uiA; } );
                     vPointsCurrIt[ uiA ] = vPointsStartIt[ uiA ];
                 }
+                xProfiler.step("tmp vec");
 
                 // @todo should not be lambda function
                 auto fForPos = [ & ]( coordinate_t uiCoord ) {
@@ -268,6 +270,7 @@ template <typename type_defs> class Tree
                                   << std::endl;
 
                 // 3) save pointers to the constructed axes
+                xProfiler.step("eytzinger");
                 vBegins[ uiI ] = vEntries.size( );
                 vSizes[ uiI ] = vTmp.size( );
                 vEntries.incSize( vTmp.size( ) );
@@ -288,7 +291,7 @@ template <typename type_defs> class Tree
             fRegisterMeInTree( uiMyOffset, true );
 
             if( xProg && xProg->printAgain( ) )
-                xProg << "\r\033[KGenerated overlays for " << uiTo << " out of " << vPoints.size( )
+                xProg << CLRLN << "Generated overlays for " << uiTo << " out of " << vPoints.size( )
                       << " points. That's " << ( 100.0 * uiTo ) / vPoints.size( ) << "%...";
         }
         else
@@ -507,11 +510,11 @@ template <typename type_defs> class Tree
     std::pair<pos_t, const overlay_meta_t*> getOverlay( const class_key_t& xDatasetId, const pos_t& vPos ) const
     {
         auto cIter =
-            std::lower_bound( vTree.vRoots.begin( ), vTree.vRoots.end( ), xDatasetId,
+            std::lower_bound( vTree.vRoots.cbegin( ), vTree.vRoots.cend( ), xDatasetId,
                               [ & ]( const std::tuple<class_key_t, offset_t, bool>& rA,
                                      const class_key_t& xDatasetId ) { return std::get<0>( rA ) < xDatasetId; } );
 
-        if( cIter == vTree.vRoots.end( ) || std::get<0>( *cIter ) != xDatasetId )
+        if( cIter == vTree.vRoots.cend( ) || std::get<0>( *cIter ) != xDatasetId )
             throw std::runtime_error( "getOverlay: dataset Id not found" );
 
         pos_t vBottomLeft{ };
@@ -579,11 +582,11 @@ template <typename type_defs> class Tree
                 return;
 
         auto cIter =
-            std::lower_bound( vTree.vRoots.begin( ), vTree.vRoots.end( ), xDatasetId,
+            std::lower_bound( vTree.vRoots.cbegin( ), vTree.vRoots.cend( ), xDatasetId,
                               [ & ]( const std::tuple<class_key_t, offset_t, bool>& rA,
                                      const class_key_t& xDatasetId ) { return std::get<0>( rA ) < xDatasetId; } );
 
-        if( cIter == vTree.vRoots.end( ) || std::get<0>( *cIter ) != xDatasetId )
+        if( cIter == vTree.vRoots.cend( ) || std::get<0>( *cIter ) != xDatasetId )
             throw std::runtime_error( "getOverlay: dataset Id not found" );
 
         iterateOverlaysIn( fDo, std::get<1>( *cIter ), std::get<2>( *cIter ), vFrom, vTo );
@@ -697,7 +700,8 @@ template <typename type_defs> class Tree
     }
 
   public:
-    Tree( std::string sPrefix ) : vTree( sPrefix ), vEntries( sPrefix ), vPoints( sPrefix ), vDesc( sPrefix )
+    Tree( std::string sPrefix, bool bWrite = false ) : 
+        vTree( sPrefix, bWrite ), vEntries( sPrefix, bWrite ), vPoints( sPrefix, bWrite ), vDesc( sPrefix, bWrite )
     {}
 
     void clear( )
@@ -731,7 +735,7 @@ template <typename type_defs> class Tree
 
         for( size_t uiI = 0; uiI < d; uiI++ )
         {
-            xProg << "\r\033[KGenerating axis coordinates" << uiI << " of " << d << "...";
+            xProg << CLRLN << "Generating axis coordinates" << uiI << " of " << d << "...";
             vOverlayTopRight[ uiI ] = std::numeric_limits<coordinate_t>::max( );
 
             vPoints.sortByDim( uiI, uiFrom, uiTo );
@@ -745,7 +749,7 @@ template <typename type_defs> class Tree
                 uiFrom, uiTo );
             vTo[ uiI ] = vAxisCoordinates[ uiI ].size( );
         }
-        xProg << "\r\033[KGenerating overlays...";
+        xProg << CLRLN << "Generating overlays...";
         generateForPointsHelper(
             xDatasetId, //
             [ & ]( size_t uiOffsetNode, bool bIsLeaf ) {
@@ -761,7 +765,7 @@ template <typename type_defs> class Tree
             vFrom, //
             vTo, //
             xProg );
-        xProg << "\r\033[KDone.\n";
+        xProg << CLRLN << "Done.\n";
     }
 
     template <bool SILENT> data_t count( class_key_t xDatasetId, pos_t vFrom, pos_t vTo ) const
@@ -851,7 +855,7 @@ template <typename type_defs> void exportTree( pybind11::module& m, std::string 
     //                      std::shared_ptr<typename kdpstree::Tree<type_defs>::vec_return_get_t>>(
     //    m, ( "__" + sName + "_vec_return_get" ).c_str( ) );
     pybind11::class_<kdpstree::Tree<type_defs>>( m, sName.c_str( ) )
-        .def( pybind11::init<std::string>( ) ) // constructor
+        .def( pybind11::init<std::string, bool>( ), pybind11::arg( "path" ), pybind11::arg( "write_mode" ) = false ) // constructor
         .def( "add_point", &kdpstree::Tree<type_defs>::addPoint )
         .def( "num_points", &kdpstree::Tree<type_defs>::numPoints )
         .def( "generate", &kdpstree::Tree<type_defs>::generate, pybind11::arg( "xDatasetId" ),

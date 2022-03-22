@@ -33,10 +33,11 @@ template <typename type_defs> class Desc
     friend std::ostream& std::operator<<<>( std::ostream& os, const Desc& rTree );
 
   public:
-    Desc( std::string sPrefix, char cEof )
-        : xFile( desc_vec_generator.file( sPrefix + ".desc" ) ), vData( desc_vec_generator.vec( xFile ) ), cEof( cEof )
+    Desc( std::string sPrefix, bool bWrite, char cEof )
+        : xFile( desc_vec_generator.file( sPrefix + ".desc", bWrite ) ), 
+          vData( desc_vec_generator.vec( xFile ) ), cEof( cEof )
     {}
-    Desc( std::string sPrefix ) : Desc( sPrefix, std::char_traits<char>::eof( ) )
+    Desc( std::string sPrefix, bool bWrite ) : Desc( sPrefix, bWrite, std::char_traits<char>::eof( ) )
     {}
 
     size_t add( std::string sDesc )

@@ -58,7 +58,7 @@ template <typename val_t, size_t ele_per_block> struct RamVecGenerator
         return vec_t( );
     }
 
-    file_t file( std::string )
+    file_t file( std::string, bool )
     {
         return 0;
     }
@@ -126,9 +126,13 @@ template <typename val_t, size_t ele_per_block> struct DiskVecGenerator
         return vec_t( &rFile );
     }
 
-    file_t file( std::string sPath )
+    file_t file( std::string sPath, bool bOpenInWriteMode )
     {
-        return file_t( sPath, stxxl::file::RDWR | stxxl::file::CREAT | stxxl::file::DIRECT );
+        
+        return file_t( sPath, (bOpenInWriteMode ?
+                    stxxl::file::open_mode::RDWR | stxxl::file::open_mode::CREAT : 
+                    stxxl::file::open_mode::RDONLY | stxxl::file::open_mode::NO_LOCK) 
+                | stxxl::file::open_mode::DIRECT );
     }
 };
 

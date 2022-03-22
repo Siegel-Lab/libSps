@@ -5,7 +5,7 @@
 #include <stxxl/vector>
 #include <utility>
 #include <vector>
-
+#include <chrono>
 
 // https://stackoverflow.com/questions/24110928/overload-of-operator-not-found-when-called-from-stdostream-iterator
 
@@ -102,4 +102,35 @@ size_t constexpr nextPower2(size_t n)
     // increment `n` and return
     return ++n;
 }
+
+const std::string CLRLN = "\r\033[K";
+
+#define DO_PROFILE 1
+
+#if DO_PROFILE == 1
+struct Profiler
+{
+    std::chrono::time_point<std::chrono::high_resolution_clock> xLastTimePoint;
+    std::string sLastLabel;
+    Profiler(std::string sLabel) : xLastTimePoint(std::chrono::high_resolution_clock::now()), sLastLabel(sLabel) {}
+    void step(std::string sLabel)
+    {
+        std::cerr << sLastLabel << ": " 
+                  << std::chrono::duration<double, std::milli>(
+                        std::chrono::high_resolution_clock::now() - xLastTimePoint).count()
+                  << "ms" << std::endl;
+        sLastLabel = sLabel;
+        xLastTimePoint = std::chrono::high_resolution_clock::now();
+    }
+    ~Profiler() { step(""); }
+};
+#else
+struct Profiler
+{
+    Profiler(std::string sLabel) {}
+    void step(std::string sLabel) {}
+    ~Profiler() { step(""); }
+};
+#endif
+
 }

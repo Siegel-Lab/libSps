@@ -86,8 +86,8 @@ template <typename type_defs> class OverlayEntries
     entry_file_t xFile;
     entry_vec_t vData;
 
-    OverlayEntries( std::string sPrefix )
-        : xFile( entry_vec_generator.file( sPrefix + ".overlay_entries" ) ), vData( entry_vec_generator.vec( xFile ) )
+    OverlayEntries( std::string sPrefix, bool bWrite )
+        : xFile( entry_vec_generator.file( sPrefix + ".overlay_entries", bWrite ) ), vData( entry_vec_generator.vec( xFile ) )
     {}
 
     void incSize( size_t uiNum )

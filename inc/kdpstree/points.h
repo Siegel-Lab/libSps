@@ -74,8 +74,8 @@ template <typename type_defs> class Points
     points_file_t xFile;
     points_vec_t vData;
 
-    Points( std::string sPrefix )
-        : xFile( points_vec_generator.file( sPrefix + ".points" ) ), vData( points_vec_generator.vec( xFile ) )
+    Points( std::string sPrefix, bool bWrite )
+        : xFile( points_vec_generator.file( sPrefix + ".points", bWrite ) ), vData( points_vec_generator.vec( xFile ) )
     {}
 
     void add( pos_t vPos, size_t uiDescOffset, layers_t uiLayer )

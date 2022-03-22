@@ -106,12 +106,10 @@ template <typename type_defs> class PsArray
 
     void genClassLayerCache( )
     {
-        std::cout << std::endl;
         vClassLayerCache.clear( );
         if( vEntries.size( ) > 0 )
         {
             class_key_t uiLastClass = vEntries.back( ).uiClass;
-            std::cout << "uiLastClass=" << uiLastClass << std::endl;
             offset_t uiSum = 0;
             for( class_key_t uiI = 0; uiI <= uiLastClass; uiI++ )
             {
@@ -125,15 +123,11 @@ template <typename type_defs> class PsArray
                 }
             }
         }
-        
-        std::cout << "Cache (" << vEntries.size( ) << "):" << std::endl;
-        for( size_t uiI = 0; uiI < vClassLayerCache.size( ); uiI++ )
-            std::cout << vClassLayerCache[ uiI ] << std::endl;
     }
 
-    PsArray( std::string sPrefix )
-        : vDesc( sPrefix ),
-          xFile( entry_vec_generator.file( sPrefix + ".entries" ) ),
+    PsArray( std::string sPrefix, bool bWrite = false )
+        : vDesc( sPrefix, bWrite ),
+          xFile( entry_vec_generator.file( sPrefix + ".entries", bWrite ) ),
           vEntries( entry_vec_generator.vec( xFile ) ),
           vClassLayerCache{ }
     {
@@ -260,7 +254,7 @@ template <typename type_defs> class PsArray
 template <typename type_defs> void exportArray( pybind11::module& m, std::string sName )
 {
     pybind11::class_<kdpstree::PsArray<type_defs>>( m, sName.c_str( ) )
-        .def( pybind11::init<std::string>( ) ) // constructor
+        .def( pybind11::init<std::string, bool>( ), pybind11::arg( "path" ), pybind11::arg( "write_mode" ) = false ) // constructor
         .def( "add_point", &kdpstree::PsArray<type_defs>::addPoint )
         .def( "add_point", &kdpstree::PsArray<type_defs>::addPointArray )
         .def( "generate", &kdpstree::PsArray<type_defs>::generate )
