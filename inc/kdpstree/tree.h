@@ -246,7 +246,7 @@ template <typename type_defs> class Tree
                     }
                     if(pOverlayCache != nullptr)
                         uiVal += vEntries.get( uiCoord, pOverlayCache->vEntryBegins[ uiI ], 
-                                            pOverlayCache->vSizes[ uiI ] );
+                                               pOverlayCache->vSizes[ uiI ] );
 #ifndef NDEBUG
                     {
                         pos_t vPos = vOverlayBottomLeft;
