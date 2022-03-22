@@ -105,7 +105,7 @@ size_t constexpr nextPower2(size_t n)
 
 const std::string CLRLN = "\r\033[K";
 
-#define DO_PROFILE 1
+#define DO_PROFILE 0
 
 #if DO_PROFILE == 1
 struct Profiler
@@ -127,8 +127,8 @@ struct Profiler
 #else
 struct Profiler
 {
-    Profiler(std::string sLabel) {}
-    void step(std::string sLabel) {}
+    Profiler(std::string) {}
+    void step(std::string) {}
     ~Profiler() { step(""); }
 };
 #endif

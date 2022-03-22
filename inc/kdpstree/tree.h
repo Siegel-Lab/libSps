@@ -214,17 +214,66 @@ template <typename type_defs> class Tree
                 }
                 xProfiler.step("tmp vec");
 
+                const overlay_meta_t* pOverlayCache = nullptr;
+                coordinate_t uiOverlayCacheTop = 0;
                 // @todo should not be lambda function
+                
                 auto fForPos = [ & ]( coordinate_t uiCoord ) {
                     data_t uiVal = uiInitVal;
 
-                    pos_t vPos = vOverlayBottomLeft;
-                    vPos[ uiI ] = uiCoord + 1;
-                    if constexpr( EXPLAIN_QUERY )
-                        std::cerr << "\toverlay axis pos=" << uiCoord << " precurser pos=" << vPos << std::endl;
-
-                    uiVal += countToZero<true>( xDatasetId, vPos );
-
+                    if(pOverlayCache == nullptr || uiOverlayCacheTop <= uiCoord)
+                    {
+                        pos_t vPos = vOverlayBottomLeft;
+                        vPos[ uiI ] = uiCoord + 1;
+                        bool bOk = true;
+                        for( size_t uiI = 0; uiI < d && bOk; uiI++ )
+                        {
+                            if(vPos[ uiI ] == 0)
+                                bOk = false;
+                            else
+                                --vPos[ uiI ];
+                        }
+                        if (bOk)
+                        {
+                            if constexpr( EXPLAIN_QUERY )
+                                std::cerr << "\toverlay axis pos=" << uiCoord << " precurser pos=" << vPos << std::endl;
+                            auto rO = getOverlay<true>( xDatasetId, vPos );
+                            pOverlayCache = std::get<2>(rO);
+                            uiOverlayCacheTop = std::get<1>(rO)[ uiI ];
+                        }
+                        else
+                            pOverlayCache = nullptr;
+                    }
+                    if(pOverlayCache != nullptr)
+                        uiVal += vEntries.get( uiCoord, pOverlayCache->vEntryBegins[ uiI ], 
+                                            pOverlayCache->vSizes[ uiI ] );
+#ifndef NDEBUG
+                    {
+                        pos_t vPos = vOverlayBottomLeft;
+                        vPos[ uiI ] = uiCoord + 1;
+                        bool bOk = true;
+                        for( size_t uiI = 0; uiI < d && bOk; uiI++ )
+                        {
+                            if(vPos[ uiI ] == 0)
+                                bOk = false;
+                            else
+                                --vPos[ uiI ];
+                        }
+                        if(bOk)
+                        {
+                            data_t uiX = countToZero<true>( *pOverlayCache, vPos );
+                            uiX += uiInitVal;
+                            assert(uiX == uiVal);
+                        }
+                    }
+                    {
+                        pos_t vPos = vOverlayBottomLeft;
+                        vPos[ uiI ] = uiCoord + 1;
+                        data_t uiX = countToZero<true>( xDatasetId, vPos );
+                        uiX += uiInitVal;
+                        assert(uiX == uiVal);
+                    }
+#endif
                     if constexpr( EXPLAIN_QUERY )
                         std::cerr << "\toverlay axis pos=" << uiCoord
                                   << " init val - bottom left corner + precursers =" << uiVal << std::endl;
@@ -471,11 +520,11 @@ template <typename type_defs> class Tree
                 // here it is important to go from left to right so that vvPrefixSumVecs is filled in the correct order
                 //
 
+                std::get<0>( vTree.vTree[ uiMyOffset ].vChildren[ uiA ] ) = uiAxisSplitPos[ uiA ];
 
                 generateForPointsHelper(
                     xDatasetId,
                     [ & ]( size_t uiOffsetNode, bool bIsLeaf ) {
-                        std::get<0>( vTree.vTree[ uiMyOffset ].vChildren[ uiA ] ) = uiAxisSplitPos[ uiA ];
                         std::get<1>( vTree.vTree[ uiMyOffset ].vChildren[ uiA ] ) = uiOffsetNode;
                         std::get<2>( vTree.vTree[ uiMyOffset ].vChildren[ uiA ] ) = bIsLeaf;
 
@@ -507,7 +556,7 @@ template <typename type_defs> class Tree
     };
 
     template <bool SILENT>
-    std::pair<pos_t, const overlay_meta_t*> getOverlay( const class_key_t& xDatasetId, const pos_t& vPos ) const
+    std::tuple<pos_t, pos_t, const overlay_meta_t*> getOverlay( const class_key_t& xDatasetId, const pos_t& vPos ) const
     {
         auto cIter =
             std::lower_bound( vTree.vRoots.cbegin( ), vTree.vRoots.cend( ), xDatasetId,
@@ -518,6 +567,9 @@ template <typename type_defs> class Tree
             throw std::runtime_error( "getOverlay: dataset Id not found" );
 
         pos_t vBottomLeft{ };
+        pos_t vTopRight{ };
+        for( size_t uiI = 0; uiI < d; uiI++ )
+            vTopRight[uiI] = std::numeric_limits<coordinate_t>::max();
         size_t uiCurr = std::get<1>( *cIter );
         bool bIsLeaf = std::get<2>( *cIter );
         while( !bIsLeaf )
@@ -528,12 +580,18 @@ template <typename type_defs> class Tree
                                          vPos[ vTree.vTree[ uiCurr ].uiSplitDimension ],
                                          CompOverlay( ) );
             if( xIt == vTree.vTree[ uiCurr ].vChildren.begin( ) )
-                return std::make_pair( vBottomLeft, nullptr );
+            {
+                vTopRight[vTree.vTree[ uiCurr ].uiSplitDimension] = std::get<0>( *(xIt+1) );
+                return std::make_tuple( vBottomLeft, vTopRight, nullptr );
+            }
             else
             {
+                if( xIt != vTree.vTree[ uiCurr ].vChildren.end( ) )
+                    vTopRight[vTree.vTree[ uiCurr ].uiSplitDimension] = std::get<0>( *xIt );
                 --xIt;
+                vBottomLeft[vTree.vTree[ uiCurr ].uiSplitDimension] = std::get<0>( *xIt );
                 if( std::get<1>( *xIt ) == std::numeric_limits<offset_t>::max( ) )
-                    return std::make_pair( vBottomLeft, nullptr );
+                    return std::make_tuple( vBottomLeft, vTopRight, nullptr );
                 bIsLeaf = std::get<2>( *xIt );
                 uiCurr = std::get<1>( *xIt );
             }
@@ -541,7 +599,7 @@ template <typename type_defs> class Tree
         assert( uiCurr < vTree.vLeaves.size( ) );
         if constexpr( EXPLAIN_QUERY && !SILENT )
             std::cerr << "\t\toverlay index: " << uiCurr << std::endl;
-        return std::make_pair( vBottomLeft, &vTree.vLeaves[ uiCurr ] );
+        return std::make_tuple( vBottomLeft, vTopRight, &vTree.vLeaves[ uiCurr ] );
     }
 
     void iterateOverlaysIn( std::function<void( const overlay_meta_t& )> fDo, size_t uiCurr, bool bIsLeaf,
@@ -647,8 +705,8 @@ template <typename type_defs> class Tree
             else
                 --vPos[ uiI ];
         }
-        std::pair<pos_t, const overlay_meta_t*> rO = getOverlay<SILENT>( xDatasetId, vPos );
-        if( rO.second == nullptr )
+        std::tuple<pos_t, pos_t, const overlay_meta_t*> rO = getOverlay<SILENT>( xDatasetId, vPos );
+        if( std::get<2>(rO) == nullptr )
         {
             if constexpr( EXPLAIN_QUERY && !SILENT )
                 std::cerr << "\t\tpoint is to the bottom left of most bottom left overlay. result must be zero."
@@ -656,13 +714,8 @@ template <typename type_defs> class Tree
             return data_t{ }; // return zero
         }
         if constexpr( EXPLAIN_QUERY && !SILENT )
-        {
-            std::cerr << "\t\toverlay position: (";
-            for( size_t uiI = 0; uiI < d; uiI++ )
-                std::cerr << rO.first[ uiI ] << ", ";
-            std::cerr << ")" << std::endl;
-        }
-        return countToZero<SILENT>( *rO.second, vPos );
+            std::cerr << "\t\toverlay: " << rO << std::endl;
+        return countToZero<SILENT>( *std::get<2>(rO), vPos );
     }
 
     template <bool SILENT>
@@ -735,7 +788,7 @@ template <typename type_defs> class Tree
 
         for( size_t uiI = 0; uiI < d; uiI++ )
         {
-            xProg << CLRLN << "Generating axis coordinates" << uiI << " of " << d << "...";
+            xProg << CLRLN << "Generating axis coordinates " << uiI << " of " << d << "...";
             vOverlayTopRight[ uiI ] = std::numeric_limits<coordinate_t>::max( );
 
             vPoints.sortByDim( uiI, uiFrom, uiTo );

@@ -2,7 +2,7 @@ import os
 os.environ["STXXLLOGFILE"] = "/dev/null"
 os.environ["STXXLERRLOGFILE"] = "/dev/null"
 
-from build.libKdpsTree import *
+from build_dbg.libKdpsTree import *
 import random
 
 print_all = False
@@ -59,6 +59,6 @@ def test_array(tree, l, n=30):
 random.seed(6846854546132)
 #fixed(KdpsTree_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
 
-test(KdpsTreeTest("test/blub1"), SETTINGS.NUM_LAYERS)
-test(KdpsTree("test/blub2"), SETTINGS.NUM_LAYERS)
-test_array(PsArray("test/blub3"), SETTINGS.NUM_LAYERS)
+test(KdpsTreeTest("test/blub1", True), SETTINGS.NUM_LAYERS)
+test(KdpsTree("test/blub2", True), SETTINGS.NUM_LAYERS)
+test_array(PsArray("test/blub3", True), SETTINGS.NUM_LAYERS)
