@@ -206,6 +206,7 @@ template <typename type_defs> class Tree
                         uiFrom, uiTo );
 
                 std::array<offset_t, LAYERS> vPointsStartIt;
+                std::array<offset_t, LAYERS> vPointsEndIt;
                 std::array<offset_t, LAYERS> vPointsCurrIt;
                 for( size_t uiA = 0; uiA < LAYERS; uiA++ )
                 {
@@ -213,155 +214,108 @@ template <typename type_defs> class Tree
                         vPoints.lowerBound( uiA > 0 ? vPointsStartIt[ uiA - 1 ] : uiFrom, uiTo,
                                             [ & ]( const point_t& rP ) { return rP.uiLayer < uiA; } );
                     vPointsCurrIt[ uiA ] = vPointsStartIt[ uiA ];
+                    if(uiA > 0)
+                        vPointsEndIt[uiA - 1] = vPointsStartIt[ uiA ];
                 }
-
-                const overlay_meta_t* pOverlayCache = nullptr;
-                std::vector<std::pair<coordinate_t, const data_t>> vCache;
-                size_t uiCacheIt = 0;
-                coordinate_t uiOverlayCacheTop = 0;
+                vPointsEndIt[LAYERS - 1] = uiTo;
 
                 const auto& rvPData = vPoints.vData;
                 coordinate_t uiCoord = vOverlayBottomLeft[ uiI ];
-                while(uiCoord < vOverlayTopRight[ uiI ])
-                {
-                    rProfiler.step("overlay - tmp vec - cache");
-                    while(uiCacheIt < vCache.size() && vCache[uiCacheIt].first < uiCoord)
-                        ++uiCacheIt;
-
-                    // setup cache if necessary
-                    if(vCache.size() == 0 || uiOverlayCacheTop <= uiCoord)
-                    {
-                        vCache.clear();
-                        pos_t vPos = vOverlayBottomLeft;
-                        vPos[ uiI ] = uiCoord + 1;
-                        bool bOk = true;
-                        for( size_t uiI = 0; uiI < d && bOk; uiI++ )
+                data_t uiVal = uiInitVal;
+                auto fPushBack = [&](coordinate_t uiPos){
+#if 0 //ndef NDEBUG
                         {
-                            if(vPos[ uiI ] == 0)
-                                bOk = false;
-                            else
-                                --vPos[ uiI ];
-                        }
-                        if (bOk)
-                        {
-                            if constexpr( EXPLAIN_QUERY )
-                                std::cerr << "\toverlay axis pos=" << uiCoord << " precurser pos= " << vPos 
-                                          << std::endl;
-                            auto rO = getOverlay<true>( xDatasetId, vPos );
-                            pOverlayCache = std::get<2>(rO);
-                            uiOverlayCacheTop = std::get<1>(rO)[ uiI ];
-                            vEntries.forRange(
-                                [&](coordinate_t vPos, const data_t& vData){
-                                    vCache.emplace_back(vPos, vData);
-                                },
-                                std::get<2>(rO)->vEntryBegins[ uiI ], 
-                                std::get<2>(rO)->vSizes[ uiI ],
-                                uiCoord,
-                                vOverlayTopRight[ uiI ]
-                            );
-                            uiCacheIt = 0;
-                            assert(vCache[uiCacheIt].first >= uiCoord);
-                        }
-                        else
-                        {
-                            // if there are no more overlays and no more points we can cancel the loop as well
-                            bool bOK = true;
-                            for( size_t uiA = 0; uiA < LAYERS && bOK; uiA++ )
-                                if(vPointsCurrIt[ uiA ] < (uiA + 1 < LAYERS ? vPointsStartIt[ uiA + 1 ] : uiTo))
-                                    bOK = false;
-                            if(bOK)
-                                break;
-                            else
-                            {
-                                coordinate_t uiNewCoord = std::numeric_limits<coordinate_t>::max();
-                                for( size_t uiA = 0; uiA < LAYERS; uiA++ )
-                                    if(vPointsCurrIt[ uiA ] < (uiA + 1 < LAYERS ? vPointsStartIt[ uiA + 1 ] : uiTo) && 
-                                        rvPData[ vPointsCurrIt[ uiA ] ].vPos[ uiI ] < uiNewCoord)
-                                        uiNewCoord = rvPData[ vPointsCurrIt[ uiA ] ].vPos[ uiI ];
-                                if(uiNewCoord < std::numeric_limits<coordinate_t>::max())
-                                uiCoord = std::max(uiCoord, uiNewCoord);
-                            }
-                        }
-                    }
-
-                    rProfiler.step("overlay - tmp vec - points");
-                    for( size_t uiA = 0; uiA < LAYERS; uiA++ )
-                    {
-                        offset_t uiPointsEndIt = vPointsCurrIt[ uiA ];
-                        while(uiPointsEndIt < (uiA + 1 < LAYERS ? vPointsStartIt[ uiA + 1 ] : uiTo) &&
-                              rvPData[uiPointsEndIt].uiLayer <= uiA && 
-                              rvPData[uiPointsEndIt].vPos[ uiI ] <= uiCoord)
-                              ++uiPointsEndIt;
-                        assert( vPoints.vData[ vPointsCurrIt[ uiA ] ].uiLayer == uiA ||
-                                vPointsCurrIt[ uiA ] == uiPointsEndIt );
-
-                        if constexpr( EXPLAIN_QUERY )
-                            std::cerr << "\t\tpos=" << uiCoord << " layer=" << uiA << " from=" << vPointsStartIt[ uiA ]
-                                      << " to=" << uiPointsEndIt << std::endl;
-
-                        vPointsCurrIt[ uiA ] = uiPointsEndIt;
-                    }
-
-                    coordinate_t uiNewCoord = std::numeric_limits<coordinate_t>::max();
-                    if(uiCacheIt < vCache.size())
-                        uiNewCoord = vCache[uiCacheIt].first;
-                    for( size_t uiA = 0; uiA < LAYERS; uiA++ )
-                        if(vPointsCurrIt[ uiA ] > vPointsStartIt[ uiA ] && 
-                           rvPData[ vPointsCurrIt[ uiA ]-1 ].vPos[ uiI ] < uiNewCoord)
-                            uiNewCoord = rvPData[ vPointsCurrIt[ uiA ]-1 ].vPos[ uiI ];
-                    uiCoord = std::max(uiCoord, uiNewCoord);
-
-                    // compute value
-                    rProfiler.step("overlay - tmp vec - comp");
-                    data_t uiVal = uiInitVal;
-                    if(uiCacheIt < vCache.size() && vCache[uiCacheIt].first == uiCoord)
-                        uiVal += vCache[uiCacheIt].second;
-
-                    if constexpr( EXPLAIN_QUERY )
-                        std::cerr << "\toverlay axis pos=" << uiCoord
-                                  << " init val - bottom left corner + precursers = " << uiVal << std::endl;
-
-#ifndef NDEBUG
-                    {
-                        pos_t vPos = vOverlayBottomLeft;
-                        vPos[ uiI ] = uiCoord + 1;
-                        bool bOk = true;
-                        for( size_t uiI = 0; uiI < d && bOk; uiI++ )
-                        {
-                            if(vPos[ uiI ] == 0)
-                                bOk = false;
-                            else
-                                --vPos[ uiI ];
-                        }
-                        if(bOk)
-                        {
-                            data_t uiX = countToZero<true>( *pOverlayCache, vPos );
+                            pos_t vPos = vOverlayBottomLeft;
+                            vPos[ uiI ] = uiPos;
+                            data_t uiX = countToZero<true>( xDatasetId, vPos );
                             uiX += uiInitVal;
                             assert(uiX == uiVal);
                         }
-                    }
-                    {
-                        pos_t vPos = vOverlayBottomLeft;
-                        vPos[ uiI ] = uiCoord + 1;
-                        data_t uiX = countToZero<true>( xDatasetId, vPos );
-                        uiX += uiInitVal;
-                        assert(uiX == uiVal);
-                    }
 #endif
-
-                    for( size_t uiA = 0; uiA < LAYERS; uiA++ )
-                        uiVal[ uiA ] += vPointsCurrIt[ uiA ] - vPointsStartIt[ uiA ];
+                        for( size_t uiA = 0; uiA < LAYERS; uiA++ )
+                        {
+                            while(vPointsCurrIt[ uiA ] < vPointsEndIt[ uiA ] && 
+                                    rvPData[ vPointsCurrIt[ uiA ] ].vPos[ uiI ] == uiPos)
+                                    ++vPointsCurrIt[ uiA ];
+                        }
                         
-                    if constexpr( EXPLAIN_QUERY )
-                        std::cerr << "\toverlay axis pos=" << uiCoord
-                                  << " init val - bottom left corner + precursers + points = " << uiVal << std::endl;
 
-                    if( ( vTmp.size( ) == 0 || oneSmaller( vTmp.back( ).second, uiVal ) ) &&
-                                oneLarger( uiVal, (val_t)0 ) )
-                        vTmp.emplace_back( uiCoord, uiVal );
+                        data_t uiValIntern = uiVal;
+                        for( size_t uiA = 0; uiA < LAYERS; uiA++ )
+                            uiValIntern[ uiA ] += vPointsCurrIt[ uiA ] - vPointsStartIt[ uiA ];
 
-                    if(uiCoord < std::numeric_limits<coordinate_t>::max())
-                        ++uiCoord;
+                        if constexpr( EXPLAIN_QUERY )
+                            std::cerr << "\toverlay axis pos=" << uiPos
+                                    << " init val - bottom left corner + precursers + points = " 
+                                    << uiValIntern << std::endl;
+
+                        if( ( vTmp.size( ) == 0 || oneSmaller( vTmp.back( ).second, uiValIntern ) ) &&
+                                    oneLarger( uiValIntern, (val_t)0 ) )
+                            vTmp.emplace_back( uiPos, uiValIntern );
+                };
+                auto fDoPointsUntill = [&](coordinate_t uiPos){
+                    while(true)
+                    {
+                        coordinate_t uiSmallestPointPos = std::numeric_limits<coordinate_t>::max();
+                        for( size_t uiA = 0; uiA < LAYERS; uiA++ )
+                            if(vPointsCurrIt[ uiA ] < vPointsEndIt[ uiA ] && 
+                                    rvPData[ vPointsCurrIt[ uiA ] ].vPos[ uiI ] < uiSmallestPointPos)
+                                uiSmallestPointPos = rvPData[ vPointsCurrIt[ uiA ] ].vPos[ uiI ];
+
+                        if(uiSmallestPointPos >= uiPos || 
+                                uiSmallestPointPos == std::numeric_limits<coordinate_t>::max())
+                            break;
+
+                        fPushBack(uiSmallestPointPos);
+                    }
+                };
+                fPushBack(uiCoord);
+                while(uiCoord < vOverlayTopRight[ uiI ])
+                {
+                    rProfiler.step("overlay - tmp vec");
+
+                    // setup cache if necessary
+                    pos_t vPos = vOverlayBottomLeft;
+                    vPos[ uiI ] = uiCoord + 1;
+                    bool bOk = true;
+                    for( size_t uiI = 0; uiI < d && bOk; uiI++ )
+                    {
+                        if(vPos[ uiI ] == 0)
+                            bOk = false;
+                        else
+                            --vPos[ uiI ];
+                    }
+                    if (bOk)
+                    {
+                        if constexpr( EXPLAIN_QUERY )
+                            std::cerr << "\toverlay axis pos=" << uiCoord << " precurser pos= " << vPos 
+                                        << std::endl;
+                        auto rO = getOverlay<true>( xDatasetId, vPos ); // must find sth
+                        vEntries.forRange(
+                            [&](coordinate_t uiPos, const data_t& vData)
+                            {
+                                fDoPointsUntill(uiPos);
+                                uiVal = uiInitVal;
+                                uiVal += vData;
+                                if constexpr( EXPLAIN_QUERY )
+                                    std::cerr << "\toverlay axis pos=" << uiPos
+                                            << " init val - bottom left corner + precursers = " << uiVal << std::endl;
+                                
+                                fPushBack(uiPos);
+                            },
+                            std::get<2>(rO)->vEntryBegins[ uiI ], 
+                            std::get<2>(rO)->vSizes[ uiI ],
+                            uiCoord,
+                            vOverlayTopRight[ uiI ]
+                        );
+                        uiCoord = std::get<1>(rO)[ uiI ];
+                        fDoPointsUntill(uiCoord);
+                    }
+                    else
+                    {
+                        fDoPointsUntill(vOverlayTopRight[ uiI ]);
+                        break;
+                    }
                 }
 
                 for( size_t uiA = 0; uiA < LAYERS - 1; uiA++ )
