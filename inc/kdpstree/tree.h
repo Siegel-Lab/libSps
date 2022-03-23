@@ -126,10 +126,12 @@ template <typename type_defs> class Tree
                                   std::array<coordinate_t, d> vOverlayBottomLeft,
                                   std::array<coordinate_t, d> vOverlayTopRight,
                                   const std::array<cord_vec_t, d>& vAxisCoordinates, std::array<size_t, d> vAxisFrom,
-                                  std::array<size_t, d> vAxisTo, std::optional<progress_stream_t>& xProg )
+                                  std::array<size_t, d> vAxisTo, std::optional<progress_stream_t>& xProg, 
+                                  Profiler& rProfiler )
     {
         if( uiFrom == uiTo )
             return;
+        rProfiler.step("overlay - check points same");
         bool bAllPointsSame = true;
         vPoints.forRange(
             [ & ]( const point_t& rP1 ) {
@@ -157,7 +159,7 @@ template <typename type_defs> class Tree
             // for each dimension
             for( size_t uiI = 0; uiI < d; uiI++ )
             {
-                Profiler xProfiler("init");
+                rProfiler.step("overlay - init");
                 if constexpr( EXPLAIN_QUERY )
                     std::cerr << "\tgenerating axis for dimension=" << uiI << std::endl;
                 // 2) fill a temp vec with the values
@@ -212,17 +214,24 @@ template <typename type_defs> class Tree
                                             [ & ]( const point_t& rP ) { return rP.uiLayer < uiA; } );
                     vPointsCurrIt[ uiA ] = vPointsStartIt[ uiA ];
                 }
-                xProfiler.step("tmp vec");
 
                 const overlay_meta_t* pOverlayCache = nullptr;
+                std::vector<std::pair<coordinate_t, const data_t>> vCache;
+                size_t uiCacheIt = 0;
                 coordinate_t uiOverlayCacheTop = 0;
-                // @todo should not be lambda function
-                
-                auto fForPos = [ & ]( coordinate_t uiCoord ) {
-                    data_t uiVal = uiInitVal;
 
-                    if(pOverlayCache == nullptr || uiOverlayCacheTop <= uiCoord)
+                const auto& rvPData = vPoints.vData;
+                coordinate_t uiCoord = vOverlayBottomLeft[ uiI ];
+                while(uiCoord < vOverlayTopRight[ uiI ])
+                {
+                    rProfiler.step("overlay - tmp vec - cache");
+                    while(uiCacheIt < vCache.size() && vCache[uiCacheIt].first < uiCoord)
+                        ++uiCacheIt;
+
+                    // setup cache if necessary
+                    if(vCache.size() == 0 || uiOverlayCacheTop <= uiCoord)
                     {
+                        vCache.clear();
                         pos_t vPos = vOverlayBottomLeft;
                         vPos[ uiI ] = uiCoord + 1;
                         bool bOk = true;
@@ -236,17 +245,82 @@ template <typename type_defs> class Tree
                         if (bOk)
                         {
                             if constexpr( EXPLAIN_QUERY )
-                                std::cerr << "\toverlay axis pos=" << uiCoord << " precurser pos=" << vPos << std::endl;
+                                std::cerr << "\toverlay axis pos=" << uiCoord << " precurser pos= " << vPos 
+                                          << std::endl;
                             auto rO = getOverlay<true>( xDatasetId, vPos );
                             pOverlayCache = std::get<2>(rO);
                             uiOverlayCacheTop = std::get<1>(rO)[ uiI ];
+                            vEntries.forRange(
+                                [&](coordinate_t vPos, const data_t& vData){
+                                    vCache.emplace_back(vPos, vData);
+                                },
+                                std::get<2>(rO)->vEntryBegins[ uiI ], 
+                                std::get<2>(rO)->vSizes[ uiI ],
+                                uiCoord,
+                                vOverlayTopRight[ uiI ]
+                            );
+                            uiCacheIt = 0;
+                            assert(vCache[uiCacheIt].first >= uiCoord);
                         }
                         else
-                            pOverlayCache = nullptr;
+                        {
+                            // if there are no more overlays and no more points we can cancel the loop as well
+                            bool bOK = true;
+                            for( size_t uiA = 0; uiA < LAYERS && bOK; uiA++ )
+                                if(vPointsCurrIt[ uiA ] < (uiA + 1 < LAYERS ? vPointsStartIt[ uiA + 1 ] : uiTo))
+                                    bOK = false;
+                            if(bOK)
+                                break;
+                            else
+                            {
+                                coordinate_t uiNewCoord = std::numeric_limits<coordinate_t>::max();
+                                for( size_t uiA = 0; uiA < LAYERS; uiA++ )
+                                    if(vPointsCurrIt[ uiA ] < (uiA + 1 < LAYERS ? vPointsStartIt[ uiA + 1 ] : uiTo) && 
+                                        rvPData[ vPointsCurrIt[ uiA ] ].vPos[ uiI ] < uiNewCoord)
+                                        uiNewCoord = rvPData[ vPointsCurrIt[ uiA ] ].vPos[ uiI ];
+                                if(uiNewCoord < std::numeric_limits<coordinate_t>::max())
+                                uiCoord = std::max(uiCoord, uiNewCoord);
+                            }
+                        }
                     }
-                    if(pOverlayCache != nullptr)
-                        uiVal += vEntries.get( uiCoord, pOverlayCache->vEntryBegins[ uiI ], 
-                                               pOverlayCache->vSizes[ uiI ] );
+
+                    rProfiler.step("overlay - tmp vec - points");
+                    for( size_t uiA = 0; uiA < LAYERS; uiA++ )
+                    {
+                        offset_t uiPointsEndIt = vPointsCurrIt[ uiA ];
+                        while(uiPointsEndIt < (uiA + 1 < LAYERS ? vPointsStartIt[ uiA + 1 ] : uiTo) &&
+                              rvPData[uiPointsEndIt].uiLayer <= uiA && 
+                              rvPData[uiPointsEndIt].vPos[ uiI ] <= uiCoord)
+                              ++uiPointsEndIt;
+                        assert( vPoints.vData[ vPointsCurrIt[ uiA ] ].uiLayer == uiA ||
+                                vPointsCurrIt[ uiA ] == uiPointsEndIt );
+
+                        if constexpr( EXPLAIN_QUERY )
+                            std::cerr << "\t\tpos=" << uiCoord << " layer=" << uiA << " from=" << vPointsStartIt[ uiA ]
+                                      << " to=" << uiPointsEndIt << std::endl;
+
+                        vPointsCurrIt[ uiA ] = uiPointsEndIt;
+                    }
+
+                    coordinate_t uiNewCoord = std::numeric_limits<coordinate_t>::max();
+                    if(uiCacheIt < vCache.size())
+                        uiNewCoord = vCache[uiCacheIt].first;
+                    for( size_t uiA = 0; uiA < LAYERS; uiA++ )
+                        if(vPointsCurrIt[ uiA ] > vPointsStartIt[ uiA ] && 
+                           rvPData[ vPointsCurrIt[ uiA ]-1 ].vPos[ uiI ] < uiNewCoord)
+                            uiNewCoord = rvPData[ vPointsCurrIt[ uiA ]-1 ].vPos[ uiI ];
+                    uiCoord = std::max(uiCoord, uiNewCoord);
+
+                    // compute value
+                    rProfiler.step("overlay - tmp vec - comp");
+                    data_t uiVal = uiInitVal;
+                    if(uiCacheIt < vCache.size() && vCache[uiCacheIt].first == uiCoord)
+                        uiVal += vCache[uiCacheIt].second;
+
+                    if constexpr( EXPLAIN_QUERY )
+                        std::cerr << "\toverlay axis pos=" << uiCoord
+                                  << " init val - bottom left corner + precursers = " << uiVal << std::endl;
+
 #ifndef NDEBUG
                     {
                         pos_t vPos = vOverlayBottomLeft;
@@ -274,40 +348,21 @@ template <typename type_defs> class Tree
                         assert(uiX == uiVal);
                     }
 #endif
-                    if constexpr( EXPLAIN_QUERY )
-                        std::cerr << "\toverlay axis pos=" << uiCoord
-                                  << " init val - bottom left corner + precursers =" << uiVal << std::endl;
 
-                    // set point iterator to correct position
                     for( size_t uiA = 0; uiA < LAYERS; uiA++ )
-                    {
-                        offset_t uiPointsEndIt = vPoints.lowerBound(
-                            vPointsCurrIt[ uiA ],
-                            uiA + 1 < LAYERS ? vPointsCurrIt[ uiA + 1 ] : uiTo,
-                            [ & ]( const point_t& rP ) { return rP.uiLayer <= uiA && rP.vPos[ uiI ] <= uiCoord; } );
-                        assert( vPoints.vData[ vPointsCurrIt[ uiA ] ].uiLayer == uiA ||
-                                vPointsCurrIt[ uiA ] == uiPointsEndIt );
-
-                        if constexpr( EXPLAIN_QUERY )
-                            std::cerr << "\t\tpos=" << uiCoord << " layer=" << uiA << " from=" << vPointsStartIt[ uiA ]
-                                      << " to=" << uiPointsEndIt << std::endl;
-
-                        uiVal[ uiA ] += uiPointsEndIt - vPointsStartIt[ uiA ];
-                        vPointsCurrIt[ uiA ] = uiPointsEndIt;
-                    }
-
+                        uiVal[ uiA ] += vPointsCurrIt[ uiA ] - vPointsStartIt[ uiA ];
+                        
                     if constexpr( EXPLAIN_QUERY )
                         std::cerr << "\toverlay axis pos=" << uiCoord
-                                  << " init val - bottom left corner + precursers + points =" << uiVal << std::endl;
+                                  << " init val - bottom left corner + precursers + points = " << uiVal << std::endl;
 
                     if( ( vTmp.size( ) == 0 || oneSmaller( vTmp.back( ).second, uiVal ) ) &&
-                        oneLarger( uiVal, (val_t)0 ) )
+                                oneLarger( uiVal, (val_t)0 ) )
                         vTmp.emplace_back( uiCoord, uiVal );
-                };
 
-                fForPos( vOverlayBottomLeft[ uiI ] );
-                for( size_t uiJ = vAxisFrom[ uiI ]; uiJ < vAxisTo[ uiI ]; uiJ++ )
-                    fForPos( vAxisCoordinates[ uiI ][ uiJ ] );
+                    if(uiCoord < std::numeric_limits<coordinate_t>::max())
+                        ++uiCoord;
+                }
 
                 for( size_t uiA = 0; uiA < LAYERS - 1; uiA++ )
                     assert( vPointsCurrIt[ uiA ] == vPointsStartIt[ uiA + 1 ] );
@@ -319,7 +374,7 @@ template <typename type_defs> class Tree
                                   << std::endl;
 
                 // 3) save pointers to the constructed axes
-                xProfiler.step("eytzinger");
+                rProfiler.step("overlay - eytzinger");
                 vBegins[ uiI ] = vEntries.size( );
                 vSizes[ uiI ] = vTmp.size( );
                 vEntries.incSize( vTmp.size( ) );
@@ -340,11 +395,15 @@ template <typename type_defs> class Tree
             fRegisterMeInTree( uiMyOffset, true );
 
             if( xProg && xProg->printAgain( ) )
+            {
+                rProfiler.print("overlay");
                 xProg << CLRLN << "Generated overlays for " << uiTo << " out of " << vPoints.size( )
                       << " points. That's " << ( 100.0 * uiTo ) / vPoints.size( ) << "%...";
+            }
         }
         else
         {
+            rProfiler.step("overlay - split");
             // @todo should be own function
 
             // recursive call: split points in half
@@ -533,7 +592,7 @@ template <typename type_defs> class Tree
                         bRegistered = true;
                     },
                     uiMaxPointsPerOverlay, uiFrom, uiFrom + uiCountInSplit[ uiA ], vOverlayBottomLeft, vOverlayTopRight,
-                    vAxisCoordinates, vAxisFroms[ uiA ], vAxisTos[ uiA ], xProg );
+                    vAxisCoordinates, vAxisFroms[ uiA ], vAxisTos[ uiA ], xProg, rProfiler );
 
                 uiFrom += uiCountInSplit[ uiA ];
             }
@@ -784,7 +843,8 @@ template <typename type_defs> class Tree
         std::array<cord_vec_t, d> vAxisCoordinates{ };
         std::array<size_t, d> vFrom{ };
         std::array<size_t, d> vTo{ };
-
+        
+        Profiler xProfiler("generate axis coords");
 
         for( size_t uiI = 0; uiI < d; uiI++ )
         {
@@ -802,6 +862,8 @@ template <typename type_defs> class Tree
                 uiFrom, uiTo );
             vTo[ uiI ] = vAxisCoordinates[ uiI ].size( );
         }
+
+        xProfiler.print("overlays");
         xProg << CLRLN << "Generating overlays...";
         generateForPointsHelper(
             xDatasetId, //
@@ -817,7 +879,9 @@ template <typename type_defs> class Tree
             vAxisCoordinates, //
             vFrom, //
             vTo, //
-            xProg );
+            xProg,
+            xProfiler );
+        xProfiler.print("");
         xProg << CLRLN << "Done.\n";
     }
 

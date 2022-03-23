@@ -73,7 +73,7 @@ template <typename it_t, typename cmp_t> struct RamVectorSorter
     }
 };
 
-static const bool EXPLAIN = false;
+static const bool EXPLAIN = true;
 static const size_t B = 170;
 
 using default_coordinate_t = uint32_t;

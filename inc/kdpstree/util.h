@@ -105,22 +105,30 @@ size_t constexpr nextPower2(size_t n)
 
 const std::string CLRLN = "\r\033[K";
 
-#define DO_PROFILE 0
+#define DO_PROFILE 1
 
 #if DO_PROFILE == 1
 struct Profiler
 {
     std::chrono::time_point<std::chrono::high_resolution_clock> xLastTimePoint;
     std::string sLastLabel;
+    std::map<std::string, double> xTimes;
     Profiler(std::string sLabel) : xLastTimePoint(std::chrono::high_resolution_clock::now()), sLastLabel(sLabel) {}
     void step(std::string sLabel)
     {
-        std::cerr << sLastLabel << ": " 
-                  << std::chrono::duration<double, std::milli>(
-                        std::chrono::high_resolution_clock::now() - xLastTimePoint).count()
-                  << "ms" << std::endl;
+        if(xTimes.count(sLastLabel) == 0)
+            xTimes[sLastLabel] = 0;
+        xTimes[sLastLabel] = xTimes[sLastLabel] + std::chrono::duration<double, std::milli>(
+                        std::chrono::high_resolution_clock::now() - xLastTimePoint).count();
         sLastLabel = sLabel;
         xLastTimePoint = std::chrono::high_resolution_clock::now();
+    }
+    void print(std::string sLabel) {
+        step(sLabel);
+        std::cerr << std::endl;
+        for(auto xEntry : xTimes)
+            std::cerr << xEntry.first << ": " << xEntry.second << "ms" << std::endl;
+        xTimes.clear();
     }
     ~Profiler() { step(""); }
 };
@@ -130,6 +138,7 @@ struct Profiler
     Profiler(std::string) {}
     void step(std::string) {}
     ~Profiler() { step(""); }
+    void print(std::string) {}
 };
 #endif
 
