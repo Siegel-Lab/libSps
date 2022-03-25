@@ -44,12 +44,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 
 # create python module if python has been found
 if(WITH_PYTHON)
-    pybind11_add_module( KdpsTree src/tree.cpp )
-    target_include_directories( KdpsTree PUBLIC inc )
-    target_include_directories( KdpsTree SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
-    target_compile_definitions( KdpsTree PRIVATE WITH_PYTHON )
-    target_link_libraries(KdpsTree PUBLIC stxxl )
-    target_link_libraries(KdpsTree PUBLIC -lpthread )
+    pybind11_add_module( Sps src/tree.cpp )
+    target_include_directories( Sps PUBLIC inc )
+    target_include_directories( Sps SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
+    target_compile_definitions( Sps PRIVATE WITH_PYTHON )
+    target_link_libraries( Sps PUBLIC stxxl )
+    target_link_libraries( Sps PUBLIC -lpthread )
 endif()
 
 # build a cpp only test project (this wll show any linker errors that might be hidden with the python build)

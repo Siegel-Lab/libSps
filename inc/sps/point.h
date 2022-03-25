@@ -1,8 +1,8 @@
 #pragma once
 
-#include "kdpstree/type_defs.h"
+#include "sps/type_defs.h"
 
-namespace kdpstree
+namespace sps
 {
 template <typename type_defs> class Point
 {
@@ -21,13 +21,13 @@ template <typename type_defs> class Point
 };
 
 
-} // namespace kdpstree
+} // namespace sps
 
 namespace std
 {
 
 template <typename type_defs>
-std::ostream& operator<<( std::ostream& os, const typename kdpstree::Point<type_defs>& xPoint )
+std::ostream& operator<<( std::ostream& os, const typename sps::Point<type_defs>& xPoint )
 {
     os << xPoint.vPos << " d" << xPoint.uiDescOffset;
     return os;

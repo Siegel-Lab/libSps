@@ -1,12 +1,12 @@
 #pragma once
 
-#include "kdpstree/type_defs.h"
+#include "sps/type_defs.h"
 #include <cassert>
 #include <functional>
 #include <string>
 
 
-namespace kdpstree
+namespace sps
 {
 
 template <typename type_defs> class SparseCoord
@@ -189,4 +189,4 @@ template <typename type_defs> class SparseCoord
 };
 
 
-} // namespace kdpstree
+} // namespace sps

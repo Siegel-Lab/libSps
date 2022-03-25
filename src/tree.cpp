@@ -1,8 +1,8 @@
-#include "kdpstree/default.h"
-#include "kdpstree/main.h"
+#include "sps/default.h"
+#include "sps/main.h"
 
 
-PYBIND11_MODULE( libKdpsTree, m )
+PYBIND11_MODULE( libSps, m )
 {
 
     exportStream<OnDiskTypeDef<2>>( m, "__ProgressOutStream" );

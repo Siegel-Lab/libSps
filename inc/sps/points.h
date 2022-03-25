@@ -1,14 +1,14 @@
 #pragma once
 
-#include "kdpstree/desc.h"
-#include "kdpstree/point.h"
-#include "kdpstree/type_defs.h"
+#include "sps/desc.h"
+#include "sps/point.h"
+#include "sps/type_defs.h"
 #include <cassert>
 #include <functional>
 #include <string>
 
 
-namespace kdpstree
+namespace sps
 {
 
 template <typename type_defs> class Points
@@ -147,12 +147,12 @@ template <typename type_defs> class Points
 };
 
 
-} // namespace kdpstree
+} // namespace sps
 
 namespace std
 {
 
-template <typename type_defs> ostream& operator<<( ostream& os, const kdpstree::Points<type_defs>& vPoints )
+template <typename type_defs> ostream& operator<<( ostream& os, const sps::Points<type_defs>& vPoints )
 {
     size_t uiX = 0;
     for( const auto& rP : vPoints.vData )

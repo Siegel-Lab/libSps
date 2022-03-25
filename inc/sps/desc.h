@@ -1,9 +1,9 @@
 #pragma once
 
-#include "kdpstree/type_defs.h"
+#include "sps/type_defs.h"
 #include <string>
 
-namespace kdpstree
+namespace sps
 {
 
 template <typename type_defs> class Desc;
@@ -13,11 +13,11 @@ template <typename type_defs> class Desc;
 namespace std
 {
 
-template <typename type_defs> ostream& operator<<( ostream& os, const typename kdpstree::Desc<type_defs>& rDesc );
+template <typename type_defs> ostream& operator<<( ostream& os, const typename sps::Desc<type_defs>& rDesc );
 
 } // namespace std
 
-namespace kdpstree
+namespace sps
 {
 
 template <typename type_defs> class Desc
@@ -64,12 +64,12 @@ template <typename type_defs> class Desc
     }
 };
 
-} // namespace kdpstree
+} // namespace sps
 
 namespace std
 {
 
-template <typename type_defs> ostream& operator<<( ostream& os, const typename kdpstree::Desc<type_defs>& rDesc )
+template <typename type_defs> ostream& operator<<( ostream& os, const typename sps::Desc<type_defs>& rDesc )
 {
     os << "0: ";
     size_t uiI = 0;

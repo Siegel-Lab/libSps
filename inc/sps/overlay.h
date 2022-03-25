@@ -1,14 +1,14 @@
 #pragma once
 
-#include "kdpstree/points.h"
-#include "kdpstree/nd_grid.h"
-#include "kdpstree/sparse_coordinate.h"
+#include "sps/points.h"
+#include "sps/nd_grid.h"
+#include "sps/sparse_coordinate.h"
 #include <cassert>
 #include <functional>
 #include <string>
 
 
-namespace kdpstree
+namespace sps
 {
 
 template <typename type_defs> class Overlay
@@ -241,7 +241,7 @@ template <typename type_defs> class Overlay
 };
 
 
-} // namespace kdpstree
+} // namespace sps
 
 
 #if WITH_PYTHON

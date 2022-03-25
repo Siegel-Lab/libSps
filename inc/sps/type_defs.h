@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 
-namespace kdpstree
+namespace sps
 {
 
 template <typename _coordinate_t, //
@@ -77,4 +77,4 @@ class TypeDefs
                                                                                                                        \
     EXTRACT_VEC_GENERATOR_HELPER( name, content_t )
 
-} // namespace kdpstree
+} // namespace sps

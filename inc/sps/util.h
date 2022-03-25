@@ -84,7 +84,7 @@ template <typename stream_t, typename T> std::optional<stream_t>& operator<<( st
 
 } // namespace std
 
-namespace kdpstree{
+namespace sps{
 
 // taken from https://www.techiedelight.com/round-next-highest-power-2/
 size_t constexpr nextPower2(size_t n)

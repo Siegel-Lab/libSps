@@ -1,11 +1,11 @@
 #pragma once
 
-#include "kdpstree/desc.h"
-#include "kdpstree/points.h"
-#include "kdpstree/type_defs.h"
-#include "kdpstree/sparse_coordinate.h"
-#include "kdpstree/nd_grid.h"
-#include "kdpstree/dataset.h"
+#include "sps/desc.h"
+#include "sps/points.h"
+#include "sps/type_defs.h"
+#include "sps/sparse_coordinate.h"
+#include "sps/nd_grid.h"
+#include "sps/dataset.h"
 #include <cassert>
 #include <functional>
 #include <string>
@@ -15,7 +15,7 @@
 #include <pybind11/stl.h>
 #endif
 
-namespace kdpstree
+namespace sps
 {
 
 template <typename type_defs> class Main
@@ -119,6 +119,13 @@ template <typename type_defs> class Main
 namespace std
 {
 
+template <typename type_defs> ostream& operator<<( ostream& os, const sps::Main<type_defs>& vPoints )
+{
+    size_t uiX = 0;
+    for( const auto& rP : vPoints.vData )
+        os << uiX++ << ": " << rP << std::endl;
+    return os;
+}
 
 } // namespace std
 
@@ -129,19 +136,19 @@ template <typename type_defs> void exportStream( pybind11::module& m, std::strin
 }
 template <typename type_defs> void exportMain( pybind11::module& m, std::string sName )
 {
-    pybind11::class_<kdpstree::Main<type_defs>>( m, sName.c_str( ) )
+    pybind11::class_<sps::Main<type_defs>>( m, sName.c_str( ) )
         .def( pybind11::init<std::string, bool>( ), pybind11::arg( "path" ),
               pybind11::arg( "write_mode" ) = false ) // constructor
-        .def( "add_point", &kdpstree::Main<type_defs>::addPoint )
-        .def( "generate", &kdpstree::Main<type_defs>::generate, 
+        .def( "add_point", &sps::Main<type_defs>::addPoint )
+        .def( "generate", &sps::Main<type_defs>::generate, 
                 pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
                 pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( ) )
         // pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
-        .def( "count", &kdpstree::Main<type_defs>::count )
-        //.def( "get", &kdpstree::Main<type_defs>::get, "" )
-        //.def( "__str__", &kdpstree::Main<type_defs>::print )
-        .def( "__len__", &kdpstree::Main<type_defs>::numPoints )
-        .def( "clear", &kdpstree::Main<type_defs>::clear )
+        .def( "count", &sps::Main<type_defs>::count )
+        //.def( "get", &sps::Main<type_defs>::get, "" )
+        //.def( "__str__", &sps::Main<type_defs>::print )
+        .def( "__len__", &sps::Main<type_defs>::numPoints )
+        .def( "clear", &sps::Main<type_defs>::clear )
 
         ;
 }

@@ -5,10 +5,10 @@
 #include <stxxl/vector>
 #include <chrono>
 #include <iostream>
-#include "kdpstree/type_defs.h"
+#include "sps/type_defs.h"
 
 
-using namespace kdpstree;
+using namespace sps;
 
 struct StdOutProgressStream
 {

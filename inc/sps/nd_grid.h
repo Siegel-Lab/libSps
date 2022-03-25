@@ -1,12 +1,12 @@
 #pragma once
 
-#include "kdpstree/type_defs.h"
+#include "sps/type_defs.h"
 #include <cassert>
 #include <functional>
 #include <string>
 
 
-namespace kdpstree
+namespace sps
 {
 
 template <typename type_defs, typename data_t> class NDGrid
@@ -111,4 +111,4 @@ template <typename type_defs, typename data_t>
 const data_t NDGrid<type_defs, data_t>::uiZero{};
 
 
-} // namespace kdpstree
+} // namespace sps
