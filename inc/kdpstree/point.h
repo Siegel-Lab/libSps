@@ -11,13 +11,12 @@ template <typename type_defs> class Point
   public:
     pos_t vPos;
     size_t uiDescOffset;
-    layers_t uiLayer;
 
-    Point( pos_t vPos, size_t uiDescOffset, layers_t uiLayer )
-        : vPos( vPos ), uiDescOffset( uiDescOffset ), uiLayer( uiLayer )
+    Point( pos_t vPos, size_t uiDescOffset )
+        : vPos( vPos ), uiDescOffset( uiDescOffset )
     {}
 
-    Point( ) : vPos{ }, uiDescOffset( 0 ), uiLayer( 0 )
+    Point( ) : vPos{ }, uiDescOffset( 0 )
     {}
 };
 
@@ -30,7 +29,7 @@ namespace std
 template <typename type_defs>
 std::ostream& operator<<( std::ostream& os, const typename kdpstree::Point<type_defs>& xPoint )
 {
-    os << xPoint.vPos << " l" << (size_t)xPoint.uiLayer << " d" << xPoint.uiDescOffset;
+    os << xPoint.vPos << " d" << xPoint.uiDescOffset;
     return os;
 }
 

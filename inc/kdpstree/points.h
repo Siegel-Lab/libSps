@@ -17,7 +17,9 @@ template <typename type_defs> class Points
 
     using point_t = Point<type_defs>;
 
+  public:
     EXTRACT_VEC_GENERATOR( points, point_t ); // macro call
+  private:
 
     using points_it_t = typename points_vec_t::iterator;
     using const_points_it_t = typename points_vec_t::const_iterator;
@@ -46,73 +48,92 @@ template <typename type_defs> class Points
             return xRet;
         };
     };
-
-    struct PointsLayerComperator : public PointsComperator
-    {
-        using PointsComperator::PointsComperator;
-
-        bool operator( )( const point_t& a, const point_t& b ) const
-        {
-            if( a.uiLayer == b.uiLayer )
-                return PointsComperator::operator( )( a, b );
-            return a.uiLayer < b.uiLayer;
-        }
-
-        point_t max_value( ) const
-        {
-            point_t xRet = PointsComperator::max_value( );
-            xRet.uiLayer = LAYERS;
-            return xRet;
-        };
-    };
-
     sort_func_t<points_it_t, PointsComperator> sort_points = sort_func_t<points_it_t, PointsComperator>( );
-    sort_func_t<points_it_t, PointsLayerComperator> sort_layer_points =
-        sort_func_t<points_it_t, PointsLayerComperator>( );
 
   public:
     points_file_t xFile;
     points_vec_t vData;
+    
+    struct Entry{
+        coordinate_t uiStartIndex;
+        coordinate_t uiEndIndex;
+    };
+    
+    class EntryIterator
+    {
+        const Points& rPoints;
+        const Entry& rInfo;
+        size_t uiI;
+    public:
+        EntryIterator(const Points& rPoints, const Entry& rInfo) :
+            rPoints(rPoints),
+            rInfo(rInfo),
+            uiI(rInfo.uiStartIndex)
+        {}
+
+        void operator++()
+        {
+            uiI++;
+        }
+
+        const point_t& operator*() const
+        {
+            return rPoints.vData[uiI];
+        }
+
+        const point_t* operator->() const
+        {
+            return &rPoints.vData[uiI];
+        }
+
+        bool operator!=(const EntryIterator& rOther) const
+        {
+            return uiI != rOther.uiI;
+        }
+        friend class Points;
+    };
 
     Points( std::string sPrefix, bool bWrite )
         : xFile( points_vec_generator.file( sPrefix + ".points", bWrite ) ), vData( points_vec_generator.vec( xFile ) )
     {}
 
-    void add( pos_t vPos, size_t uiDescOffset, layers_t uiLayer )
+    void add( pos_t vPos, size_t uiDescOffset )
     {
-        vData.push_back( point_t( vPos, uiDescOffset, uiLayer ) );
+        vData.push_back( point_t( vPos, uiDescOffset ) );
     }
 
-    void forRange( std::function<bool( const point_t& )> fDo, offset_t uiFrom, offset_t uiTo ) const
+    Entry getEntry() const
     {
-        assert( uiTo >= uiFrom );
-
-        const_points_it_t itEnd = vData.begin( ) + uiTo;
-        bool bContinue = true;
-        for( const_points_it_t cIter = vData.begin( ) + uiFrom; cIter != itEnd && bContinue; cIter++ )
-            bContinue = fDo( *cIter );
+        Entry xRet{};
+        xRet.uiStartIndex = 0;
+        xRet.uiEndIndex = vData.size( );
+        return xRet;
     }
 
-    void sortByDim( size_t uiDim, offset_t uiFrom, offset_t uiTo )
+    EntryIterator cbegin(const Entry& rInfo) const
     {
-        sort_points( vData.begin( ) + uiFrom, vData.begin( ) + uiTo, PointsComperator( uiDim ) );
+        return EntryIterator(*this, rInfo);
     }
 
-    void sortByLayerAndDim( size_t uiDim, offset_t uiFrom, offset_t uiTo )
+    EntryIterator cend(const Entry& rInfo) const
     {
-        sort_layer_points( vData.begin( ) + uiFrom, vData.begin( ) + uiTo, PointsLayerComperator( uiDim ) );
+        EntryIterator xRet(*this, rInfo);
+        xRet.uiI = rInfo.uiEndIndex;
+        return xRet;
     }
 
-    size_t lowerBound( offset_t uiFrom, offset_t uiTo, std::function<bool( const point_t& )> bSmaller )
+    void iterate( std::function<void( const point_t& )> fDo, const Entry& rEntry ) const
     {
-        size_t uiI = 0;
-        return std::lower_bound( vData.cbegin( ) + uiFrom,
-                                 vData.cbegin( ) + uiTo,
-                                 uiI,
-                                 [ & ]( const point_t& rP, const size_t ) { return bSmaller( rP ); } ) -
-               vData.cbegin( );
+        auto itEnd = vData.cbegin( ) + rEntry.uiEndIndex;
+        for( auto cIter = vData.cbegin( ) + rEntry.uiStartIndex; cIter != itEnd; cIter++ )
+            fDo( *cIter );
     }
 
+    void sortByDim( size_t uiDim, const Entry& rEntry )
+    {
+        sort_points( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex, 
+                     PointsComperator( uiDim ) );
+    }
 
     size_t size( ) const
     {
