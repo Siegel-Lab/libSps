@@ -84,6 +84,37 @@ template <typename type_defs> class Overlay
             return os;
         }
     };
+    class CordIterator
+    {
+        cord_it_t xA;
+
+      public:
+        CordIterator( cord_it_t xA )
+            : xA( xA )
+        {}
+
+        void operator++( )
+        {
+            ++xA;
+        }
+
+        const coordinate_t operator*( ) const
+        {
+            return ( *xA ).first;
+        }
+
+        bool operator!=( const CordIterator& rOther ) const
+        {
+            return xA != rOther.xA;
+        }
+
+        friend std::ostream& operator<<( std::ostream& os, const CordIterator& rIt )
+        {
+            os << rIt.xA;
+
+            return os;
+        }
+    };
 
 
     class PointIterator
@@ -158,24 +189,29 @@ template <typename type_defs> class Overlay
                     // add coordinates from previous overlay to the overlay entries
                     auto xA = rSparseCoords.cbegin( vPredecessors[ uiI ]->vSparseCoordsOverlay[ uiI ][ uiJ ] );
                     auto xAE = rSparseCoords.cend( vPredecessors[ uiI ]->vSparseCoordsOverlay[ uiI ][ uiJ ] );
-
-                    auto xB = rSparseCoords.cbegin( 
-                        vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJ + (uiJ >= uiI ? 1 : 0) ] );
-                    auto xBE = rSparseCoords.cend( 
-                        vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJ + (uiJ >= uiI ? 1 : 0) ] );
-
-                    if(xProg)
+                    if(rPrefixSums.sizeOf( vPredecessors[ uiI ]->xInternalEntires ) > 0)
                     {
-                        vPredecessors[ uiI ]->vSparseCoordsOverlay[ uiI ][ uiJ ].stream(
-                                std::cout << "from overlay: ", rSparseCoords) << std::endl;
-                        vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJ + (uiJ >= uiI ? 1 : 0) ].stream(
-                                std::cout << "from internal: ", rSparseCoords) << std::endl;
+
+                        auto xB = rSparseCoords.cbegin( 
+                            vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJ + (uiJ >= uiI ? 1 : 0) ] );
+                        auto xBE = rSparseCoords.cend( 
+                            vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJ + (uiJ >= uiI ? 1 : 0) ] );
+
+                        if(xProg)
+                        {
+                            vPredecessors[ uiI ]->vSparseCoordsOverlay[ uiI ][ uiJ ].stream(
+                                    std::cout << "from overlay: ", rSparseCoords) << std::endl;
+                            vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJ + (uiJ >= uiI ? 1 : 0) ].stream(
+                                    std::cout << "from internal: ", rSparseCoords) << std::endl;
+                        }
+
+                        MergeIterator xBegin( xA, xB, xAE, xBE );
+                        MergeIterator xEnd( xAE, xBE, xAE, xBE );
+
+                        vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
                     }
-
-                    MergeIterator xBegin( xA, xB, xAE, xBE );
-                    MergeIterator xEnd( xAE, xBE, xAE, xBE );
-
-                    vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
+                    else // @todo @fixme 4 cases points exist/no overlay entries exist/not
+                        vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( CordIterator(xA), CordIterator(xAE) );
 
                     if(xProg)
                         vSparseCoordsOverlay[ uiI ][ uiJ ].stream(std::cout << "result: ", rSparseCoords) << std::endl;
@@ -254,12 +290,14 @@ template <typename type_defs> class Overlay
                 red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[uiI] );
                 vOverlayEntries[ uiI ] = rPrefixSums.add( vAxisSizes );
 
+                auto uiX = rSparseCoords.invReplace(vPos[ uiI ], rGlobalSparseCords[ uiI ]);
+
                 rSparseCoords.template iterate<D - 1>(
                     [ & ]( const red_pos_t& vFrom, const red_pos_t& vTo ) {
                         pos_t vFullFrom = expand( vFrom, uiI );
-                        for( size_t uiI = 0; uiI < D; uiI++ )
-                            vFullFrom[ uiI ]++;
-                        vFullFrom[ uiI ] = vPos[ uiI ];
+                        vFullFrom[ uiI ] = uiX;
+                        //for( size_t uiI = 0; uiI < D; uiI++ )
+                        //    vFullFrom[ uiI ]++;
 
                         rPrefixSums.get( vTo, vOverlayEntries[ uiI ] ) =
                             vPredecessors[ uiI ]->get( rSparseCoords, rPrefixSums, vFullFrom, xProg );
