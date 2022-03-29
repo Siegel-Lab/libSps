@@ -7,6 +7,8 @@ namespace sps
 template <typename type_defs> class Point
 {
     EXTRACT_TYPE_DEFS; // macro call
+    
+    using desc_t = Desc<type_defs>;
 
   public:
     pos_t vPos;
@@ -18,19 +20,19 @@ template <typename type_defs> class Point
 
     Point( ) : vPos{ }, uiDescOffset( 0 )
     {}
+
+    friend std::ostream& operator<<( std::ostream& os, const Point& xPoint )
+    {
+        os << xPoint.vPos << " d" << xPoint.uiDescOffset;
+        return os;
+    }
+
+    std::ostream& stream( std::ostream& os, const desc_t& vDesc ) const
+    {
+        os << vPos << ": " << vDesc.get(uiDescOffset);
+        return os;
+    }
 };
 
 
 } // namespace sps
-
-namespace std
-{
-
-template <typename type_defs>
-std::ostream& operator<<( std::ostream& os, const typename sps::Point<type_defs>& xPoint )
-{
-    os << xPoint.vPos << " d" << xPoint.uiDescOffset;
-    return os;
-}
-
-} // namespace std

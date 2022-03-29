@@ -16,6 +16,7 @@ template <typename type_defs> class Points
     EXTRACT_TYPE_DEFS; // macro call
 
     using point_t = Point<type_defs>;
+    using desc_t = Desc<type_defs>;
 
   public:
     EXTRACT_VEC_GENERATOR( points, point_t ); // macro call
@@ -57,6 +58,49 @@ template <typename type_defs> class Points
     struct Entry{
         coordinate_t uiStartIndex;
         coordinate_t uiEndIndex;
+
+        friend std::ostream& operator<<( std::ostream& os, const Entry& rEntry )
+        {
+            std::cout << "s";
+            std::cout << rEntry.uiStartIndex;
+        
+            std::cout << " e";
+            std::cout << rEntry.uiEndIndex;
+
+            return os;
+        }
+
+        coordinate_t size() const{
+            return uiEndIndex - uiStartIndex;
+        }
+        
+        std::ostream& stream( std::ostream& os, const Points& rPoints, const desc_t& vDesc ) const
+        {
+            os << "{ "; 
+            for(size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++)
+            {
+                if(uiI > uiStartIndex)
+                    os << ", ";
+                rPoints.vData[uiI].stream(os, vDesc);
+            }
+            os << " }";
+
+            return os;
+        }
+
+        std::ostream& stream( std::ostream& os, const Points& rPoints ) const
+        {
+            os << "{ "; 
+            for(size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++)
+            {
+                if(uiI > uiStartIndex)
+                    os << ", ";
+                os << rPoints.vData[uiI];
+            }
+            os << " }";
+
+            return os;
+        }
     };
     
     class EntryIterator
@@ -73,6 +117,7 @@ template <typename type_defs> class Points
 
         void operator++()
         {
+            assert(!eof());
             uiI++;
         }
 
@@ -90,6 +135,22 @@ template <typename type_defs> class Points
         {
             return uiI != rOther.uiI;
         }
+
+        bool eof() const
+        {
+            return uiI == rInfo.uiEndIndex;
+        }
+
+        friend std::ostream& operator<<( std::ostream& os, const EntryIterator& rIt )
+        {
+            os << rIt.rInfo;
+
+            os << " ";
+            os << rIt.uiI;
+
+            return os;
+        }
+
         friend class Points;
     };
 
@@ -144,20 +205,15 @@ template <typename type_defs> class Points
     {
         vData.clear( );
     }
+
+    friend std::ostream& operator<<( std::ostream& os, const Points& vPoints )
+    {
+        size_t uiX = 0;
+        for( const auto& rP : vPoints.vData )
+            os << uiX++ << ": " << rP << std::endl;
+        return os;
+    }
 };
 
 
 } // namespace sps
-
-namespace std
-{
-
-template <typename type_defs> ostream& operator<<( ostream& os, const sps::Points<type_defs>& vPoints )
-{
-    size_t uiX = 0;
-    for( const auto& rP : vPoints.vData )
-        os << uiX++ << ": " << rP << std::endl;
-    return os;
-}
-
-} // namespace std

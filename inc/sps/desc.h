@@ -62,30 +62,25 @@ template <typename type_defs> class Desc
     {
         vData.clear( );
     }
+
+    friend std::ostream& operator<<( std::ostream& os, const Desc& rDesc )
+    {
+        os << "0: ";
+        size_t uiI = 0;
+        auto cIter = rDesc.vData.begin( );
+        while( cIter != rDesc.vData.end( ) )
+        {
+            uiI++;
+            if( *cIter == rDesc.cEof )
+                os << std::endl << uiI << ": ";
+            else
+                os << *cIter;
+            ++cIter;
+        }
+        os << "<EoF>" << std::endl;
+        return os;
+    }
+
 };
 
 } // namespace sps
-
-namespace std
-{
-
-template <typename type_defs> ostream& operator<<( ostream& os, const typename sps::Desc<type_defs>& rDesc )
-{
-    os << "0: ";
-    size_t uiI = 0;
-    auto cIter = rDesc.vData.begin( );
-    while( cIter != rDesc.vData.end( ) )
-    {
-        uiI++;
-        if( *cIter == rDesc.cEof )
-            os << std::endl << uiI << ": ";
-        else
-            os << *cIter;
-        ++cIter;
-    }
-    os << "<EoF>" << std::endl;
-    return os;
-}
-
-
-} // namespace std

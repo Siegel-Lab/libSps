@@ -23,7 +23,48 @@ template <typename type_defs, typename data_t> class NDGrid
     template <size_t N>
     struct Entry{
         std::array<coordinate_t, N> vAxisSizes; 
-        coordinate_t uiStartIndex;
+        coordinate_t uiStartIndex = std::numeric_limits<coordinate_t>::max();
+
+        friend std::ostream& operator<<( std::ostream& os, const Entry& rEntry )
+        {
+            os << "s";
+            os << rEntry.vAxisSizes;
+
+            os << " i";
+            os << rEntry.uiStartIndex;
+
+            return os;
+        }
+
+        template<typename... TS>
+        std::ostream& stream( std::ostream& os, const NDGrid& rGrid, TS&... args ) const
+        {
+            os << "{ "; 
+            for(size_t uiI = 0; uiI < rGrid.sizeOf(*this); uiI++)
+            {
+                if(uiI > 0)
+                    os << ", ";
+                os << rGrid.posOf(uiI + uiStartIndex, *this) << ": ";
+                rGrid.vData[uiI + uiStartIndex].stream(os, args...);
+            }
+            os << " }";
+
+            return os;
+        }
+
+        std::ostream& streamOp( std::ostream& os, const NDGrid& rGrid ) const
+        {
+            os << "{ "; 
+            for(size_t uiI = 0; uiI < rGrid.sizeOf(*this); uiI++)
+            {
+                if(uiI > 0)
+                    os << ", ";
+                os << rGrid.vData[uiI + uiStartIndex];
+            }
+            os << " }";
+
+            return os;
+        }
     };
 
     NDGrid( std::string sFileName, bool bWrite )
@@ -38,28 +79,34 @@ template <typename type_defs, typename data_t> class NDGrid
         {
             if(vX[uiI] == std::numeric_limits<coordinate_t>::max())
                 return std::numeric_limits<coordinate_t>::max();
+            assert(vX[uiI] < rInfo.vAxisSizes[uiI]);
             uiRet = uiRet * rInfo.vAxisSizes[uiI] + vX[uiI];
         }
+        assert(uiRet < sizeOf(rInfo));
         return uiRet + rInfo.uiStartIndex;
     }
 
     template <size_t N>
-    std::array<coordinate_t, N> posOf(coordinate_t uiIndex, const Entry<N>& rInfo) const
+    std::array<coordinate_t, N> posOf(coordinate_t uiIndexIn, const Entry<N>& rInfo) const
     {
-        uiIndex -= rInfo.uiStartIndex;
+        coordinate_t uiIndex = uiIndexIn - rInfo.uiStartIndex;
         std::array<coordinate_t, N> vRet;
         for(size_t _uiI = 0; _uiI < N; _uiI++)
         {
             size_t uiI = N - 1 - _uiI;
-            vRet[uiI] += uiIndex % rInfo.vAxisSizes[uiI];
+            vRet[uiI] = uiIndex % rInfo.vAxisSizes[uiI];
             uiIndex /= rInfo.vAxisSizes[uiI];
         }
+        assert(uiIndex == 0);
+        assert(indexOf(vRet, rInfo) == uiIndexIn);
         return vRet;
     }
 
     template <size_t N>
     coordinate_t sizeOf(const Entry<N>& rInfo) const
     {
+        if(rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max())
+            return 0;
         coordinate_t uiRet = 1;
         for(size_t uiI = 0; uiI < N; uiI++)
             uiRet *= rInfo.vAxisSizes[uiI];
@@ -87,23 +134,34 @@ template <typename type_defs, typename data_t> class NDGrid
     Entry<N> add( const std::array<coordinate_t, N>& vAxisSizes )
     {
         Entry<N> xRet{};
-        xRet.vAxisSizes = vAxisSizes;
+        for(size_t uiI = 0; uiI < N; uiI++)
+            xRet.vAxisSizes[uiI] = vAxisSizes[uiI];
         xRet.uiStartIndex = vData.size();
         // make space for the new grid
-        vData.resize(indexOf<N>(vAxisSizes, xRet));
+        vData.resize(xRet.uiStartIndex + sizeOf(xRet));
+        // stxxl does not zero initialize the resized elements :'(
+        for(size_t uiI = xRet.uiStartIndex; uiI < vData.size(); uiI++)
+            vData[uiI] = data_t{};
         return xRet;
     }
 
     template <size_t N>
     void remove( const Entry<N>& xEntry )
     {
-        assert(xEntry.uiStartIndex + indexOf(xEntry.vAxisSizes, xEntry) == vData.size());
+        assert(xEntry.uiStartIndex + sizeOf(xEntry) == vData.size());
         vData.resize(xEntry.uiStartIndex);
     }
 
     void clear( )
     {
         vData.clear( );
+    }
+
+    friend std::ostream& operator<<( std::ostream& os, const NDGrid& rGrid )
+    {
+        os << rGrid.vData;
+
+        return os;
     }
 };
 

@@ -51,7 +51,7 @@ template <typename T1, typename T2> ostream& operator<<( ostream& out, const std
     return out;
 }
 
-template <typename... TS> ostream& operator<<( ostream& out, const std::vector<TS...>& vector )
+template <typename T> ostream& operator<<( ostream& out, const std::vector<T>& vector )
 {
     out << "{";
     if( vector.size( ) > 0 )
@@ -62,7 +62,23 @@ template <typename... TS> ostream& operator<<( ostream& out, const std::vector<T
     return out;
 }
 
-template <typename... TS> ostream& operator<<( ostream& out, const stxxl::vector<TS...>& vector )
+template <typename T>
+ostream& stream( ostream& out, const std::vector<T>& vector, size_t uiFrom, size_t uiTo )
+{
+    out << "{";
+    if( vector.size( ) > uiFrom )
+        out << vector[ uiFrom ];
+    for( size_t uiI = uiFrom + 1; uiI < uiTo; uiI++ )
+        out << ", " << vector[ uiI ];
+    out << "}";
+    return out;
+}
+
+
+template <typename ValueType, unsigned PageSize, typename PagerType, unsigned BlockSize, typename AllocStr, 
+          typename SizeType> 
+ostream& operator<<( ostream& out, 
+                     const stxxl::vector<ValueType, PageSize, PagerType, BlockSize, AllocStr, SizeType>& vector )
 {
     out << "{";
     if( vector.size( ) > 0 )
@@ -73,9 +89,23 @@ template <typename... TS> ostream& operator<<( ostream& out, const stxxl::vector
     return out;
 }
 
+template <typename ValueType, unsigned PageSize, typename PagerType, unsigned BlockSize, typename AllocStr, 
+          typename SizeType> 
+ostream& stream( ostream& out, 
+                     const stxxl::vector<ValueType, PageSize, PagerType, BlockSize, AllocStr, SizeType>& vector,
+                     size_t uiFrom, size_t uiTo )
+{
+    out << "{";
+    if( vector.size( ) > uiFrom )
+        out << vector[ uiFrom ];
+    for( size_t uiI = uiFrom + 1; uiI < uiTo; uiI++ )
+        out << ", " << vector[ uiI ];
+    out << "}";
+    return out;
+}
 
-template <typename stream_t, typename T> std::optional<stream_t>& operator<<( std::optional<stream_t>& out, 
-                                                                              const T& rT )
+
+template <typename stream_t, typename T> optional<stream_t>& operator<<( optional<stream_t>& out, const T& rT )
 {
     if(out)
         *out << rT;
