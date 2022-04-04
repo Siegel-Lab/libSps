@@ -46,38 +46,6 @@ template <typename type_defs> class Main
     dataset_file_t xFile;
     dataset_vec_t vDataSets;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter" // do not warn about vFrom and vTo
-
-    template<size_t N>
-    inline val_t countHelper( class_key_t uiDatasetIdx, pos_t& vCurr, pos_t vFrom, pos_t vTo, size_t uiDistTo,
-                              std::optional<progress_stream_t> xProg = { } ) const
-    {
-        if constexpr /* <- required to prevent infinite unrolling loop in compiler */(N == type_defs::D)
-        {
-            xProg << "query: " << uiDatasetIdx << " " << vCurr << "\n";
-            val_t uiRet = vDataSets[uiDatasetIdx].get(vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCurr, xProg);
-
-            xProg << "is " << (uiDistTo % 2 == 0 ? "+" : "-") << uiRet << "\n";
-            return uiRet * (uiDistTo % 2 == 0 ? 1 : -1);
-        }
-        else
-        {
-            val_t uiRet = 0;
-            if(vFrom[N] > 0)
-            {
-                vCurr[N] = vFrom[N] - 1;
-                uiRet += countHelper<N+1>(uiDatasetIdx, vCurr, vFrom, vTo, uiDistTo + 1, xProg);
-            }
-            if(vTo[N] > 0)
-            {
-                vCurr[N] = vTo[N] - 1;
-                uiRet += countHelper<N+1>(uiDatasetIdx, vCurr, vFrom, vTo, uiDistTo, xProg);
-            }
-            return uiRet;
-        }
-    }
-#pragma GCC diagnostic pop
 
   public:
     Main( std::string sPrefix, bool bWrite = false ) :
@@ -110,7 +78,7 @@ template <typename type_defs> class Main
         return vPoints.size( );
     }
 
-    class_key_t generate( coordinate_t uiFrom, coordinate_t uiTo, std::optional<progress_stream_t> xProg = { } )
+    class_key_t generate( coordinate_t uiFrom, coordinate_t uiTo, progress_stream_t& xProg )
     {
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
@@ -120,10 +88,21 @@ template <typename type_defs> class Main
         return uiRet;
     }
 
-    val_t count( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, std::optional<progress_stream_t> xProg = { } ) const
+    val_t count( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, progress_stream_t& xProg ) const
     {
-        pos_t vCurr;
-        return countHelper<0>(xDatasetId, vCurr, vFrom, vTo, 0, xProg);
+        val_t uiRet = 0;
+        forAllCombinations<pos_t>([&](pos_t vPos, size_t uiDistToTo){
+            for(size_t uiI = 0; uiI < D; uiI++)
+                --vPos[uiI];
+
+            xProg << "query: " << xDatasetId << " " << vPos << "\n";
+            val_t uiCurr = vDataSets[xDatasetId].get(vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, xProg);
+
+            xProg << "is " << (uiDistToTo % 2 == 0 ? "+" : "-") << uiCurr << "\n";
+            uiRet += uiCurr * (uiDistToTo % 2 == 0 ? 1 : -1);
+
+        }, vFrom, vTo, [](coordinate_t uiPos){ return uiPos > 0; } );
+        return uiRet;
     }
 
     std::string str() const
@@ -174,11 +153,11 @@ template <typename type_defs> void exportMain( pybind11::module& m, std::string 
         .def( "add_point", &sps::Main<type_defs>::addPoint )
         .def( "generate", &sps::Main<type_defs>::generate, 
                 pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( ) )
+                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         // pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
         .def( "count", &sps::Main<type_defs>::count, 
                 pybind11::arg( "uiDatasetId" ), pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( ) )
+                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         //.def( "get", &sps::Main<type_defs>::get, "" )
         .def( "__str__", &sps::Main<type_defs>::str )
         .def( "__len__", &sps::Main<type_defs>::numPoints )

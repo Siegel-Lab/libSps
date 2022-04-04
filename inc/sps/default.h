@@ -13,6 +13,8 @@ using namespace sps;
 struct StdOutProgressStream
 {
     std::chrono::time_point<std::chrono::high_resolution_clock> xLastPrint{};
+    Verbosity xVerb;
+    Verbosity xCurr;
 
     bool printAgain()
     {
@@ -24,15 +26,27 @@ struct StdOutProgressStream
         return true;
     }
 
+    bool active() const
+    {
+        return xVerb > xCurr;
+    }
+
     template<typename T>
     StdOutProgressStream& operator<<(const T& sStr)
     {
-        std::cout << sStr << std::flush;
+        if(active())
+            std::cout << sStr << std::flush;
+        return *this;
+    }
+    
+    StdOutProgressStream& operator<<(const Verbosity& xCurr)
+    {
+        this->xCurr = xCurr;
         return *this;
     }
 
-    StdOutProgressStream() :
-        xLastPrint(std::chrono::high_resolution_clock::now())
+    StdOutProgressStream(size_t uiVerb) :
+        xLastPrint(std::chrono::high_resolution_clock::now()), xVerb(uiVerb), xCurr(0)
     {}
 };
 

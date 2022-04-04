@@ -71,30 +71,45 @@ template <typename type_defs> class Dataset
         const Dataset& rDataset;
         overlay_grid_t& rOverlays;
         sparse_coord_t& rSparseCoords;
+        const std::array<typename sparse_coord_t::Entry, D>& vSparseCoords;
 
-        PointsComperator( const Dataset& rDataset, overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords ) : 
-            rDataset( rDataset ), rOverlays(rOverlays), rSparseCoords(rSparseCoords)
+        PointsComperator( const Dataset& rDataset, overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
+                          const std::array<typename sparse_coord_t::Entry, D>& vSparseCoords ) : 
+            rDataset( rDataset ), rOverlays(rOverlays), rSparseCoords(rSparseCoords), vSparseCoords(vSparseCoords)
         {}
 
         bool operator( )( const point_t& a, const point_t& b ) const
         {
             coordinate_t uiA = rDataset.overlayIndex(rOverlays, rSparseCoords, a.vPos);
             coordinate_t uiB = rDataset.overlayIndex(rOverlays, rSparseCoords, b.vPos);
-            return (uiA == uiB && a.uiDescOffset < b.uiDescOffset) || uiA < uiB;
+            if(uiA == uiB)
+                return a.uiDescOffset < b.uiDescOffset;
+            return uiA < uiB;
         }
 
         point_t min_value( ) const
         {
-            // @todo undo sparsity
-            return point_t(rOverlays.posOf(rDataset.xOverlays.uiStartIndex, rDataset.xOverlays), 0);
+            return point_t(
+                rSparseCoords.invSparse(
+                    rOverlays.posOf(rDataset.xOverlays.uiStartIndex, rDataset.xOverlays), vSparseCoords), 0);
         };
 
         point_t max_value( ) const
         {
-            // @todo undo sparsity
-            auto vPos = rOverlays.posOf(rDataset.xOverlays.uiStartIndex + rOverlays.sizeOf(rDataset.xOverlays) - 1,
-                                           rDataset.xOverlays);
-            return point_t(vPos, std::numeric_limits<size_t>::max());
+            coordinate_t uiIndex = rDataset.xOverlays.uiStartIndex + rOverlays.sizeOf(rDataset.xOverlays) - 1;
+
+
+
+            pos_t vPos = rOverlays.posOf(uiIndex, rDataset.xOverlays);
+            coordinate_t uiTest = rOverlays.indexOf(vPos, rDataset.xOverlays);
+            assert(uiTest == uiIndex);
+
+            pos_t vActPos = rSparseCoords.invSparse(vPos, vSparseCoords);
+
+            uiTest = rDataset.overlayIndex(rOverlays, rSparseCoords, vActPos);
+            assert(uiTest == uiIndex);
+
+            return point_t(vActPos, std::numeric_limits<size_t>::max());
         };
     };
     sort_func_t<points_it_t, PointsComperator> sort_points = sort_func_t<points_it_t, PointsComperator>( );
@@ -104,11 +119,11 @@ template <typename type_defs> class Dataset
     {}
 
     Dataset(overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums, 
-            points_t& vPoints, typename points_t::Entry xPoints, std::optional<progress_stream_t> xProg)
+            points_t& vPoints, typename points_t::Entry xPoints, progress_stream_t xProg)
     {
         // generate the overall sparse coordinates
         size_t uiNumPerDimension = (size_t)std::pow(xPoints.uiEndIndex - xPoints.uiStartIndex, 1.0/(D*D));
-        xProg << "generating " << uiNumPerDimension << " overlays per dimension\n";
+        xProg << Verbosity(0) << "generating " << uiNumPerDimension << " overlays per dimension\n";
         pos_t vMaxCoord{};
         vPoints.iterate([&](const point_t& xPoint){
             for(size_t uiI = 0; uiI < D; uiI++)
@@ -128,76 +143,77 @@ template <typename type_defs> class Dataset
         
         // sort points so that they match the overlay grid order
         sort_points(vPoints.vData.begin( ) + xPoints.uiStartIndex, vPoints.vData.begin( ) + xPoints.uiEndIndex, 
-                    PointsComperator(*this, rOverlays, rSparseCoords ));
+                    PointsComperator(*this, rOverlays, rSparseCoords, vSparseCoords ));
 
         // generate all overlays
         typename points_t::Entry xCurrPoints{};
+        xCurrPoints.uiStartIndex = xPoints.uiStartIndex;
+        xCurrPoints.uiEndIndex = xPoints.uiStartIndex;
         for(coordinate_t uiI = 0; uiI < rOverlays.sizeOf(xOverlays); uiI++)
         {
             // collect points for overlay uiI
             while(xCurrPoints.uiEndIndex < xPoints.uiEndIndex && 
                     overlayIndex(rOverlays, rSparseCoords, vPoints.vData[xCurrPoints.uiEndIndex].vPos) == uiI)
                 ++xCurrPoints.uiEndIndex;
-            xProg << "generating overlay for points " << xCurrPoints.uiStartIndex << " - " 
+            xProg << Verbosity(1) << "generating overlay for points " << xCurrPoints.uiStartIndex << " - " 
                   << xCurrPoints.uiEndIndex << " of " << xPoints.uiStartIndex << " - " << xPoints.uiEndIndex << "\n";
 
             // get bottom left position (compressed)
             pos_t vPos = rOverlays.posOf(uiI + xOverlays.uiStartIndex, xOverlays);
+            pos_t vPosActual = rSparseCoords.invSparse(vPos, vSparseCoords);
 
-            xProg << "overlay anchor is " << vPos << "\n";
+            xProg << "overlay anchor is " << vPos << " actual pos is " << vPosActual << "\n";
 
 
             // collect direct predecessor overlays for each dimension
             std::array<overlay_t*, D> vPredecessors;
-            bool bAllLargerZero = true;
             for(size_t uiD = 0; uiD < D; uiD++)
                 if(vPos[uiD] > 0)
                 {
                     --vPos[uiD];
                     assert(rOverlays.indexOf(vPos, xOverlays) < uiI);
-                    xProg << "predecessor dim " << uiD << " is " << rOverlays.indexOf(vPos, xOverlays) << "\n";
+                    xProg << Verbosity(2) << "predecessor dim " << uiD << " is "
+                          << rOverlays.indexOf(vPos, xOverlays) << "\n";
                     vPredecessors[uiD] = &rOverlays.get(vPos, xOverlays);
-                    vPredecessors[uiD]->stream( std::cout, rSparseCoords,  rPrefixSums, vPoints ) << std::endl;
+                    if(xProg.active())
+                        vPredecessors[uiD]->stream( std::cout, rSparseCoords,  rPrefixSums, vPoints ) << std::endl;
                     ++vPos[uiD];
                 }
                 else
                 {
                     xProg << "predecessor dim " << uiD << " is nullptr\n";
                     vPredecessors[uiD] = nullptr;
-                    bAllLargerZero = false;
                 }
-            
-            // compute the prefix sum of the overlay to the bottom-left-front-...
-            val_t uiBottomLeft = 0;
-            if (bAllLargerZero)
-            {
-                for(size_t uiI = 0; uiI < D; uiI++)
-                    --vPos[uiI];
-                uiBottomLeft = rOverlays.get(vPos, xOverlays).get(rSparseCoords, rPrefixSums, vPos);
-                for(size_t uiI = 0; uiI < D; uiI++)
-                    ++vPos[uiI];
-            }
 
-            xProg << "generating overlay now...\n";
+            xProg << Verbosity(1) << "generating overlay now...\n";
             // generate the overlay
             rOverlays.vData[xOverlays.uiStartIndex + uiI].generate(
+                rOverlays,
                 rSparseCoords,
                 rPrefixSums,
                 vPoints,
                 xCurrPoints,
                 vPredecessors,
-                vPos,
-                uiBottomLeft,
-                vSparseCoords,
+                vPosActual,
+                this,
                 xProg
             );
 
-            std::cout << rOverlays.vData[xOverlays.uiStartIndex  + uiI] << std::endl;
-            rOverlays.vData[xOverlays.uiStartIndex + uiI].stream( std::cout, rSparseCoords,  rPrefixSums, vPoints ) 
-                << std::endl;
+            xProg << Verbosity(2);
+            if(xProg.active())
+            {
+                std::cout << rOverlays.vData[xOverlays.uiStartIndex + uiI] << std::endl;
+                rOverlays.vData[xOverlays.uiStartIndex + uiI].stream( std::cout, rSparseCoords,  rPrefixSums, vPoints ) 
+                    << std::endl;
+            }
 
             // prepare for collecting the next set of points
             xCurrPoints.uiStartIndex = xCurrPoints.uiEndIndex;
+            coordinate_t uiNumDone = xCurrPoints.uiStartIndex - xPoints.uiStartIndex;
+            coordinate_t uiNumTotal = xPoints.uiEndIndex - xPoints.uiStartIndex;
+            if(xProg.printAgain())
+                xProg << Verbosity(0) << uiNumDone << " out of " << uiNumTotal << ", thats " 
+                      << 100*uiNumDone/(double)uiNumTotal << "%.\n";
         }
     }
 
@@ -208,10 +224,10 @@ template <typename type_defs> class Dataset
     
     val_t get(const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords, 
               const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, 
-              std::optional<progress_stream_t> xProg = { } ) const
+              progress_stream_t& xProg ) const
     {
         auto vSparsePos = rSparseCoords.sparse(vPos, vSparseCoords);
-        xProg << vPos << " -> " << vSparsePos << "\n";
+        xProg << Verbosity(1) << "\t" << vPos << " -> " << vSparsePos << "\n";
         return rOverlays.get(vSparsePos, xOverlays).get( rSparseCoords, rPrefixSums, vPos, xProg );
     }
     

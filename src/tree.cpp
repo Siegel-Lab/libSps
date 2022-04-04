@@ -15,4 +15,5 @@ PYBIND11_MODULE( libSps, m )
 
     exportStream<OnDiskTypeDef<2>>( m, "__ProgressOutStream" );
     exportMain<OnDiskTypeDef<2>>( m, "SparsePrefixSum_2D" );
+    exportMain<OnDiskTypeDef<3>>( m, "SparsePrefixSum_3D" );
 }

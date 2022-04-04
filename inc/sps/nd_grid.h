@@ -74,6 +74,8 @@ template <typename type_defs, typename data_t> class NDGrid
     template <size_t N>
     coordinate_t indexOf(const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo) const
     {
+        if(rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max())
+            return std::numeric_limits<coordinate_t>::max();
         coordinate_t uiRet = 0;
         for(size_t uiI = 0; uiI < N; uiI++)
         {

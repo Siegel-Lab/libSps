@@ -3,13 +3,22 @@ import random
 
 print_all = True
 
+def combinations(a, b):
+    assert len(a) == len(b)
+    if len(a) == 0:
+        yield []
+    else:
+        for x in combinations(a[:-1], b[:-1]):
+            yield x + [a[-1]]
+            yield x + [b[-1]]
+
 
 def fixed(tree, points, d=2, cont=0):
     for idx, pos in enumerate(points):
         tree.add_point(pos, "p" + str(idx))
     x = tree.generate(0, len(points))
-    print("done generating")
     if print_all:
+        print("done generating")
         print(tree)
         print("generated")
     for p1 in points:
@@ -20,11 +29,14 @@ def fixed(tree, points, d=2, cont=0):
                 itr = list(range(truth))#tree.get(x, p1, p2)
                 if not cnt == len(itr) == truth:
                     print("counts:", cnt, len(itr), truth)
+                    for pc in combinations(p1, p2):
+                        corner_c = sum(1 if all(i < j for i, j in zip(p, pc)) else 0 for p in points)
+                        print("expected corner count", corner_c, "for", pc)
                     print("query", p1, p2)
                     print("points", points)
                     print("iteration result", itr)
                     print(tree)
-                    print("failure", cont)
+                    print("failure", d, cont)
                     exit()
                 else:
                     if print_all:
@@ -32,7 +44,7 @@ def fixed(tree, points, d=2, cont=0):
             else:
                 if print_all:
                     print("not valid")
-    print("success", cont)
+    print("success", d, cont)
 
 
 def test(tree, d, n=30):
@@ -56,4 +68,5 @@ def test(tree, d, n=30):
 random.seed(6846854546132)
 #fixed(KdpsTree_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
 
-test(SparsePrefixSum_2D("test/blub1", True), 2)
+#test(SparsePrefixSum_2D("test/blub1", True), 2)
+test(SparsePrefixSum_3D("test/blub2", True), 3)

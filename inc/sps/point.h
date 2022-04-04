@@ -35,4 +35,40 @@ template <typename type_defs> class Point
 };
 
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter" // do not warn about vFrom and vTo
+
+template<typename pos_t, size_t N>
+inline void forAllCombinationsHelper( std::function<void(pos_t, size_t)> fDo, 
+                                      pos_t& vCurr, 
+                                      pos_t vFrom, 
+                                      pos_t vTo, size_t uiDistTo, 
+                                      std::function<bool(typename pos_t::value_type)> fCond )
+{
+    if constexpr /* <- required to prevent infinite unrolling loop in compiler */(N == vCurr.size())
+        fDo(vCurr, uiDistTo);
+    else
+    {
+        vCurr[N] = vFrom[N];
+        if( fCond(vCurr[N]) )
+            forAllCombinationsHelper<pos_t, N+1>(fDo, vCurr, vFrom, vTo, uiDistTo + 1, fCond);
+        vCurr[N] = vTo[N];
+        if( fCond(vCurr[N]) )
+            forAllCombinationsHelper<pos_t, N+1>(fDo, vCurr, vFrom, vTo, uiDistTo, fCond);
+    }
+}
+    
+#pragma GCC diagnostic pop
+
+template<typename pos_t>
+inline void forAllCombinations( std::function<void(pos_t, size_t)> fDo, 
+                                pos_t vFrom, 
+                                pos_t vTo,
+                                std::function<bool(typename pos_t::value_type)> fCond = 
+                                    [](typename pos_t::value_type){ return true; } )
+{
+    pos_t vCurr;
+    forAllCombinationsHelper<pos_t, 0>(fDo, vCurr, vFrom, vTo, 0, fCond);
+}
+
 } // namespace sps

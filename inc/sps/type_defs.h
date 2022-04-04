@@ -6,6 +6,19 @@
 namespace sps
 {
 
+class Verbosity
+{
+    public:
+        size_t uiI;
+        Verbosity(size_t uiI) : uiI(uiI)
+        {}
+
+        bool operator>(const Verbosity& rOther) const
+        {
+            return uiI > rOther.uiI;
+        }
+};
+
 template <typename _coordinate_t, //
           typename _val_t, //
           size_t _D, //
@@ -29,7 +42,7 @@ class TypeDefs
 
     template <typename it_t, typename cmp_t> using sort_func_t = _sort_func_t<it_t, cmp_t>;
 
-    static constexpr bool EXPLAIN_QUERY = _explain;
+    static constexpr bool EXPLAIN = _explain;
 
 
     using progress_stream_t = _progress_stream_t;
@@ -52,7 +65,7 @@ class TypeDefs
     template <typename it_t, typename cmp_t>                                                                           \
     using sort_func_t = typename type_defs::template sort_func_t<it_t, cmp_t>;                                         \
                                                                                                                        \
-    static constexpr bool EXPLAIN_QUERY = type_defs::EXPLAIN_QUERY;                                                    \
+    static constexpr bool EXPLAIN = type_defs::EXPLAIN;                                                                \
                                                                                                                        \
     using progress_stream_t = typename type_defs::progress_stream_t;
 

@@ -26,7 +26,7 @@ template <typename type_defs> class SparseCoord
 
     struct Entry
     {
-        coordinate_t uiStartIndex;
+        coordinate_t uiStartIndex = std::numeric_limits<coordinate_t>::max();
         coordinate_t uiStartCord;
         coordinate_t uiEndCord;
 
@@ -74,6 +74,8 @@ template <typename type_defs> class SparseCoord
 
     coordinate_t replace( coordinate_t uiX, const Entry& rInfo ) const
     {
+        if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
+            return std::numeric_limits<coordinate_t>::max( );
         if( uiX < rInfo.uiStartCord )
             return std::numeric_limits<coordinate_t>::max( );
         if( uiX >= rInfo.uiEndCord )
@@ -83,12 +85,17 @@ template <typename type_defs> class SparseCoord
 
     coordinate_t invReplace( coordinate_t uiX, const Entry& rInfo ) const
     {
+        if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
+            return std::numeric_limits<coordinate_t>::max( );
         assert( uiX <= vData[ rInfo.uiStartIndex + rInfo.uiEndCord - rInfo.uiStartCord ] );
-        return ( std::lower_bound( vData.begin( ) + rInfo.uiStartIndex,
-                                   vData.begin( ) + rInfo.uiStartIndex + rInfo.uiEndCord - rInfo.uiStartCord,
-                                   uiX ) -
-                 vData.begin( ) ) -
-               rInfo.uiStartIndex;
+        auto xItBegin = vData.begin( ) + rInfo.uiStartIndex;
+        auto xItEnd = vData.begin( ) + rInfo.uiStartIndex + 1 + rInfo.uiEndCord - rInfo.uiStartCord;
+        // lowerbound can be used as search because indices must be continuous
+        auto xIt = std::lower_bound(xItBegin, xItEnd, uiX );
+        if(xIt == xItEnd)
+            return std::numeric_limits<coordinate_t>::max();
+        assert(*xIt == uiX);
+        return (xIt - vData.begin( )) - rInfo.uiStartIndex + rInfo.uiStartCord;
     }
 
     template <size_t N> std::array<coordinate_t, N> axisSizes( const std::array<Entry, N>& vAxes ) const
@@ -119,12 +126,14 @@ template <typename type_defs> class SparseCoord
         return vRet;
     }
 
-    template <typename Iterator_t> Entry add( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiDiv = 1 )
+    template <typename Iterator_t> Entry addStart( Iterator_t xBegin, const Iterator_t& xEnd, 
+                                                   coordinate_t uiStartWith, coordinate_t uiDiv = 1 )
     {
         Entry xRet{ };
         xRet.uiStartIndex = vData.size( );
-        xRet.uiStartCord = *xBegin;
-        auto uiLast = *xBegin;
+        xRet.uiStartCord = uiStartWith;
+        assert(!(xBegin != xEnd) || uiStartWith <= *xBegin);
+        auto uiLast = uiStartWith;
         size_t uiI = 0;
         while( xBegin != xEnd )
         {
@@ -140,6 +149,24 @@ template <typename type_defs> class SparseCoord
         assert(vData.size() - xRet.uiStartIndex == 1 + xRet.uiEndCord - xRet.uiStartCord);
 
         return xRet;
+    }
+
+    Entry addStart( coordinate_t uiStartWith )
+    {
+        Entry xRet{ };
+        xRet.uiStartIndex = vData.size( );
+        xRet.uiStartCord = uiStartWith;
+        xRet.uiEndCord = uiStartWith;
+        vData.push_back( 0 );
+
+        return xRet;
+    }
+
+    template <typename Iterator_t> Entry add( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiDiv = 1 )
+    {
+        if( ! (xBegin != xEnd) )
+            return Entry{};
+        return addStart(xBegin, xEnd, *xBegin, uiDiv);
     }
 
     Entry add_vec(std::vector<size_t> vVec)
@@ -204,18 +231,23 @@ template <typename type_defs> class SparseCoord
     EntryIterator cend( const Entry& rInfo ) const
     {
         EntryIterator xRet( *this, rInfo );
-        xRet.uiI += 1 + rInfo.uiEndCord - rInfo.uiStartCord;
+        if( rInfo.uiStartIndex != std::numeric_limits<coordinate_t>::max() )
+            xRet.uiI += 1 + rInfo.uiEndCord - rInfo.uiStartCord;
         return xRet;
     }
 
     void iterate( std::function<void( coordinate_t, coordinate_t )> fDo, const Entry& rInfo ) const
     {
         auto xIt = this->cbegin( rInfo );
-        while( xIt != this->cend( rInfo ) )
-        {
-            fDo( (*xIt).first, (*xIt).second );
-            ++xIt;
-        }
+        auto xItEnd = this->cend( rInfo );
+        if(xIt != xItEnd)
+            while( xIt != xItEnd )
+            {
+                fDo( (*xIt).first, (*xIt).second );
+                ++xIt;
+            }
+        else
+            fDo( rInfo.uiStartCord, 0 );
     }
 
     template <size_t I, size_t N>
