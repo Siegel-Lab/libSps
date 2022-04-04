@@ -264,6 +264,8 @@ template <typename type_defs> class Overlay
             xProg << "rSparseCoords " << rSparseCoords << "\n";
 
             // compute internal prefix sum
+            coordinate_t uiNumTotal = rPrefixSums.sizeOf( xInternalEntires ) * D;
+            coordinate_t uiNumDone = 0;
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
                 xProg << Verbosity(3) << "integrating over dimension " << uiI << "\n";
@@ -272,13 +274,19 @@ template <typename type_defs> class Overlay
                     [ & ]( const red_pos_t&, const red_pos_t& vTo ) {
                         pos_t vFullTo = expand( vTo, uiI );
                         val_t uiPrefixSum = 0;
-                        xProg << "starting...: " << vFullTo << ": " << uiPrefixSum << "\n";
+                        xProg << Verbosity(3) << "starting...: " << vFullTo << ": " << uiPrefixSum << "\n";
                         rSparseCoords.iterate(
                             [ & ]( coordinate_t, coordinate_t uiTo ) {
                                 vFullTo[ uiI ] = uiTo;
                                 uiPrefixSum += rPrefixSums.get( vFullTo, xInternalEntires );
-                                xProg << vFullTo << ": " << uiPrefixSum << "\n";
+                                xProg << Verbosity( 3 ) << vFullTo << ": " << uiPrefixSum << "\n";
                                 rPrefixSums.get( vFullTo, xInternalEntires ) = uiPrefixSum;
+                                
+                                ++uiNumDone;
+                                if( xProg.printAgain( ) )
+                                    xProg << Verbosity( 0 ) << "integrating: " 
+                                        << uiNumDone << " out of " << uiNumTotal << ", thats "
+                                        << 100 * uiNumDone / (double)uiNumTotal << "%.\n";
                             },
                             vSparseCoordsInternal[ uiI ] );
                     },

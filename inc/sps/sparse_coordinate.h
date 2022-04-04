@@ -127,7 +127,7 @@ template <typename type_defs> class SparseCoord
     }
 
     template <typename Iterator_t> Entry addStart( Iterator_t xBegin, const Iterator_t& xEnd, 
-                                                   coordinate_t uiStartWith, coordinate_t uiDiv = 1 )
+                                                   coordinate_t uiStartWith )
     {
         Entry xRet{ };
         xRet.uiStartIndex = vData.size( );
@@ -138,14 +138,14 @@ template <typename type_defs> class SparseCoord
         while( xBegin != xEnd )
         {
             for( coordinate_t uiX = uiLast; uiX < *xBegin; uiX++ )
-                vData.push_back( uiI / uiDiv );
+                vData.push_back( uiI );
             if(uiLast < *xBegin)
                 uiI++;
             uiLast = *xBegin;
             ++xBegin;
         }
         xRet.uiEndCord = uiLast;
-        vData.push_back( uiI / uiDiv );
+        vData.push_back( uiI );
         assert(vData.size() - xRet.uiStartIndex == 1 + xRet.uiEndCord - xRet.uiStartCord);
 
         return xRet;
@@ -162,11 +162,11 @@ template <typename type_defs> class SparseCoord
         return xRet;
     }
 
-    template <typename Iterator_t> Entry add( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiDiv = 1 )
+    template <typename Iterator_t> Entry add( Iterator_t xBegin, const Iterator_t& xEnd )
     {
         if( ! (xBegin != xEnd) )
             return Entry{};
-        return addStart(xBegin, xEnd, *xBegin, uiDiv);
+        return addStart(xBegin, xEnd, *xBegin);
     }
 
     Entry add_vec(std::vector<size_t> vVec)

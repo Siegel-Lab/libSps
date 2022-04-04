@@ -153,7 +153,7 @@ template <typename type_defs> void exportMain( pybind11::module& m, std::string 
         .def( "add_point", &sps::Main<type_defs>::addPoint )
         .def( "generate", &sps::Main<type_defs>::generate, 
                 pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 0 ) )
+                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 1 ) )
         // pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
         .def( "count", &sps::Main<type_defs>::count, 
                 pybind11::arg( "uiDatasetId" ), pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),

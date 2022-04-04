@@ -32,16 +32,20 @@ template <typename type_defs> class Dataset
 
     class DimIterator
     {
-        typename points_t::EntryIterator xIt;
+        typename points_t::EntryIterator xIt, xItEnd;
         size_t uiDimension;
+        size_t uiBlockSize;
 
       public:
-        DimIterator( typename points_t::EntryIterator xIt, size_t uiDimension ) : xIt( xIt ), uiDimension( uiDimension )
+        DimIterator( typename points_t::EntryIterator xIt, typename points_t::EntryIterator xItEnd, size_t uiDimension,
+                     size_t uiBlockSize ) : 
+                xIt( xIt ), xItEnd(xItEnd), uiDimension( uiDimension ), uiBlockSize(uiBlockSize)
         {}
 
         void operator++( )
         {
-            ++xIt;
+            for(size_t uiI = 0; uiI < uiBlockSize && xIt != xItEnd; uiI++)
+                ++xIt;
         }
 
         const coordinate_t operator*( ) const
@@ -121,6 +125,8 @@ template <typename type_defs> class Dataset
     };
     sort_func_t<points_it_t, PointsComperator> sort_points = sort_func_t<points_it_t, PointsComperator>( );
 
+    const coordinate_t uiStretchFac = 100;
+
   public:
     Dataset( )
     {}
@@ -128,23 +134,29 @@ template <typename type_defs> class Dataset
     Dataset( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
              points_t& vPoints, typename points_t::Entry xPoints, progress_stream_t xProg )
     {
-        // generate the overall sparse coordinates
-        size_t uiNumPerDimension = (size_t)std::pow( xPoints.uiEndIndex - xPoints.uiStartIndex, 1.0 / ( D * D ) );
-        xProg << Verbosity( 0 ) << "generating " << uiNumPerDimension << " overlays per dimension\n";
-        pos_t vMaxCoord{ };
-        vPoints.iterate(
-            [ & ]( const point_t& xPoint ) {
-                for( size_t uiI = 0; uiI < D; uiI++ )
-                    vMaxCoord[ uiI ] = std::max( vMaxCoord[ uiI ], xPoint.vPos[ uiI ] );
-            },
-            xPoints );
-
+        // generate the overall sparse coordinates 
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            size_t uiBlockSize = std::max( 1ul, vMaxCoord[ uiI ] / uiNumPerDimension );
+            size_t uiNumCoords = 0;
+            coordinate_t uiLast = std::numeric_limits<coordinate_t>::max();
             vPoints.sortByDim( uiI, xPoints );
-            vSparseCoords[ uiI ] = rSparseCoords.add( DimIterator( vPoints.cbegin( xPoints ), uiI ),
-                                                      DimIterator( vPoints.cend( xPoints ), uiI ), uiBlockSize );
+            vPoints.iterate(
+                [ & ]( const point_t& xPoint ) {
+                    if(xPoint.vPos[ uiI ] != uiLast)
+                    {
+                        uiLast = xPoint.vPos[ uiI ];
+                        ++uiNumCoords;
+                    }
+                },
+                xPoints );
+            size_t uiNumPerDimension = (size_t)std::pow( uiNumCoords, 1.0 / (float)( D ) ); // 
+            xProg << Verbosity( 0 ) << "generating " << uiNumPerDimension << " overlays in dimension " << uiI 
+                                    << " for " << uiNumCoords << " different coordinates.\n";
+            size_t uiBlockSize = std::max( 1ul, uiNumCoords / uiNumPerDimension );
+            vSparseCoords[ uiI ] = rSparseCoords.add( DimIterator( vPoints.cbegin( xPoints ), 
+                                                                        vPoints.cend( xPoints ), uiI, uiBlockSize ),
+                                                      DimIterator( vPoints.cend( xPoints ), 
+                                                                        vPoints.cend( xPoints ), uiI, uiBlockSize ) );
         }
         // generate overlay grid
         xOverlays = rOverlays.add( rSparseCoords.axisSizes( vSparseCoords ) );
@@ -170,7 +182,7 @@ template <typename type_defs> class Dataset
             pos_t vPos = rOverlays.posOf( uiI + xOverlays.uiStartIndex, xOverlays );
             pos_t vPosActual = rSparseCoords.invSparse( vPos, vSparseCoords );
 
-            xProg << "overlay anchor is " << vPos << " actual pos is " << vPosActual << "\n";
+            xProg << Verbosity( 2 ) << "overlay anchor is " << vPos << " actual pos is " << vPosActual << "\n";
 
 
             // collect direct predecessor overlays for each dimension
@@ -189,11 +201,12 @@ template <typename type_defs> class Dataset
                 }
                 else
                 {
-                    xProg << "predecessor dim " << uiD << " is nullptr\n";
+                    xProg << Verbosity( 2 ) << "predecessor dim " << uiD << " is nullptr\n";
                     vPredecessors[ uiD ] = nullptr;
                 }
 
-            xProg << Verbosity( 1 ) << "generating overlay now...\n";
+            xProg << Verbosity( 1 ) << "generating overlay ouf of " 
+                  << xCurrPoints.uiEndIndex - xCurrPoints.uiStartIndex << " points now...\n";
             // generate the overlay
             rOverlays.vData[ xOverlays.uiStartIndex + uiI ].generate(
                 rOverlays, rSparseCoords, rPrefixSums, vPoints, xCurrPoints, vPredecessors, vPosActual, this, xProg );
@@ -216,16 +229,30 @@ template <typename type_defs> class Dataset
         }
     }
 
+    pos_t overlayAxisSize(const pos_t& vPos) const
+    {
+        uiGridSize
+    }
+
     coordinate_t overlayIndex( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, const pos_t& vPos ) const
     {
-        return rOverlays.indexOf( rSparseCoords.sparse( vPos, vSparseCoords ), xOverlays );
+        auto vPosSparse = rSparseCoords.sparse( vPos, vSparseCoords );
+        for(std::array<size_t, 2> vIdx : { {0, 1}, {1, 0} })
+            if( vPosSparse[vIdx[0]] >= vPosSparse[vIdx[1]] + 2 * uiStretchFac )
+            {
+                vPosSparse[vIdx[0]] = (vPosSparse[vIdx[0]] - vPosSparse[vIdx[1]] + 2 * uiStretchFac) / uiStretchFac 
+                                    + vPosSparse[vIdx[1]];
+                vPosSparse[vIdx[1]] /= uiStretchFac;
+                break;
+            }
+        return rOverlays.indexOf(vPosSparse, xOverlays );
     }
 
     val_t get( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
                const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg ) const
     {
         auto vSparsePos = rSparseCoords.sparse( vPos, vSparseCoords );
-        xProg << Verbosity( 1 );
+        xProg << Verbosity( 2 );
         if( xProg.active( ) )
             xProg << "\t" << vPos << " -> " << vSparsePos << "; that's overlay "
                   << rOverlays.indexOf( vSparsePos, xOverlays ) << "\n";
