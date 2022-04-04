@@ -240,14 +240,14 @@ template <typename type_defs> class SparseCoord
     {
         auto xIt = this->cbegin( rInfo );
         auto xItEnd = this->cend( rInfo );
-        if(xIt != xItEnd)
+        //if(xIt != xItEnd)
             while( xIt != xItEnd )
             {
                 fDo( (*xIt).first, (*xIt).second );
                 ++xIt;
             }
-        else
-            fDo( rInfo.uiStartCord, 0 );
+        //else
+        //    fDo( rInfo.uiStartCord, 0 );
     }
 
     template <size_t I, size_t N>
