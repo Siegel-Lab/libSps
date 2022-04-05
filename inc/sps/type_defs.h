@@ -44,6 +44,8 @@ class TypeDefs
 
     static constexpr bool EXPLAIN = _explain;
 
+    static constexpr bool COORD_TRANSFROM = true;
+
 
     using progress_stream_t = _progress_stream_t;
 };
@@ -66,6 +68,8 @@ class TypeDefs
     using sort_func_t = typename type_defs::template sort_func_t<it_t, cmp_t>;                                         \
                                                                                                                        \
     static constexpr bool EXPLAIN = type_defs::EXPLAIN;                                                                \
+                                                                                                                       \
+    static constexpr bool COORD_TRANSFROM = type_defs::COORD_TRANSFROM;                                                \
                                                                                                                        \
     using progress_stream_t = typename type_defs::progress_stream_t;
 
