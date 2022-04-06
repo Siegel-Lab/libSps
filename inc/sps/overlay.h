@@ -40,10 +40,11 @@ template <typename type_defs> class Overlay
     {
         std::vector<cord_it_t> vBegin;
         std::vector<cord_it_t> vEnd;
+        coordinate_t uiEnd;
 
       public:
-        MergeIterator( std::vector<cord_it_t> vBegin, std::vector<cord_it_t> vEnd )
-            : vBegin( vBegin ), vEnd( vEnd )
+        MergeIterator( std::vector<cord_it_t> vBegin, std::vector<cord_it_t> vEnd, coordinate_t uiEnd )
+            : vBegin( vBegin ), vEnd( vEnd ), uiEnd(uiEnd)
         {}
 
         size_t getSmallestValid() const
@@ -77,7 +78,11 @@ template <typename type_defs> class Overlay
         {
             for(size_t uiI = 0; uiI < vBegin.size(); uiI++)
                 if(vBegin[uiI] != rOther.vBegin[uiI])
+                {
+                    if(**this >= uiEnd)
+                        return false;
                     return true;
+                }
             return false;
         }
 
@@ -160,19 +165,17 @@ template <typename type_defs> class Overlay
     std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D> vOverlayEntries;
     typename prefix_sum_grid_t::template Entry<D> xInternalEntires;
     typename points_t::Entry xPoints;
-    pos_t vMyBottomLeft; // @todo should be computed based on index....
 
     Overlay( )
-        : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, vMyBottomLeft{}
+        : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }
     {}
 
     void generate( const overlay_grid_t& rOverlays,
                    sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
-                   typename points_t::Entry xPoints, std::array<Overlay*, D> vPredecessors,
-                   pos_t vPos, dataset_t* pDataset, progress_stream_t& xProg )
+                   typename points_t::Entry xPoints, std::array<std::vector<coordinate_t>, D> vPredecessors,
+                   pos_t vMyBottomLeft, pos_t vPosTopRight, dataset_t* pDataset, progress_stream_t& xProg )
     {
         this->xPoints = xPoints;
-        this->vMyBottomLeft = vPos;
         // construct sparse coordinates for each dimension
         xProg << Verbosity(1) << "constructing sparse coordinates for overlay\n";
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -187,39 +190,45 @@ template <typename type_defs> class Overlay
 
                 // add coordinates from previous overlays to the overlay entries
                 for( size_t uiI2 = 0; uiI2 < D; uiI2++ )
-                    if( uiJAct != uiI2 && vPredecessors[ uiI2 ] != nullptr )
-                    {
-                        vBegin.push_back( rSparseCoords.cbegin( 
-                            vPredecessors[ uiI2 ]->vSparseCoordsOverlay[ uiI ][ uiJ ]) );
-                        vEnd.push_back( rSparseCoords.cend( 
-                            vPredecessors[ uiI2 ]->vSparseCoordsOverlay[ uiI ][ uiJ ] ) );
-                        if(xProg.active())
-                            vPredecessors[ uiI2 ]->vSparseCoordsOverlay[ uiI ][ uiJ ].stream(
-                                    std::cout << "from predecessor in dim " << uiI2 
-                                                << " overlay: ", rSparseCoords) << std::endl;
-                    }
+                    if( uiJAct != uiI2 )
+                        for(coordinate_t uiPred : vPredecessors[ uiI2 ])
+                        {
+                            const Overlay* pPred = &rOverlays.vData[uiPred];
+                            vBegin.push_back( rSparseCoords.cbegin( 
+                                pPred->vSparseCoordsOverlay[ uiI ][ uiJ ]) );
+                            vEnd.push_back( rSparseCoords.cend( 
+                                pPred->vSparseCoordsOverlay[ uiI ][ uiJ ] ) );
+                            if(xProg.active())
+                                pPred->vSparseCoordsOverlay[ uiI ][ uiJ ].stream(
+                                        std::cout << "from predecessor in dim " << uiI2 
+                                                    << " overlay: ", rSparseCoords) << std::endl;
+                        }
+
                 // add coordinates from the points of the previous overlay to the overlay entries
-                if( vPredecessors[ uiI ] != nullptr )
+                for(coordinate_t uiPred : vPredecessors[ uiI ])
                 {
-                    vBegin.push_back(rSparseCoords.cbegin( vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJAct ] ));
-                    vEnd.push_back(rSparseCoords.cend( vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJAct ] ));
-                }
-
-                if(xProg.active())
-                {
-                    if( vPredecessors[ uiI ] != nullptr )
-                        vPredecessors[ uiI ]->vSparseCoordsInternal[ uiJAct ].stream(
+                    const Overlay* pPred = &rOverlays.vData[uiPred];
+                    vBegin.push_back(rSparseCoords.cbegin( pPred->vSparseCoordsInternal[ uiJAct ] ));
+                    vEnd.push_back(rSparseCoords.cend( pPred->vSparseCoordsInternal[ uiJAct ] ));
+                    if(xProg.active())
+                        pPred->vSparseCoordsInternal[ uiJAct ].stream(
                                 std::cout << "from internal: ", rSparseCoords) << std::endl;
-                    std::cout << "form bottom left: { " << vPos[ uiJAct ] - 1 << " }" << std::endl;
                 }
 
-                MergeIterator xBegin( vBegin, vEnd );
-                MergeIterator xEnd( vEnd, vEnd );
+                xProg << "form bottom left: { " << vMyBottomLeft[ uiJAct ] - 1 << " }\n";
+
+                MergeIterator xBegin( vBegin, vEnd, vPosTopRight[uiJAct] );
+                MergeIterator xEnd( vEnd, vEnd, vPosTopRight[uiJAct] );
+
+                // skip over positions that are before and after this overlay
+                while(xBegin != xEnd && *xBegin < vMyBottomLeft[uiJAct])
+                    ++xBegin;
 
                 // @todo rather: not first in sparse dim
                 //       otherhwise some overlays have an additional entry that contains nothing but a zero
-                if(vPos[ uiJAct ] > 0) 
-                    vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.addStart( xBegin, xEnd, vPos[ uiJAct ] - 1 );
+                if(vMyBottomLeft[ uiJAct ] > 0) 
+                    vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.addStart( xBegin, xEnd, 
+                                                                                 vMyBottomLeft[ uiJAct ] - 1 );
                 else
                     vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
 
@@ -297,19 +306,19 @@ template <typename type_defs> class Overlay
         // construct overlay sum grid
         xProg << Verbosity(1) << "constructing overlay sum grid\n";
         for( size_t uiI = 0; uiI < D; uiI++ )
-            if( vPredecessors[ uiI ] != nullptr )
+            if( vPredecessors[ uiI ].size() > 0 )
             {
                 xProg << Verbosity(2) << "dim " << uiI << "\n";
 
                 red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[uiI] );
 
                 vOverlayEntries[ uiI ] = rPrefixSums.add( vAxisSizes );
-                assert(vPos[uiI] > 0);
+                assert(vMyBottomLeft[uiI] > 0);
                 if(rPrefixSums.sizeOf(vOverlayEntries[ uiI ]) > 0)
                     rSparseCoords.template iterate<D - 1>(
                         [ & ]( const red_pos_t& vFrom, const red_pos_t& vTo ) {
                             pos_t vFullFrom = expand( vFrom, uiI );
-                            vFullFrom[ uiI ] = vPos[ uiI ] - 1;
+                            vFullFrom[ uiI ] = vMyBottomLeft[ uiI ] - 1;
 
                             xProg << Verbosity(3) << "query " << vFullFrom << "\n";
                             auto uiRet = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, xProg );
@@ -325,17 +334,15 @@ template <typename type_defs> class Overlay
 
 
     val_t get( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
-               progress_stream_t& xProg ) const
+               pos_t vMyBottomLeft, progress_stream_t& xProg ) const
     {
         val_t uiRet = 0;
 
         xProg << Verbosity(2) << "\tquerying overlay for " << vCoords << "...\n";
 
-        pos_t vMyBottomLeft;
         for( size_t uiI = 0; uiI < D; uiI++ )
-            vMyBottomLeft[uiI] = this->vMyBottomLeft[uiI] - 1; // will turn zero values into max values
-        xProg << Verbosity(3) << "\t\tvMyBottomLeft " << vMyBottomLeft << " global " 
-              << this->vMyBottomLeft << "\n";
+            --vMyBottomLeft[uiI]; // will turn zero values into max values
+        xProg << Verbosity(3) << "\t\tvMyBottomLeft " << vMyBottomLeft << "\n";
 
         forAllCombinations<pos_t>(
             [&](pos_t vPos, size_t uiDistToTo)

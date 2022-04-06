@@ -44,7 +44,7 @@ class TypeDefs
 
     static constexpr bool EXPLAIN = _explain;
 
-    static constexpr bool COORD_TRANSFROM = true;
+    static constexpr bool COORD_TRANSFROM = false;
 
 
     using progress_stream_t = _progress_stream_t;
