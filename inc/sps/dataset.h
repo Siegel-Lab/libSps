@@ -217,6 +217,7 @@ template <typename type_defs> class Dataset
 
             // get bottom left position (compressed)
             pos_t vPosBottomLeft = rOverlays.posOf( uiI + xOverlays.uiStartIndex, xOverlays );
+            auto vbHasPredecessor = hasPredecessor(rSparseCoords, vPosBottomLeft);
             pos_t vPosBottomLeftActual = actualFromGridPos(rSparseCoords, vPosBottomLeft);
             pos_t vPosTopRightActual = actualTopRightFromGridPos(rSparseCoords, vPosBottomLeft);
 
@@ -227,10 +228,10 @@ template <typename type_defs> class Dataset
             bool bLeftOfDiagonal = vPosBottomLeftActual[1] >= vPosBottomLeftActual[0]; 
 
             // collect direct predecessor overlays for each dimension
-            std::array<std::vector<coordinate_t>, D> vPredecessors;
+            std::array<std::vector<coordinate_t>, D> vPredecessors {};
             for( size_t uiD = 0; uiD < D; uiD++ )
             {
-                if( vPosBottomLeftActual[ uiD ] > 0 )
+                if( vbHasPredecessor[ uiD ] )
                 {
                     // there can be multiple predecessors
                     if( COORD_TRANSFROM && ( (uiD == 0 && bLeftOfDiagonal) || (uiD == 1 && bRightOfDiagonal) ) ) 
@@ -254,8 +255,15 @@ template <typename type_defs> class Dataset
                             
                             pos_t vPosTopRightActual = actualTopRightFromGridPos(rSparseCoords, vItrPos);
                             if(vPosTopRightActual[uiD] > vPosBottomLeftActual[uiD])
+                            {
                                 vPredecessors[ uiD ].push_back( 
                                     overlayIndex( rOverlays, rSparseCoords, vItrPosActual ) );
+                                
+                                xProg << Verbosity( 3 ) << "predecessor dim " << uiD << " pos " 
+                                      << vItrPos << " actual " 
+                                      << vItrPosActual << " index " 
+                                      << vPredecessors[ uiD ].back() << "\n";
+                            }
 
                             ++vItrPos[1];
                             if(vItrPos[1] == uiCenterBin)
@@ -268,6 +276,10 @@ template <typename type_defs> class Dataset
                         --vPosBottomLeftActual[ uiD ];
 
                         vPredecessors[ uiD ].push_back(overlayIndex(rOverlays, rSparseCoords, vPosBottomLeftActual ));
+
+                        xProg << Verbosity( 3 ) << "predecessor dim " << uiD << " pos " 
+                                << vPosBottomLeftActual << " index " 
+                                << vPredecessors[ uiD ].back() << "\n";
 
                         ++vPosBottomLeftActual[ uiD ];
                     }
@@ -294,7 +306,7 @@ template <typename type_defs> class Dataset
             // @todo generate needs the new parameters & each overlay only needs the sparse coords that are between its beginning and end pos
             rOverlays.vData[ xOverlays.uiStartIndex + uiI ].generate(
                 rOverlays, rSparseCoords, rPrefixSums, vPoints, xCurrPoints, vPredecessors, 
-                vPosBottomLeftActual, vPosTopRightActual, this, xProg );
+                vPosBottomLeftActual, vPosTopRightActual, this, vbHasPredecessor, xProg );
 
             xProg << Verbosity( 2 );
             if( xProg.active( ) )
@@ -418,6 +430,50 @@ template <typename type_defs> class Dataset
         return vPos;
     }
 
+    std::array<bool, D> hasPredecessor(const sparse_coord_t& rSparseCoords, pos_t vPos) const
+    {
+        std::array<bool, D> vRet;
+        
+        if constexpr(COORD_TRANSFROM)
+        {
+            if(vPos[0] > 0)
+            {
+                vRet[0] = true;
+                vRet[1] = true;
+            }
+            else
+            {
+                coordinate_t uiCenterBin = rSparseCoords.replace( std::numeric_limits<coordinate_t>::max() / 2, 
+                                                                  vSparseCoords[1] );
+                if(vPos[1] == 0)
+                {
+                    vRet[0] = false;
+                    vRet[1] = false;
+                }
+                else if(vPos[1] < uiCenterBin)
+                {
+                    vRet[0] = true;
+                    vRet[1] = false;
+                }
+                else
+                {
+                    vRet[0] = false;
+                    vRet[1] = true;
+                }
+            }
+        }
+        else
+        {
+            vRet[0] = vPos[0] > 0;
+            vRet[1] = vPos[1] > 0;
+        }
+
+        for(size_t uiI = 2; uiI < D; uiI++)
+            vRet[uiI] = vPos[uiI] > 0;
+
+        return vRet;
+    }
+
     pos_t actualFromGridPos(const sparse_coord_t& rSparseCoords, pos_t vPos) const
     {
         return overlayCoordInv(
@@ -428,23 +484,28 @@ template <typename type_defs> class Dataset
                 )
             );
     }
+
     pos_t actualTopRightFromGridPos(const sparse_coord_t& rSparseCoords, pos_t vPos) const
     {
         ++vPos[0];
-
-        coordinate_t uiCenterBin = rSparseCoords.replace( std::numeric_limits<coordinate_t>::max() / 2,
-                                                            vSparseCoords[1] );
-        if(vPos[1] == 0)
-        {
-            coordinate_t uiNumBins = rSparseCoords.replace( vSparseCoords[1].uiEndCord, vSparseCoords[1] ) + 1;
-            vPos[1] = uiNumBins - uiCenterBin;
-        }
+        if constexpr(!COORD_TRANSFROM)
+            ++vPos[1];
         else
         {
-            ++vPos[1];
-            // if we now have the center position we actually went out on the right side of the original coordinates
-            if(vPos[1] == uiCenterBin)
-                vPos[1] = std::numeric_limits<coordinate_t>::max();
+            coordinate_t uiCenterBin = rSparseCoords.replace( std::numeric_limits<coordinate_t>::max() / 2,
+                                                                vSparseCoords[1] );
+            if(vPos[1] == 0)
+            {
+                coordinate_t uiNumBins = rSparseCoords.replace( vSparseCoords[1].uiEndCord, vSparseCoords[1] ) + 1;
+                vPos[1] = uiNumBins - uiCenterBin;
+            }
+            else
+            {
+                ++vPos[1];
+                // if we now have the center position we actually went out on the right side of the original coordinates
+                if(vPos[1] == uiCenterBin)
+                    vPos[1] = std::numeric_limits<coordinate_t>::max();
+            }
         }
         
         for(size_t uiI = 2; uiI < D; uiI++)
@@ -473,6 +534,9 @@ template <typename type_defs> class Dataset
         if( xProg.active( ) )
             xProg << "\t" << vPos << " -> " << vSparsePos << "; that's overlay "
                   << rOverlays.indexOf( vSparsePos, xOverlays ) << "\n";
+        for(size_t uiI = 0; uiI < D; uiI++)
+            if(vSparsePos[uiI] == std::numeric_limits<coordinate_t>::max())
+                return 0;
         return rOverlays.get( vSparsePos, xOverlays ).get( rSparseCoords, rPrefixSums, vPos, 
                                                            actualFromGridPos(rSparseCoords, vSparsePos), xProg );
     }

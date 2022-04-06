@@ -173,11 +173,13 @@ template <typename type_defs> class Overlay
     void generate( const overlay_grid_t& rOverlays,
                    sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
                    typename points_t::Entry xPoints, std::array<std::vector<coordinate_t>, D> vPredecessors,
-                   pos_t vMyBottomLeft, pos_t vPosTopRight, dataset_t* pDataset, progress_stream_t& xProg )
+                   pos_t vMyBottomLeft, pos_t vPosTopRight, dataset_t* pDataset,
+                   std::array<bool, D> vHasPredecessor, progress_stream_t& xProg )
     {
         this->xPoints = xPoints;
         // construct sparse coordinates for each dimension
-        xProg << Verbosity(1) << "constructing sparse coordinates for overlay\n";
+        xProg << Verbosity(1) << "constructing sparse coordinates for overlay bottom left= " << vMyBottomLeft
+              << " top right " << vPosTopRight << " has predecessors " << vHasPredecessor << "\n";
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
             xProg << Verbosity(2) << "dim " << uiI << "\n";
@@ -215,7 +217,7 @@ template <typename type_defs> class Overlay
                                 std::cout << "from internal: ", rSparseCoords) << std::endl;
                 }
 
-                xProg << "form bottom left: { " << vMyBottomLeft[ uiJAct ] - 1 << " }\n";
+                xProg << "from bottom left: { " << vMyBottomLeft[ uiJAct ] - 1 << " }\n";
 
                 MergeIterator xBegin( vBegin, vEnd, vPosTopRight[uiJAct] );
                 MergeIterator xEnd( vEnd, vEnd, vPosTopRight[uiJAct] );
@@ -224,9 +226,7 @@ template <typename type_defs> class Overlay
                 while(xBegin != xEnd && *xBegin < vMyBottomLeft[uiJAct])
                     ++xBegin;
 
-                // @todo rather: not first in sparse dim
-                //       otherhwise some overlays have an additional entry that contains nothing but a zero
-                if(vMyBottomLeft[ uiJAct ] > 0) 
+                if(vHasPredecessor[ uiJAct ]) 
                     vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.addStart( xBegin, xEnd, 
                                                                                  vMyBottomLeft[ uiJAct ] - 1 );
                 else

@@ -1,4 +1,5 @@
-from build_dbg.libSps import *
+#from build_dbg.libSps import *
+from build_rel.libSps import *
 import random
 
 print_all = False
