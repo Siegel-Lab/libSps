@@ -87,6 +87,8 @@ template <typename type_defs> class SparseCoord
     {
         if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
             return std::numeric_limits<coordinate_t>::max( );
+        if( uiX == vData[ rInfo.uiStartIndex + rInfo.uiEndCord - rInfo.uiStartCord ] + 1 )
+            return std::numeric_limits<coordinate_t>::max( );
         assert( uiX <= vData[ rInfo.uiStartIndex + rInfo.uiEndCord - rInfo.uiStartCord ] );
         auto xItBegin = vData.begin( ) + rInfo.uiStartIndex;
         auto xItEnd = vData.begin( ) + rInfo.uiStartIndex + 1 + rInfo.uiEndCord - rInfo.uiStartCord;
