@@ -183,14 +183,13 @@ template <typename type_defs> class Dataset
         return rSparseCoords.addStartEnd(xStart, xEnd, uiFixedStart, uiFixedEnd);
     }
 
-
+#pragma GCC diagnostic push
+// vPosTopRightActual not used with DEPENDANT_DIMENSION == false
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     std::array<std::vector<coordinate_t>, D> getPredecessor(
             const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords, 
             pos_t vGridPos, pos_t vPosBottomLeftActual, pos_t vPosTopRightActual, progress_stream_t xProg) const
     {
-#ifndef NDEBUG
-        coordinate_t uiIdx = rOverlays.indexOf(vGridPos, xOverlays);
-#endif
 
         auto vbHasPredecessor = hasPredecessor(rSparseCoords, vGridPos);
         std::array<std::vector<coordinate_t>, D> vPredecessors {};
@@ -200,12 +199,15 @@ template <typename type_defs> class Dataset
             {
                 if constexpr(DEPENDANT_DIMENSION)
                 {
-                    if(uiD == 0)
+#ifndef NDEBUG
+                    coordinate_t uiIdx = rOverlays.indexOf(vGridPos, xOverlays);
+#endif
+                    if(uiD != 1)
                     {
                         pos_t vItrPos = vPosBottomLeftActual;
-                        assert(vItrPos[0] > 0);
+                        assert(vItrPos[uiD] > 0);
                         // move outside the current overlay
-                        --vItrPos[0];
+                        --vItrPos[uiD];
                         pos_t vItrTopRight;
                         do
                         {
@@ -221,10 +223,12 @@ template <typename type_defs> class Dataset
                             assert(uiItrIndex != uiIdx);
 
                             // move upwards
-                            assert(vItrTopRight[1] > vItrPos[1]);
+                            assert(vItrTopRight[1] > vItrPos[1] || 
+                                   vItrTopRight[1] == std::numeric_limits<coordinate_t>::max());
                             vItrPos[1] = vItrTopRight[1];
                         }
-                        while(vItrTopRight[1] < vPosTopRightActual[1]);
+                        while(vItrTopRight[1] < vPosTopRightActual[1] && 
+                              vItrTopRight[1] != std::numeric_limits<coordinate_t>::max());
 
                         continue;
                     }
@@ -246,6 +250,7 @@ template <typename type_defs> class Dataset
         }
         return vPredecessors;
     }
+#pragma GCC diagnostic pop
 
     Dataset( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
              points_t& vPoints, typename points_t::Entry xPoints, progress_stream_t xProg ) : vSparseCoords()

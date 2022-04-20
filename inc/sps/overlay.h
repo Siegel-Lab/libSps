@@ -203,7 +203,6 @@ template <typename type_defs> class Overlay
                                 pPred->vSparseCoordsOverlay[ uiI ][ uiJ ].stream(
                                         std::cout << "from predecessor in dim " << uiI2 
                                                     << " overlay: ", rSparseCoords) << std::endl;
-                                
                         }
 
                 // add coordinates from the points of the previous overlay to the overlay entries
