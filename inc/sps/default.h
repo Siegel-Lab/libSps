@@ -79,7 +79,7 @@ template <typename it_t, typename cmp_t> struct RamVectorSorter
 using default_coordinate_t = uint32_t;
 using default_val_t = uint32_t;
 using default_class_key_t = uint16_t;
-static const bool EXPLAIN = true;
+static const bool EXPLAIN = false;
 
 template <size_t D>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
@@ -98,7 +98,7 @@ template <typename val_t, size_t ele_per_block> struct DiskVecGenerator
 {
     using file_t = stxxl::syscall_file;
 
-    using vec_t =
+    using vec_t = // @todo minimize size of block
         typename stxxl::VECTOR_GENERATOR<val_t, 1, ( 1024 * 1024 * 1024 ) / ( sizeof( val_t ) * ele_per_block ),
                                          sizeof( val_t ) * ele_per_block>::result;
 

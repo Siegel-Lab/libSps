@@ -134,6 +134,11 @@ template <typename type_defs> class Main
 
         return os;
     }
+
+    std::vector<typename dataset_t::OverlayInfo> getOverlayInfo(class_key_t xDatasetId) const
+    {
+        return vDataSets[xDatasetId].getOverlayInfo(vOverlayGrid, vSparseCoord, vPoints); 
+    }
 };
 
 }
@@ -146,6 +151,18 @@ template <typename type_defs> void exportStream( pybind11::module& m, std::strin
 }
 template <typename type_defs> void exportMain( pybind11::module& m, std::string sName )
 {
+    using OI = typename sps::Dataset<type_defs>::OverlayInfo;
+
+    pybind11::class_<OI>( m, ("__"+sName+"_OverlayInfo").c_str( ) )
+        .def_readonly("bottom_left", &OI::vBottomLeft)
+        .def_readonly("top_right", &OI::vTopRight)
+        .def_readonly("grid_pos", &OI::vGridPos)
+        .def_readonly("index", &OI::uiIdx)
+        .def_readonly("pred_indices", &OI::vPredIds)
+        .def_readonly("points", &OI::vvPoints)
+
+        ;
+
     pybind11::class_<sps::Main<type_defs>>( m, sName.c_str( ) )
         .def( pybind11::init<std::string, bool>( ), 
               pybind11::arg( "path" ),
@@ -153,15 +170,18 @@ template <typename type_defs> void exportMain( pybind11::module& m, std::string 
         .def( "add_point", &sps::Main<type_defs>::addPoint )
         .def( "generate", &sps::Main<type_defs>::generate, 
                 pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 1 ) )
+                //pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 1 ) )
+                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         // pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
         .def( "count", &sps::Main<type_defs>::count, 
                 pybind11::arg( "uiDatasetId" ), pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 0 ) )
+                //pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 0 ) )
+                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         //.def( "get", &sps::Main<type_defs>::get, "" )
         .def( "__str__", &sps::Main<type_defs>::str )
         .def( "__len__", &sps::Main<type_defs>::numPoints )
         .def( "clear", &sps::Main<type_defs>::clear )
+        .def( "get_overlay_info", &sps::Main<type_defs>::getOverlayInfo )
 
         ;
 }

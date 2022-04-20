@@ -44,7 +44,7 @@ class TypeDefs
 
     static constexpr bool EXPLAIN = _explain;
 
-    static constexpr bool COORD_TRANSFROM = false;
+    static constexpr bool DEPENDANT_DIMENSION = true;
 
 
     using progress_stream_t = _progress_stream_t;
@@ -69,7 +69,7 @@ class TypeDefs
                                                                                                                        \
     static constexpr bool EXPLAIN = type_defs::EXPLAIN;                                                                \
                                                                                                                        \
-    static constexpr bool COORD_TRANSFROM = type_defs::COORD_TRANSFROM;                                                \
+    static constexpr bool DEPENDANT_DIMENSION = type_defs::DEPENDANT_DIMENSION;                                        \
                                                                                                                        \
     using progress_stream_t = typename type_defs::progress_stream_t;
 

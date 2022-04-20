@@ -67,10 +67,57 @@ template <typename type_defs> class SparseCoord
             return ss.str();
         }
     };
+    struct EntryArray : public Entry
+    {
+        coordinate_t uiNum = 0;
+
+        friend std::ostream& operator<<( std::ostream& os, const EntryArray& rEntry )
+        {
+            Entry::operator<<(os, rEntry);
+            os << " n";
+            os << rEntry.uiNum;
+
+            return os;
+        }
+
+        std::ostream& stream( std::ostream& os, const SparseCoord& rSparseCoords ) const
+        {
+            for(size_t uiI = 0; uiI < uiNum; uiI++)
+                SparseCoord::at(*this, uiI).stream(os, rSparseCoords);
+            return os;
+        }
+
+    };
 
     SparseCoord( std::string sPrefix, bool bWrite )
         : xFile( coord_vec_generator.file( sPrefix + ".coords", bWrite ) ), vData( coord_vec_generator.vec( xFile ) )
     {}
+
+    static void append(EntryArray& rArr, const Entry& rE)
+    {
+        if(rArr.uiStartIndex == std::numeric_limits<coordinate_t>::max())
+        {
+            rArr.uiStartIndex = rE.uiStartIndex;
+            rArr.uiStartCord = rE.uiStartCord;
+            rArr.uiEndCord = rE.uiEndCord;
+        }
+        assert(rArr.uiStartCord == rE.uiStartCord);
+        assert(rArr.uiEndCord == rE.uiEndCord);
+#ifndef NDEBUG
+        coordinate_t uirArrEndIds = rArr.uiStartIndex + rArr.uiNum * (1 + rArr.uiEndCord - rArr.uiStartCord);
+        assert(uirArrEndIds == rE.uiStartIndex);
+#endif
+        rArr.uiNum += 1;
+    }
+    static Entry at(const EntryArray& rArr, size_t uiI)
+    {
+        assert(uiI < rArr.uiNum);
+        Entry rE;
+        rE.uiStartIndex = rArr.uiStartIndex + uiI * (1 + rArr.uiEndCord - rArr.uiStartCord);
+        rE.uiStartCord = rArr.uiStartCord;
+        rE.uiEndCord = rArr.uiEndCord;
+        return rE;
+    }
 
     coordinate_t replace( coordinate_t uiX, const Entry& rInfo ) const
     {
@@ -87,7 +134,7 @@ template <typename type_defs> class SparseCoord
     {
         if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
             return std::numeric_limits<coordinate_t>::max( );
-        if( uiX == vData[ rInfo.uiStartIndex + rInfo.uiEndCord - rInfo.uiStartCord ] + 1 )
+        if( uiX > vData[ rInfo.uiStartIndex + rInfo.uiEndCord - rInfo.uiStartCord ] )
             return std::numeric_limits<coordinate_t>::max( );
         if( uiX == std::numeric_limits<coordinate_t>::max( ) )
             return std::numeric_limits<coordinate_t>::max( );
@@ -102,13 +149,19 @@ template <typename type_defs> class SparseCoord
         return (xIt - vData.begin( )) - rInfo.uiStartIndex + rInfo.uiStartCord;
     }
 
+    coordinate_t axisSize( const Entry& rE ) const
+    {
+        return replace( rE.uiEndCord, rE ) + 1;
+    }
+
     template <size_t N> std::array<coordinate_t, N> axisSizes( const std::array<Entry, N>& vAxes ) const
     {
         std::array<coordinate_t, N> vAxisSizes;
         for( size_t uiI = 0; uiI < N; uiI++ )
-            vAxisSizes[ uiI ] = replace( vAxes[ uiI ].uiEndCord, vAxes[ uiI ] ) + 1;
+            vAxisSizes[ uiI ] = axisSize(vAxes[ uiI ]);
         return vAxisSizes;
     }
+
 
     template <size_t N>
     std::array<coordinate_t, N> sparse( const std::array<coordinate_t, N>& vCoords,
@@ -150,6 +203,30 @@ template <typename type_defs> class SparseCoord
         }
         xRet.uiEndCord = uiLast;
         vData.push_back( uiI );
+        assert(vData.size() - xRet.uiStartIndex == 1 + xRet.uiEndCord - xRet.uiStartCord);
+
+        return xRet;
+    }
+
+    template <typename Iterator_t> Entry addStartEnd( Iterator_t xBegin, const Iterator_t& xEnd,
+                                                      coordinate_t uiStartWith, coordinate_t uiEndWith )
+    {
+        size_t uiStartIndex = vData.size( );
+        coordinate_t uiInc = uiStartWith;
+        while( uiInc < *xBegin )
+        {
+            vData.push_back( 0 );
+            ++uiInc;
+        }
+        Entry xRet = add(xBegin, xEnd);
+        xRet.uiStartIndex = uiStartIndex;
+        xRet.uiStartCord = uiStartWith;
+        assert(xRet.uiEndCord <= uiEndWith);
+        while(xRet.uiEndCord < uiEndWith)
+        {
+            vData.push_back( vData.back() );
+            xRet.uiEndCord++;
+        }
         assert(vData.size() - xRet.uiStartIndex == 1 + xRet.uiEndCord - xRet.uiStartCord);
 
         return xRet;

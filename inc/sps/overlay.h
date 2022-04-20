@@ -167,19 +167,18 @@ template <typename type_defs> class Overlay
     typename points_t::Entry xPoints;
 
     Overlay( )
-        : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }
+        : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, xPoints{}
     {}
 
     void generate( const overlay_grid_t& rOverlays,
                    sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
                    typename points_t::Entry xPoints, std::array<std::vector<coordinate_t>, D> vPredecessors,
-                   pos_t vMyBottomLeft, pos_t vPosTopRight, dataset_t* pDataset,
-                   std::array<bool, D> vHasPredecessor, progress_stream_t& xProg )
+                   pos_t vMyBottomLeft, pos_t vPosTopRight, dataset_t* pDataset, progress_stream_t& xProg )
     {
         this->xPoints = xPoints;
         // construct sparse coordinates for each dimension
         xProg << Verbosity(1) << "constructing sparse coordinates for overlay bottom left= " << vMyBottomLeft
-              << " top right " << vPosTopRight << " has predecessors " << vHasPredecessor << "\n";
+              << " top right " << vPosTopRight << "\n";
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
             xProg << Verbosity(2) << "dim " << uiI << "\n";
@@ -204,6 +203,7 @@ template <typename type_defs> class Overlay
                                 pPred->vSparseCoordsOverlay[ uiI ][ uiJ ].stream(
                                         std::cout << "from predecessor in dim " << uiI2 
                                                     << " overlay: ", rSparseCoords) << std::endl;
+                                
                         }
 
                 // add coordinates from the points of the previous overlay to the overlay entries
@@ -226,7 +226,7 @@ template <typename type_defs> class Overlay
                 while(xBegin != xEnd && *xBegin < vMyBottomLeft[uiJAct])
                     ++xBegin;
 
-                if(vHasPredecessor[ uiJAct ]) 
+                if(vPredecessors[ uiJAct ].size() > 0) 
                     vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.addStart( xBegin, xEnd, 
                                                                                  vMyBottomLeft[ uiJAct ] - 1 );
                 else
@@ -243,7 +243,6 @@ template <typename type_defs> class Overlay
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
                 xProg << Verbosity(2) << "dim " << uiI << "\n";
-                // add coordinates from previous overlay to the overlay entries
                 vPoints.sortByDim( uiI, xPoints );
 
                 if(xProg.active())
