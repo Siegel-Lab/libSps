@@ -20,7 +20,7 @@ template <typename type_defs> class Overlay
 
     using sparse_coord_t = SparseCoord<type_defs>;
     using prefix_sum_grid_t = NDGrid<type_defs, val_t>;
-    using overlay_grid_t = NDGrid<type_defs, Overlay>;
+    using overlay_grid_t = NDGrid<type_defs, AlignedPower2<Overlay>>;
 
 
     using point_t = Point<type_defs>;
@@ -173,7 +173,8 @@ template <typename type_defs> class Overlay
     void generate( const overlay_grid_t& rOverlays,
                    sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
                    typename points_t::Entry xPoints, std::array<std::vector<coordinate_t>, D> vPredecessors,
-                   pos_t vMyBottomLeft, pos_t vPosTopRight, dataset_t* pDataset, progress_stream_t& xProg )
+                   pos_t vMyBottomLeft, pos_t vPosTopRight, dataset_t* pDataset, 
+                   size_t uiOverlaysNow, size_t uiOverlaysTotal, progress_stream_t& xProg )
     {
         this->xPoints = xPoints;
         // construct sparse coordinates for each dimension
@@ -186,8 +187,8 @@ template <typename type_defs> class Overlay
             {
                 size_t uiJAct = uiJ + (uiJ >= uiI ? 1 : 0);
                 xProg << Verbosity(2) << "sub dim " << uiJAct << " (" << uiJ << ")" << "\n";
-                std::vector<cord_it_t> vBegin;
-                std::vector<cord_it_t> vEnd;
+                std::vector<cord_it_t> vBegin {};
+                std::vector<cord_it_t> vEnd {};
 
                 // add coordinates from previous overlays to the overlay entries
                 for( size_t uiI2 = 0; uiI2 < D; uiI2++ )
@@ -203,7 +204,22 @@ template <typename type_defs> class Overlay
                                 pPred->vSparseCoordsOverlay[ uiI ][ uiJ ].stream(
                                         std::cout << "from predecessor in dim " << uiI2 
                                                     << " overlay: ", rSparseCoords) << std::endl;
+                            if constexpr(DEPENDANT_DIMENSION)
+                                if(uiI == 1 && uiI2 != 1 /* <- cause this is done below anyways */)
+                                    // predecessors in dim 1 could reach below the start of this overlay ->
+                                    // in that case their overlay coords are not sufficient & we also have to 
+                                    // use their internal coords (@todo actually we only need some of their 
+                                    // internal coords -> could save mem here)
+                                {
+                                    // @todo pick out the correct points and no more
+                                    vBegin.push_back(rSparseCoords.cbegin( pPred->vSparseCoordsInternal[ uiJAct ] ));
+                                    vEnd.push_back(rSparseCoords.cend( pPred->vSparseCoordsInternal[ uiJAct ] ));
+                                    if(xProg.active())
+                                        pPred->vSparseCoordsInternal[ uiJAct ].stream(
+                                                std::cout << "from internal dim 1: ", rSparseCoords) << std::endl;
+                                }
                         }
+
 
                 // add coordinates from the points of the previous overlay to the overlay entries
                 for(coordinate_t uiPred : vPredecessors[ uiI ])
@@ -275,7 +291,7 @@ template <typename type_defs> class Overlay
             coordinate_t uiNumDone = 0;
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
-                xProg << Verbosity(3) << "integrating over dimension " << uiI << "\n";
+                xProg << Verbosity(3) << "computing prefix sums over dimension " << uiI << "\n";
                 red_entry_arr_t vRelevantSparseCoordsInternal = relevant( vSparseCoordsInternal, uiI );
                 rSparseCoords.template iterate<D - 1>(
                     [ & ]( const red_pos_t&, const red_pos_t& vTo ) {
@@ -291,9 +307,11 @@ template <typename type_defs> class Overlay
                                 
                                 ++uiNumDone;
                                 if( xProg.printAgain( ) )
-                                    xProg << Verbosity( 0 ) << "integrating: " 
-                                        << uiNumDone << " out of " << uiNumTotal << ", thats "
-                                        << 100 * uiNumDone / (double)uiNumTotal << "%.\n";
+                                    xProg << Verbosity( 0 ) 
+                                          << uiOverlaysNow << " out of " << uiOverlaysTotal << " overlays, thats "
+                                          << 100.0 * ((double)uiOverlaysNow / (double)uiOverlaysTotal) << "%. " 
+                                          << uiNumDone << " out of " << uiNumTotal << " prefix sums, thats "
+                                          << 100.0 * ((double)uiNumDone / (double)uiNumTotal) << "%.\n";
                             },
                             vSparseCoordsInternal[ uiI ] );
                     },
@@ -430,58 +448,74 @@ template <typename type_defs> class Overlay
         return os;
     }
 
-    std::ostream& stream( std::ostream& os, const sparse_coord_t& rSparseCoords, 
-                          const prefix_sum_grid_t& rPrefixSums ) const
+    std::ostream& stream( std::ostream& os, pos_t vGridPos, const sparse_coord_t& rSparseCoords, 
+                          const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData ) const
     {
-        os << "<" << std::endl;
-        os << "\tvSparseCoordsOverlay: ";
-        for(size_t uiI = 0; uiI < D; uiI++)
+        os << "<";
+        if(rData.exists(rSparseCoords, vGridPos))
         {
-            os << uiI << ":<";
-            for(size_t uiJ = 0; uiJ < D-1; uiJ++)
+            os << std::endl;
+            auto vPosActual = rData.actualFromGridPos(rSparseCoords, vGridPos);
+            os << "\tbottom left: " << vPosActual << "\n";
+            auto vPosTR = rData.actualTopRightFromGridPos(rSparseCoords, vGridPos);
+            os << "\ttop right: " << vPosTR << "\n";
+            os << "\tvSparseCoordsOverlay: ";
+            for(size_t uiI = 0; uiI < D; uiI++)
             {
-                os << " " << (uiJ + (uiJ >= uiI ? 1 : 0)) << ":";
-                vSparseCoordsOverlay[uiI][uiJ].stream(os, rSparseCoords) << " ";
+                os << uiI << ":<";
+                for(size_t uiJ = 0; uiJ < D-1; uiJ++)
+                {
+                    os << " " << (uiJ + (uiJ >= uiI ? 1 : 0)) << ":";
+                    vSparseCoordsOverlay[uiI][uiJ].stream(os, rSparseCoords) << " ";
+                }
+                os << "> ";
             }
-            os << "> ";
+            os << std::endl;
+
+            os << "\tvSparseCoordsInternal: ";
+            for(size_t uiI = 0; uiI < D; uiI++)
+                vSparseCoordsInternal[uiI].stream(os, rSparseCoords) << " ";
+            os << std::endl;
+
+            os << "\tvOverlayEntries: ";
+            for(size_t uiI = 0; uiI < D; uiI++)
+                vOverlayEntries[uiI].streamOp(os, rPrefixSums) << " ";
+            os << std::endl;
+
+            os << "\txInternalEntires: ";
+            xInternalEntires.streamOp(os, rPrefixSums) << std::endl;
         }
-        os << std::endl;
-
-        os << "\tvSparseCoordsInternal: ";
-        for(size_t uiI = 0; uiI < D; uiI++)
-            vSparseCoordsInternal[uiI].stream(os, rSparseCoords) << " ";
-        os << std::endl;
-
-        os << "\tvOverlayEntries: ";
-        for(size_t uiI = 0; uiI < D; uiI++)
-            vOverlayEntries[uiI].streamOp(os, rPrefixSums) << " ";
-        os << std::endl;
-
-        os << "\txInternalEntires: ";
-        xInternalEntires.streamOp(os, rPrefixSums) << std::endl;
+        else
+            os << "n/a";
 
         return os;
     }
-    std::ostream& stream( std::ostream& os, const sparse_coord_t& rSparseCoords, 
-                          const prefix_sum_grid_t& rPrefixSums, const points_t& vPoints ) const
+    std::ostream& stream( std::ostream& os, pos_t vGridPos, const sparse_coord_t& rSparseCoords, 
+                          const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData, const points_t& vPoints ) const
     {
-        this->stream(os, rSparseCoords, rPrefixSums);
+        this->stream(os, vGridPos, rSparseCoords, rPrefixSums, rData);
 
-        os << "\txPoints: ";
-        xPoints.stream(os, vPoints) << std::endl;
+        if(rData.exists(rSparseCoords, vGridPos))
+        {
+            os << "\txPoints: ";
+            xPoints.stream(os, vPoints) << std::endl;
+        }
 
         os << ">";
 
         return os;
     }
 
-    std::ostream& stream( std::ostream& os, const sparse_coord_t& rSparseCoords, 
-                          const prefix_sum_grid_t& rPrefixSums, const points_t& vPoints, const desc_t& vDesc ) const
+    std::ostream& stream( std::ostream& os, pos_t vGridPos, const sparse_coord_t& rSparseCoords, 
+                          const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData, const points_t& vPoints, const desc_t& vDesc ) const
     {
-        this->stream(os, rSparseCoords, rPrefixSums);
+        this->stream(os, vGridPos, rSparseCoords, rPrefixSums, rData);
 
-        os << "\txPoints: ";
-        xPoints.stream(os, vPoints, vDesc) << std::endl;
+        if(rData.exists(rSparseCoords, vGridPos))
+        {
+            os << "\txPoints: ";
+            xPoints.stream(os, vPoints, vDesc) << std::endl;
+        }
 
         os << ">";
 

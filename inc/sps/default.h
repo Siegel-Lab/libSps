@@ -81,13 +81,14 @@ using default_val_t = uint32_t;
 using default_class_key_t = uint16_t;
 static const bool EXPLAIN = false;
 
-template <size_t D>
+template <size_t D, bool dependant_dim>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
                               D, //
                               default_class_key_t, //
                               RamVecGenerator, //
                               RamVectorSorter, //
+                              dependant_dim, //
                               EXPLAIN, //
                               StdOutProgressStream
                               >;
@@ -98,9 +99,7 @@ template <typename val_t, size_t ele_per_block> struct DiskVecGenerator
 {
     using file_t = stxxl::syscall_file;
 
-    using vec_t = // @todo minimize size of block
-        typename stxxl::VECTOR_GENERATOR<val_t, 1, ( 1024 * 1024 * 1024 ) / ( sizeof( val_t ) * ele_per_block ),
-                                         sizeof( val_t ) * ele_per_block>::result;
+    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 1024, 4096>::result;
 
     vec_t vec( file_t& rFile )
     {
@@ -125,13 +124,14 @@ template <typename it_t, typename cmp_t> struct DiskVectorSorter
     }
 };
 
-template <size_t D>
+template <size_t D, bool dependant_dim>
 using OnDiskTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
                               D, //
                               default_class_key_t, //
-                               DiskVecGenerator, //
-                               DiskVectorSorter, //
+                              DiskVecGenerator, //
+                              DiskVectorSorter, //
+                              dependant_dim, //
                               EXPLAIN, //
                               StdOutProgressStream
                               >;

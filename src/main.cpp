@@ -3,8 +3,8 @@
 
 int main()
 {
-    typename sps::Main<InMemTypeDef<2>> xTree1("test1");
-    typename sps::Main<OnDiskTypeDef<2>> xTree2("test2");
+    typename sps::Main<InMemTypeDef<2, true>> xTree1("test1");
+    typename sps::Main<OnDiskTypeDef<2, true>> xTree2("test2");
 
     return 0;
 }

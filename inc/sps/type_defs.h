@@ -25,6 +25,7 @@ template <typename _coordinate_t, //
           typename _class_key_t, //
           template <typename, size_t> typename _vec_generator, //
           template <typename, typename> typename _sort_func_t, //
+          bool _dependant_dim, //
           bool _explain, //
           typename _progress_stream_t
           >
@@ -44,7 +45,7 @@ class TypeDefs
 
     static constexpr bool EXPLAIN = _explain;
 
-    static constexpr bool DEPENDANT_DIMENSION = true;
+    static constexpr bool DEPENDANT_DIMENSION = _dependant_dim;
 
 
     using progress_stream_t = _progress_stream_t;
@@ -83,8 +84,9 @@ class TypeDefs
     using name##_file_t = typename name##_vec_generator_t::file_t
 
 #define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
+    static_assert( 4096 % sizeof(content_t) == 0);                                                          \
                                                                                                                        \
-    using name##_vec_generator_t = vec_generator_t<content_t, 4 * 1024>;                                               \
+    using name##_vec_generator_t = vec_generator_t<content_t, 1>;                         \
                                                                                                                        \
     EXTRACT_VEC_GENERATOR_HELPER( name, content_t );
 

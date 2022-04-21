@@ -19,7 +19,7 @@ template <typename type_defs> class Points
     using desc_t = Desc<type_defs>;
 
   public:
-    EXTRACT_VEC_GENERATOR( points, point_t ); // macro call
+    EXTRACT_VEC_GENERATOR_ELE( points, point_t, 4 * 1024 ); // macro call
   private:
 
     using points_it_t = typename points_vec_t::iterator;

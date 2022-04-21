@@ -133,6 +133,23 @@ size_t constexpr nextPower2(size_t n)
     return ++n;
 }
 
+
+template<typename C_T>
+class AlignedPower2 : public C_T
+{
+    private:
+    static constexpr size_t ALIGN_TO = nextPower2(sizeof( C_T ));
+
+    static_assert( sizeof( C_T ) <= ALIGN_TO );
+    // make sure this is aligned to the next power of two (block load optimization of stxxl::vector)
+    std::array<char, ALIGN_TO - sizeof( C_T ) % ALIGN_TO> __buffer {};
+
+    public:
+        using C_T::C_T;
+
+}; // class
+
+
 const std::string CLRLN = "\r\033[K";
 
 #define DO_PROFILE 1

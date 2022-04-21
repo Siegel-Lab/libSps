@@ -45,7 +45,7 @@ template <typename type_defs, typename data_t> class NDGrid
                 if(uiI > 0)
                     os << ", ";
                 os << rGrid.posOf(uiI + uiStartIndex, *this) << ": ";
-                rGrid.vData[uiI + uiStartIndex].stream(os, args...);
+                rGrid.vData[uiI + uiStartIndex].stream(os, rGrid.posOf(uiI + uiStartIndex, *this), args...);
             }
             os << " }";
 
@@ -140,10 +140,11 @@ template <typename type_defs, typename data_t> class NDGrid
             xRet.vAxisSizes[uiI] = vAxisSizes[uiI];
         xRet.uiStartIndex = vData.size();
         // make space for the new grid
-        vData.resize(xRet.uiStartIndex + sizeOf(xRet));
+
+        // vData.resize(xRet.uiStartIndex + sizeOf(xRet));
         // stxxl does not zero initialize the resized elements :'(
-        for(size_t uiI = xRet.uiStartIndex; uiI < vData.size(); uiI++)
-            vData[uiI] = data_t{};
+        for(size_t uiI = 0; uiI < sizeOf(xRet); uiI++)
+            vData.push_back(data_t{});
         return xRet;
     }
 
