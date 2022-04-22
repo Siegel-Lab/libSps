@@ -21,6 +21,8 @@ template <typename type_defs> class SparseCoord
     EXTRACT_VEC_GENERATOR( coord, coordinate_t ); // macro call
 
   public:
+    static const bool THREADSAVE = coord_THREADSAVE;
+
     coord_file_t xFile;
     coord_vec_t vData;
 

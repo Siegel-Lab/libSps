@@ -55,6 +55,7 @@ template <typename val_t, size_t ele_per_block> struct RamVecGenerator
 {
     using file_t = size_t;
     using vec_t = std::vector<val_t>;
+    static const bool THREADSAVE = true;
 
     vec_t vec( file_t& )
     {
@@ -95,11 +96,13 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                             
 
 
-template <typename val_t, size_t ele_per_block> struct DiskVecGenerator
+template <typename val_t, size_t ele_per_block> struct CachedVecGenerator
 {
     using file_t = stxxl::syscall_file;
 
-    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 1024, 4096>::result;
+    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 1024 * 16, 4096>::result;
+
+    static const bool THREADSAVE = false;
 
     vec_t vec( file_t& rFile )
     {
@@ -108,7 +111,6 @@ template <typename val_t, size_t ele_per_block> struct DiskVecGenerator
 
     file_t file( std::string sPath, bool bOpenInWriteMode )
     {
-        
         return file_t( sPath, (bOpenInWriteMode ?
                     stxxl::file::open_mode::RDWR | stxxl::file::open_mode::CREAT : 
                     stxxl::file::open_mode::RDONLY | stxxl::file::open_mode::NO_LOCK) 
@@ -116,7 +118,7 @@ template <typename val_t, size_t ele_per_block> struct DiskVecGenerator
     }
 };
 
-template <typename it_t, typename cmp_t> struct DiskVectorSorter
+template <typename it_t, typename cmp_t> struct CachedVectorSorter
 {
     void operator( )( it_t xBegin, it_t xEnd, cmp_t xComp ) const
     {
@@ -129,8 +131,8 @@ using OnDiskTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
                               D, //
                               default_class_key_t, //
-                              DiskVecGenerator, //
-                              DiskVectorSorter, //
+                              CachedVecGenerator, //
+                              CachedVectorSorter, //
                               dependant_dim, //
                               EXPLAIN, //
                               StdOutProgressStream

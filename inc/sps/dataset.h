@@ -97,14 +97,24 @@ template <typename type_defs> class Dataset
               xLock(xLock)
         {}
 
-        bool operator( )( const point_t& a, const point_t& b ) const
+        bool comp( const point_t& a, const point_t& b ) const
         {
-            std::lock_guard<std::mutex> xGuard(xLock);
             coordinate_t uiA = rDataset.overlayIndex( rOverlays, rSparseCoords, a.vPos );
             coordinate_t uiB = rDataset.overlayIndex( rOverlays, rSparseCoords, b.vPos );
             if( uiA == uiB )
                 return a.uiDescOffset < b.uiDescOffset;
             return uiA < uiB;
+        }
+
+        bool operator( )( const point_t& a, const point_t& b ) const
+        {
+            if constexpr(sparse_coord_t::THREADSAVE)
+                return comp(a, b);
+            else
+            {
+                std::lock_guard<std::mutex> xGuard(xLock);
+                return comp(a, b);
+            }
         }
 
         point_t min_value( ) const
@@ -381,7 +391,7 @@ template <typename type_defs> class Dataset
                 {
                     xProg << Verbosity( 2 ) << "predecessor " << uiJ << " dim " << uiD << " is "
                             << vPredecessors[ uiD ][ uiJ ] << "\n";
-                    assert( vPredecessors[ uiD ][ uiJ ] < uiI );
+                    assert( vPredecessors[ uiD ][ uiJ ] < uiI + xOverlays.uiStartIndex );
 
                     if( xProg.active( ) )
                     {

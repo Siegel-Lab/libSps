@@ -320,6 +320,8 @@ template <typename type_defs> class Overlay
         }
 
         // construct overlay sum grid
+        // @todo multiprocess by exploiting diagonals
+        // also the bottom half of this grid is always zero -> can that be fixed?
         xProg << Verbosity(1) << "constructing overlay sum grid\n";
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vPredecessors[ uiI ].size() > 0 )

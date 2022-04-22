@@ -47,7 +47,6 @@ class TypeDefs
 
     static constexpr bool DEPENDANT_DIMENSION = _dependant_dim;
 
-
     using progress_stream_t = _progress_stream_t;
 };
 
@@ -81,14 +80,16 @@ class TypeDefs
                                                                                                                        \
     using name##_vec_t = typename name##_vec_generator_t::vec_t;                                                       \
                                                                                                                        \
-    using name##_file_t = typename name##_vec_generator_t::file_t
+    using name##_file_t = typename name##_vec_generator_t::file_t;                                                     \
+                                                                                                                       \
+    static const bool name##_THREADSAVE = name##_vec_generator_t::THREADSAVE;
 
 #define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
     static_assert( 4096 % sizeof(content_t) == 0);                                                          \
                                                                                                                        \
     using name##_vec_generator_t = vec_generator_t<content_t, 1>;                         \
                                                                                                                        \
-    EXTRACT_VEC_GENERATOR_HELPER( name, content_t );
+    EXTRACT_VEC_GENERATOR_HELPER( name, content_t )
 
 #define EXTRACT_VEC_GENERATOR_ELE( name, content_t, ele_per_block )                                                    \
                                                                                                                        \
