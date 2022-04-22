@@ -15,11 +15,16 @@ template <typename type_defs> class Points
 {
     EXTRACT_TYPE_DEFS; // macro call
 
-    using point_t = Point<type_defs>;
+    using point_t = AlignedPower2<Point<type_defs>>;
+
+    //template<int s> struct CheckSizeOfPoint;
+    //CheckSizeOfPoint<sizeof(Point<type_defs>)> xCheckSizeOfPoint;
+    //CheckSizeOfPoint<sizeof(point_t)> xCheckSizeOfAlignedPoint;
+
     using desc_t = Desc<type_defs>;
 
   public:
-    EXTRACT_VEC_GENERATOR_ELE( points, point_t, 4 * 1024 ); // macro call
+    EXTRACT_VEC_GENERATOR( points, point_t ); // macro call
   private:
 
     using points_it_t = typename points_vec_t::iterator;

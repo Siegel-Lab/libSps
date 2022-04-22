@@ -133,21 +133,40 @@ size_t constexpr nextPower2(size_t n)
     return ++n;
 }
 
-
-template<typename C_T>
-class AlignedPower2 : public C_T
+// align C_T to ALIGN_TO, by padding elements
+template<typename C_T, size_t ALIGN_TO>
+class AlignTo : public C_T
 {
     private:
-    static constexpr size_t ALIGN_TO = nextPower2(sizeof( C_T ));
-
     static_assert( sizeof( C_T ) <= ALIGN_TO );
     // make sure this is aligned to the next power of two (block load optimization of stxxl::vector)
-    std::array<char, ALIGN_TO - sizeof( C_T ) % ALIGN_TO> __buffer {};
+    
+//#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-Wunused-but-set-parameter" 
+    // hmmm would have expected this to give and uninitialized warning... o.O
+    std::array<char, ALIGN_TO - sizeof( C_T )> __buffer;
+//#pragma GCC diagnostic pop
 
     public:
         using C_T::C_T;
 
 }; // class
+
+
+#define POWER_2_COND( C_T )\
+    std::conditional<(sizeof( C_T ) < nextPower2(sizeof( C_T ))),\
+                     AlignTo<C_T, nextPower2(sizeof( C_T ))>,\
+                     C_T>::type
+
+// if the size of C_T is not an even power of 2 align it to the next even power of two
+template<typename C_T>
+class AlignedPower2: public POWER_2_COND(C_T)
+{
+    using X = typename POWER_2_COND(C_T);
+    public:
+        using X::X;
+};
+
 
 
 const std::string CLRLN = "\r\033[K";

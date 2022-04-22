@@ -36,6 +36,42 @@ template <typename type_defs> class Overlay
     using entry_arr_t = std::array<typename sparse_coord_t::Entry, D>;
     using red_entry_arr_t = std::array<typename sparse_coord_t::Entry, D - 1>;
 
+#if 0
+    class MergableIterator
+    {
+        public:
+            virtual void operator++( );
+            virtual const coordinate_t operator*( ) const;
+            virtual bool operator!=( const std::shared_ptr<MergableIterator> pOther ) const;
+    };
+    
+    class MergableCordIterator: public MergableIterator
+    {
+        using cord_it_t = typename sparse_coord_t::EntryIterator;
+
+        cord_it_t xIt;
+
+        public:
+            MergableCordIterator(cord_it_t xIt) : xIt(xIt)
+            {}
+
+            void operator++( )
+            {
+                ++xIt;
+            }
+
+            const coordinate_t operator*( ) const
+            {
+                return (*xIt)->first;
+            }
+
+            bool operator!=( const std::shared_ptr<MergableIterator> pOther ) const
+            {
+                return 
+            }
+    };
+#endif
+
     class MergeIterator
     {
         std::vector<cord_it_t> vBegin;

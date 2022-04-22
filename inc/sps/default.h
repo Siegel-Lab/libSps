@@ -51,7 +51,7 @@ struct StdOutProgressStream
 };
 
 
-template <typename val_t, size_t ele_per_block> struct RamVecGenerator
+template <typename val_t> struct RamVecGenerator
 {
     using file_t = size_t;
     using vec_t = std::vector<val_t>;
@@ -96,7 +96,7 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                             
 
 
-template <typename val_t, size_t ele_per_block> struct CachedVecGenerator
+template <typename val_t> struct CachedVecGenerator
 {
     using file_t = stxxl::syscall_file;
 

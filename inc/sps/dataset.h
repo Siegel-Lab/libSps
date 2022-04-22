@@ -24,7 +24,7 @@ template <typename type_defs> class Dataset
     using overlay_t = AlignedPower2<Overlay<type_defs>>;
     using overlay_grid_t = NDGrid<type_defs, overlay_t>;
     using prefix_sum_grid_t = NDGrid<type_defs, val_t>;
-    using point_t = Point<type_defs>;
+    using point_t = AlignedPower2<Point<type_defs>>;
     using points_t = Points<type_defs>;
     using desc_t = Desc<type_defs>;
 

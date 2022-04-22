@@ -26,6 +26,7 @@ template <typename type_defs> class Main
     EXTRACT_TYPE_DEFS; // macro call
 
     using point_t = Point<type_defs>;
+
     using points_t = Points<type_defs>;
     using desc_t = Desc<type_defs>;
     
