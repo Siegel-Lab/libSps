@@ -36,13 +36,17 @@ template <typename type_defs> class Overlay
     using entry_arr_t = std::array<typename sparse_coord_t::Entry, D>;
     using red_entry_arr_t = std::array<typename sparse_coord_t::Entry, D - 1>;
 
-#if 0
     class MergableIterator
     {
         public:
-            virtual void operator++( );
-            virtual const coordinate_t operator*( ) const;
-            virtual bool operator!=( const std::shared_ptr<MergableIterator> pOther ) const;
+            virtual void operator++( ) {}
+            virtual const coordinate_t operator*( ) const { return 0; }
+            virtual bool operator!=( const std::shared_ptr<MergableIterator> /*pOther*/ ) const { return true; }
+            
+            friend std::ostream& operator<<( std::ostream& os, const MergableIterator& /*rIt*/ )
+            {
+                return os;
+            }
     };
     
     class CordIterator: public MergableIterator
@@ -62,25 +66,25 @@ template <typename type_defs> class Overlay
 
             const coordinate_t operator*( ) const
             {
-                return (*xIt)->first;
+                return (*xIt).first;
             }
 
             bool operator!=( const std::shared_ptr<MergableIterator> pOther ) const
             {
-                auto pCasted = std::dynamic_pointer_cast<cord_it_t>(pOther);
+                auto pCasted = std::dynamic_pointer_cast<CordIterator>(pOther);
                 if(pOther == nullptr)
                     return true;
-                return xIt != *pCasted;
+                return xIt != pCasted->xIt;
             }
 
             bool operator!=( const CordIterator& rOther ) const
             {
-                return xA != rOther.xA;
+                return xIt != rOther.xIt;
             }
 
             friend std::ostream& operator<<( std::ostream& os, const CordIterator& rIt )
             {
-                return os << xIt;
+                return os << rIt.xIt;
             }
     };
     class MergeIterator
@@ -98,11 +102,11 @@ template <typename type_defs> class Overlay
         size_t getSmallestValid() const
         {
             size_t uiSmallestValid = 0;
-            while(uiSmallestValid < vBegin.size() && !(*vBegin[uiSmallestValid] != *vEnd[uiSmallestValid]))
+            while(uiSmallestValid < vBegin.size() && !(*vBegin[uiSmallestValid] != vEnd[uiSmallestValid]))
                 ++uiSmallestValid;
             assert(uiSmallestValid < vBegin.size());
             for(size_t uiI = uiSmallestValid + 1; uiI < vBegin.size(); uiI++)
-                if(*vBegin[uiI] != *vEnd[uiI] && **vBegin[uiI] < **vBegin[uiSmallestValid])
+                if(*vBegin[uiI] != vEnd[uiI] && **vBegin[uiI] < **vBegin[uiSmallestValid])
                     uiSmallestValid = uiI;
             return uiSmallestValid;
         }
@@ -112,7 +116,7 @@ template <typename type_defs> class Overlay
             size_t uiSmallestValid = getSmallestValid();
             
             for(size_t uiI = 0; uiI < vBegin.size(); uiI++)
-                if( uiI != uiSmallestValid && *vBegin[uiI] != *vEnd[uiI] && 
+                if( uiI != uiSmallestValid && *vBegin[uiI] != vEnd[uiI] && 
                     !(**vBegin[uiSmallestValid] < **vBegin[uiI]) )
                     ++*vBegin[uiI];
             ++*vBegin[uiSmallestValid];
@@ -126,7 +130,7 @@ template <typename type_defs> class Overlay
         bool operator!=( const MergeIterator& rOther ) const
         {
             for(size_t uiI = 0; uiI < vBegin.size(); uiI++)
-                if(*vBegin[uiI] != *rOther.vBegin[uiI])
+                if(*vBegin[uiI] != rOther.vBegin[uiI])
                 {
                     if(**this >= uiEnd)
                         return false;
@@ -140,95 +144,6 @@ template <typename type_defs> class Overlay
             return os << rIt.vBegin;
         }
     };
-#else
-    
-    class MergeIterator
-    {
-        std::vector<cord_it_t> vBegin;
-        std::vector<cord_it_t> vEnd;
-        coordinate_t uiEnd;
-
-      public:
-        MergeIterator( std::vector<cord_it_t> vBegin, std::vector<cord_it_t> vEnd, coordinate_t uiEnd )
-            : vBegin( vBegin ), vEnd( vEnd ), uiEnd(uiEnd)
-        {}
-
-        size_t getSmallestValid() const
-        {
-            size_t uiSmallestValid = 0;
-            while(uiSmallestValid < vBegin.size() && !(vBegin[uiSmallestValid] != vEnd[uiSmallestValid]))
-                ++uiSmallestValid;
-            assert(uiSmallestValid < vBegin.size());
-            for(size_t uiI = uiSmallestValid + 1; uiI < vBegin.size(); uiI++)
-                if(vBegin[uiI] != vEnd[uiI] && *vBegin[uiI] < *vBegin[uiSmallestValid])
-                    uiSmallestValid = uiI;
-            return uiSmallestValid;
-        }
-
-        void operator++( )
-        {
-            size_t uiSmallestValid = getSmallestValid();
-            
-            for(size_t uiI = 0; uiI < vBegin.size(); uiI++)
-                if( uiI != uiSmallestValid && vBegin[uiI] != vEnd[uiI] && !(*vBegin[uiSmallestValid] < *vBegin[uiI]) )
-                    ++vBegin[uiI];
-            ++vBegin[uiSmallestValid];
-        }
-
-        const coordinate_t operator*( ) const
-        {
-            return (*vBegin[getSmallestValid()]).first;
-        }
-
-        bool operator!=( const MergeIterator& rOther ) const
-        {
-            for(size_t uiI = 0; uiI < vBegin.size(); uiI++)
-                if(vBegin[uiI] != rOther.vBegin[uiI])
-                {
-                    if(**this >= uiEnd)
-                        return false;
-                    return true;
-                }
-            return false;
-        }
-
-        friend std::ostream& operator<<( std::ostream& os, const MergeIterator& rIt )
-        {
-            return os << rIt.vBegin;
-        }
-    };
-    class CordIterator
-    {
-        cord_it_t xA;
-
-      public:
-        CordIterator( cord_it_t xA )
-            : xA( xA )
-        {}
-
-        void operator++( )
-        {
-            ++xA;
-        }
-
-        const coordinate_t operator*( ) const
-        {
-            return ( *xA ).first;
-        }
-
-        bool operator!=( const CordIterator& rOther ) const
-        {
-            return xA != rOther.xA;
-        }
-
-        friend std::ostream& operator<<( std::ostream& os, const CordIterator& rIt )
-        {
-            os << rIt.xA;
-
-            return os;
-        }
-    };
-#endif
 
 
     class PointIterator
@@ -264,6 +179,39 @@ template <typename type_defs> class Overlay
             return os;
         }
     };
+    class MergeVecIt: public MergableIterator
+    {
+        using it_t = typename std::vector<coordinate_t>::iterator;
+
+        it_t xIt;
+
+        public:
+            MergeVecIt(it_t xIt) : xIt(xIt)
+            {}
+
+            void operator++( )
+            {
+                ++xIt;
+            }
+
+            const coordinate_t operator*( ) const
+            {
+                return *xIt;
+            }
+
+            bool operator!=( const std::shared_ptr<MergableIterator> pOther ) const
+            {
+                auto pCasted = std::dynamic_pointer_cast<MergeVecIt>(pOther);
+                if(pOther == nullptr)
+                    return true;
+                return xIt != pCasted->xIt;
+            }
+
+            friend std::ostream& operator<<( std::ostream& os, const MergeVecIt& rIt )
+            {
+                return os;
+            }
+    };
 
 
   public:
@@ -294,8 +242,9 @@ template <typename type_defs> class Overlay
             {
                 size_t uiJAct = uiJ + (uiJ >= uiI ? 1 : 0);
                 xProg << Verbosity(2) << "sub dim " << uiJAct << " (" << uiJ << ")" << "\n";
-                std::vector<cord_it_t> vBegin {};
-                std::vector<cord_it_t> vEnd {};
+                std::vector<std::shared_ptr<MergableIterator>> vBegin {};
+                std::vector<std::shared_ptr<MergableIterator>> vEnd {};
+                std::vector<coordinate_t> vCollectedCoords;
 
                 // add coordinates from previous overlays to the overlay entries
                 for( size_t uiI2 = 0; uiI2 < D; uiI2++ )
@@ -303,10 +252,10 @@ template <typename type_defs> class Overlay
                         for(coordinate_t uiPred : vPredecessors[ uiI2 ])
                         {
                             const Overlay* pPred = &rOverlays.vData[uiPred];
-                            vBegin.push_back( rSparseCoords.cbegin( 
-                                pPred->vSparseCoordsOverlay[ uiI ][ uiJ ]) );
-                            vEnd.push_back( rSparseCoords.cend( 
-                                pPred->vSparseCoordsOverlay[ uiI ][ uiJ ] ) );
+                            vBegin.push_back( std::make_shared<CordIterator>(
+                                 rSparseCoords.cbegin( pPred->vSparseCoordsOverlay[ uiI ][ uiJ ]) ) );
+                            vEnd.push_back( std::make_shared<CordIterator>(
+                                rSparseCoords.cend( pPred->vSparseCoordsOverlay[ uiI ][ uiJ ] ) ) );
                             if(xProg.active())
                                 pPred->vSparseCoordsOverlay[ uiI ][ uiJ ].stream(
                                         std::cout << "from predecessor in dim " << uiI2 
@@ -315,25 +264,37 @@ template <typename type_defs> class Overlay
                                 if(uiI == 1 && uiI2 != 1 /* <- cause this is done below anyways */)
                                     // predecessors in dim 1 could reach below the start of this overlay ->
                                     // in that case their overlay coords are not sufficient & we also have to 
-                                    // use their internal coords (@todo actually we only need some of their 
-                                    // internal coords -> could save mem here)
+                                    // use their internal coords (taking only the relevant coords from the points)
                                 {
-                                    // @todo pick out the correct points and no more
-                                    vBegin.push_back(rSparseCoords.cbegin( pPred->vSparseCoordsInternal[ uiJAct ] ));
-                                    vEnd.push_back(rSparseCoords.cend( pPred->vSparseCoordsInternal[ uiJAct ] ));
-                                    if(xProg.active())
-                                        pPred->vSparseCoordsInternal[ uiJAct ].stream(
-                                                std::cout << "from internal dim 1: ", rSparseCoords) << std::endl;
+                                    vPoints.iterate(
+                                        [&](const point_t& rP){
+                                            for(size_t uiI = 0; uiI < D; uiI++)
+                                                if(rP.vPos[uiI] < vMyBottomLeft[uiI] || 
+                                                   rP.vPos[uiI] >= vPosTopRight[uiI])
+                                                    return;
+                                            // else
+                                            vCollectedCoords.push_back(rP.vPos[uiJAct]);
+                                        },
+                                        pPred->xPoints
+                                    );
                                 }
                         }
-
+                
+                if constexpr(DEPENDANT_DIMENSION)
+                {
+                    std::sort(vCollectedCoords.begin(), vCollectedCoords.end());
+                    vBegin.push_back(std::make_shared<MergeVecIt>( vCollectedCoords.begin() ));
+                    vEnd.push_back(std::make_shared<MergeVecIt>( vCollectedCoords.end() ));
+                }
 
                 // add coordinates from the points of the previous overlay to the overlay entries
                 for(coordinate_t uiPred : vPredecessors[ uiI ])
                 {
                     const Overlay* pPred = &rOverlays.vData[uiPred];
-                    vBegin.push_back(rSparseCoords.cbegin( pPred->vSparseCoordsInternal[ uiJAct ] ));
-                    vEnd.push_back(rSparseCoords.cend( pPred->vSparseCoordsInternal[ uiJAct ] ));
+                    vBegin.push_back(std::make_shared<CordIterator>(
+                        rSparseCoords.cbegin( pPred->vSparseCoordsInternal[ uiJAct ] )));
+                    vEnd.push_back(std::make_shared<CordIterator>(
+                        rSparseCoords.cend( pPred->vSparseCoordsInternal[ uiJAct ] )));
                     if(xProg.active())
                         pPred->vSparseCoordsInternal[ uiJAct ].stream(
                                 std::cout << "from internal: ", rSparseCoords) << std::endl;

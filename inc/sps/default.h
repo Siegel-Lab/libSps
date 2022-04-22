@@ -100,7 +100,7 @@ template <typename val_t> struct CachedVecGenerator
 {
     using file_t = stxxl::syscall_file;
 
-    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 4096 * 64, 4096>::result;
+    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 4096 * 512, 4096>::result;
 
     static const bool THREADSAVE = false;
 
@@ -156,10 +156,16 @@ template <typename val_t> struct DiskVec : public std::vector<val_t>
 
             ifstream.seekg(0, std::ios::end);
             fileSize = ifstream.tellg();
-            ifstream.seekg(0, std::ios::beg);
+            if(fileSize > 0)
+            {
+                ifstream.seekg(0, std::ios::beg);
 
-            this->resize(fileSize / sizeof(val_t));
-            ifstream.read((char*)this->data(), fileSize);
+                assert(fileSize % sizeof(val_t) == 0);
+
+                this->resize(fileSize / sizeof(val_t), val_t());
+                ifstream.read((char*)this->data(), fileSize);
+            }
+            ifstream.close();
         }
 
         ~DiskVec()
