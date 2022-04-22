@@ -45,14 +45,14 @@ template <typename type_defs> class Overlay
             virtual bool operator!=( const std::shared_ptr<MergableIterator> pOther ) const;
     };
     
-    class MergableCordIterator: public MergableIterator
+    class CordIterator: public MergableIterator
     {
         using cord_it_t = typename sparse_coord_t::EntryIterator;
 
         cord_it_t xIt;
 
         public:
-            MergableCordIterator(cord_it_t xIt) : xIt(xIt)
+            CordIterator(cord_it_t xIt) : xIt(xIt)
             {}
 
             void operator++( )
@@ -67,11 +67,81 @@ template <typename type_defs> class Overlay
 
             bool operator!=( const std::shared_ptr<MergableIterator> pOther ) const
             {
-                return 
+                auto pCasted = std::dynamic_pointer_cast<cord_it_t>(pOther);
+                if(pOther == nullptr)
+                    return true;
+                return xIt != *pCasted;
+            }
+
+            bool operator!=( const CordIterator& rOther ) const
+            {
+                return xA != rOther.xA;
+            }
+
+            friend std::ostream& operator<<( std::ostream& os, const CordIterator& rIt )
+            {
+                return os << xIt;
             }
     };
-#endif
+    class MergeIterator
+    {
+        std::vector<std::shared_ptr<MergableIterator>> vBegin;
+        std::vector<std::shared_ptr<MergableIterator>> vEnd;
+        coordinate_t uiEnd;
 
+      public:
+        MergeIterator( std::vector<std::shared_ptr<MergableIterator>> vBegin,
+                       std::vector<std::shared_ptr<MergableIterator>> vEnd, coordinate_t uiEnd )
+            : vBegin( vBegin ), vEnd( vEnd ), uiEnd(uiEnd)
+        {}
+
+        size_t getSmallestValid() const
+        {
+            size_t uiSmallestValid = 0;
+            while(uiSmallestValid < vBegin.size() && !(*vBegin[uiSmallestValid] != *vEnd[uiSmallestValid]))
+                ++uiSmallestValid;
+            assert(uiSmallestValid < vBegin.size());
+            for(size_t uiI = uiSmallestValid + 1; uiI < vBegin.size(); uiI++)
+                if(*vBegin[uiI] != *vEnd[uiI] && **vBegin[uiI] < **vBegin[uiSmallestValid])
+                    uiSmallestValid = uiI;
+            return uiSmallestValid;
+        }
+
+        void operator++( )
+        {
+            size_t uiSmallestValid = getSmallestValid();
+            
+            for(size_t uiI = 0; uiI < vBegin.size(); uiI++)
+                if( uiI != uiSmallestValid && *vBegin[uiI] != *vEnd[uiI] && 
+                    !(**vBegin[uiSmallestValid] < **vBegin[uiI]) )
+                    ++*vBegin[uiI];
+            ++*vBegin[uiSmallestValid];
+        }
+
+        const coordinate_t operator*( ) const
+        {
+            return **vBegin[getSmallestValid()];
+        }
+
+        bool operator!=( const MergeIterator& rOther ) const
+        {
+            for(size_t uiI = 0; uiI < vBegin.size(); uiI++)
+                if(*vBegin[uiI] != *rOther.vBegin[uiI])
+                {
+                    if(**this >= uiEnd)
+                        return false;
+                    return true;
+                }
+            return false;
+        }
+
+        friend std::ostream& operator<<( std::ostream& os, const MergeIterator& rIt )
+        {
+            return os << rIt.vBegin;
+        }
+    };
+#else
+    
     class MergeIterator
     {
         std::vector<cord_it_t> vBegin;
@@ -158,6 +228,7 @@ template <typename type_defs> class Overlay
             return os;
         }
     };
+#endif
 
 
     class PointIterator

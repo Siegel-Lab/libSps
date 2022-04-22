@@ -11,17 +11,17 @@ PYBIND11_MODULE( libSps, m )
         putenv((char*) "STXXLERRLOGFILE=/dev/null");
 
     // export various types
-    exportSparseCoord<OnDiskTypeDef<2, false>>( m, "SparseCoords" );
+    exportSparseCoord<DiskTypeDef<2, false>>( m, "SparseCoords" );
 
-    exportStream<OnDiskTypeDef<2, false>>( m, "__ProgressOutStream" );
+    exportStream<DiskTypeDef<2, false>>( m, "__ProgressOutStream" );
     
-    exportMain<OnDiskTypeDef<2, false>>( m, "SparsePrefixSum_2D" );
-    exportMain<OnDiskTypeDef<3, false>>( m, "SparsePrefixSum_3D" );
-    exportMain<OnDiskTypeDef<4, false>>( m, "SparsePrefixSum_4D" );
-    exportMain<OnDiskTypeDef<5, false>>( m, "SparsePrefixSum_5D" );
+    exportMain<DiskTypeDef<2, false>>( m, "SparsePrefixSum_2D" );
+    exportMain<DiskTypeDef<3, false>>( m, "SparsePrefixSum_3D" );
+    exportMain<DiskTypeDef<4, false>>( m, "SparsePrefixSum_4D" );
+    exportMain<DiskTypeDef<5, false>>( m, "SparsePrefixSum_5D" );
 
-    exportMain<OnDiskTypeDef<2, true>>( m, "DependantDimSparsePrefixSum_2D" );
-    exportMain<OnDiskTypeDef<3, true>>( m, "DependantDimSparsePrefixSum_3D" );
-    exportMain<OnDiskTypeDef<4, true>>( m, "DependantDimSparsePrefixSum_4D" );
-    exportMain<OnDiskTypeDef<5, true>>( m, "DependantDimSparsePrefixSum_5D" );
+    exportMain<DiskTypeDef<2, true>>( m, "DependantDimSparsePrefixSum_2D" );
+    exportMain<DiskTypeDef<3, true>>( m, "DependantDimSparsePrefixSum_3D" );
+    exportMain<DiskTypeDef<4, true>>( m, "DependantDimSparsePrefixSum_4D" );
+    exportMain<DiskTypeDef<5, true>>( m, "DependantDimSparsePrefixSum_5D" );
 }

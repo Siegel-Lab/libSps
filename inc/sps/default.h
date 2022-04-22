@@ -100,7 +100,7 @@ template <typename val_t> struct CachedVecGenerator
 {
     using file_t = stxxl::syscall_file;
 
-    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 1024 * 16, 4096>::result;
+    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 4096 * 64, 4096>::result;
 
     static const bool THREADSAVE = false;
 
@@ -127,12 +127,86 @@ template <typename it_t, typename cmp_t> struct CachedVectorSorter
 };
 
 template <size_t D, bool dependant_dim>
-using OnDiskTypeDef = TypeDefs<default_coordinate_t, //
+using CachedTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
                               D, //
                               default_class_key_t, //
                               CachedVecGenerator, //
                               CachedVectorSorter, //
+                              dependant_dim, //
+                              EXPLAIN, //
+                              StdOutProgressStream
+                              >;
+
+
+
+template <typename val_t> struct DiskVec : public std::vector<val_t>
+{
+    std::pair<std::string, bool>* fileInfo;
+    public:
+        DiskVec(std::pair<std::string, bool>* fileInfo) : 
+            std::vector<val_t>(),
+            fileInfo(fileInfo)
+        {
+            auto ifstream = std::ifstream(fileInfo->first, std::ios_base::in | std::ios_base::out | 
+                                                           std::ios_base::binary);
+
+            ifstream.unsetf(std::ios::skipws);
+            std::streampos fileSize;
+
+            ifstream.seekg(0, std::ios::end);
+            fileSize = ifstream.tellg();
+            ifstream.seekg(0, std::ios::beg);
+
+            this->resize(fileSize / sizeof(val_t));
+            ifstream.read((char*)this->data(), fileSize);
+        }
+
+        ~DiskVec()
+        {
+            if(fileInfo->second)
+            {
+                auto ofstream = std::ofstream(fileInfo->first, 
+                                              std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+                                              
+                ofstream.write((char*)this->data(), sizeof(val_t) * this->size());
+                ofstream.flush();
+                ofstream.close();
+            }
+        }
+        
+        friend std::ostream& operator<<( std::ostream& os, const DiskVec& rIt )
+        {
+            return os << (std::vector<val_t>)rIt;
+        }
+};
+
+template <typename val_t> struct DiskVecGenerator
+{
+    
+    using file_t = std::pair<std::string, bool>;
+    using vec_t = DiskVec<val_t>;
+    static const bool THREADSAVE = true;
+
+
+    vec_t vec( file_t& rFile )
+    {
+        return vec_t( &rFile );
+    }
+
+    file_t file( std::string sPath, bool bOpenInWriteMode )
+    {
+        return std::make_pair( sPath, bOpenInWriteMode);
+    }
+};
+
+template <size_t D, bool dependant_dim>
+using DiskTypeDef = TypeDefs<default_coordinate_t, //
+                              default_val_t, //
+                              D, //
+                              default_class_key_t, //
+                              DiskVecGenerator, //
+                              RamVectorSorter, //
                               dependant_dim, //
                               EXPLAIN, //
                               StdOutProgressStream
