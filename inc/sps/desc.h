@@ -34,8 +34,9 @@ template <typename type_defs> class Desc
 
   public:
     Desc( std::string sPrefix, bool bWrite, char cEof )
-        : xFile( desc_vec_generator.file( sPrefix + ".desc", bWrite ) ), 
-          vData( desc_vec_generator.vec( xFile ) ), cEof( cEof )
+        : xFile( desc_vec_generator.file( sPrefix + ".desc", bWrite ) ),
+          vData( desc_vec_generator.vec( xFile ) ),
+          cEof( cEof )
     {}
     Desc( std::string sPrefix, bool bWrite ) : Desc( sPrefix, bWrite, std::char_traits<char>::eof( ) )
     {}
@@ -80,7 +81,6 @@ template <typename type_defs> class Desc
         os << "<EoF>" << std::endl;
         return os;
     }
-
 };
 
 } // namespace sps

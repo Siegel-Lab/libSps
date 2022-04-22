@@ -1,52 +1,51 @@
 #pragma once
 
+#include "sps/type_defs.h"
+#include <chrono>
+#include <iostream>
 #include <stxxl/io>
 #include <stxxl/sort>
 #include <stxxl/vector>
-#include <chrono>
-#include <iostream>
-#include "sps/type_defs.h"
 
 
 using namespace sps;
 
 struct StdOutProgressStream
 {
-    std::chrono::time_point<std::chrono::high_resolution_clock> xLastPrint{};
+    std::chrono::time_point<std::chrono::high_resolution_clock> xLastPrint{ };
     Verbosity xVerb;
     Verbosity xCurr;
 
-    bool printAgain()
+    bool printAgain( )
     {
-        auto xCurr = std::chrono::high_resolution_clock::now();
+        auto xCurr = std::chrono::high_resolution_clock::now( );
         std::chrono::duration<double, std::milli> xTime = xCurr - xLastPrint;
-        if(xTime.count() <= 1000)
+        if( xTime.count( ) <= 1000 )
             return false;
         xLastPrint = xCurr;
         return true;
     }
 
-    bool active() const
+    bool active( ) const
     {
         return xVerb > xCurr;
     }
 
-    template<typename T>
-    StdOutProgressStream& operator<<(const T& sStr)
+    template <typename T> StdOutProgressStream& operator<<( const T& sStr )
     {
-        if(active())
+        if( active( ) )
             std::cout << sStr << std::flush;
         return *this;
     }
-    
-    StdOutProgressStream& operator<<(const Verbosity& xCurr)
+
+    StdOutProgressStream& operator<<( const Verbosity& xCurr )
     {
         this->xCurr = xCurr;
         return *this;
     }
 
-    StdOutProgressStream(size_t uiVerb) :
-        xLastPrint(std::chrono::high_resolution_clock::now()), xVerb(uiVerb), xCurr(0)
+    StdOutProgressStream( size_t uiVerb )
+        : xLastPrint( std::chrono::high_resolution_clock::now( ) ), xVerb( uiVerb ), xCurr( 0 )
     {}
 };
 
@@ -91,9 +90,7 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               RamVectorSorter, //
                               dependant_dim, //
                               EXPLAIN, //
-                              StdOutProgressStream
-                              >;
-                            
+                              StdOutProgressStream>;
 
 
 template <typename val_t> struct CachedVecGenerator
@@ -111,10 +108,9 @@ template <typename val_t> struct CachedVecGenerator
 
     file_t file( std::string sPath, bool bOpenInWriteMode )
     {
-        return file_t( sPath, (bOpenInWriteMode ?
-                    stxxl::file::open_mode::RDWR | stxxl::file::open_mode::CREAT : 
-                    stxxl::file::open_mode::RDONLY | stxxl::file::open_mode::NO_LOCK) 
-                | stxxl::file::open_mode::DIRECT );
+        return file_t( sPath, ( bOpenInWriteMode ? stxxl::file::open_mode::RDWR | stxxl::file::open_mode::CREAT
+                                                 : stxxl::file::open_mode::RDONLY | stxxl::file::open_mode::NO_LOCK ) |
+                                  stxxl::file::open_mode::DIRECT );
     }
 };
 
@@ -128,68 +124,65 @@ template <typename it_t, typename cmp_t> struct CachedVectorSorter
 
 template <size_t D, bool dependant_dim>
 using CachedTypeDef = TypeDefs<default_coordinate_t, //
-                              default_val_t, //
-                              D, //
-                              default_class_key_t, //
-                              CachedVecGenerator, //
-                              CachedVectorSorter, //
-                              dependant_dim, //
-                              EXPLAIN, //
-                              StdOutProgressStream
-                              >;
-
+                               default_val_t, //
+                               D, //
+                               default_class_key_t, //
+                               CachedVecGenerator, //
+                               CachedVectorSorter, //
+                               dependant_dim, //
+                               EXPLAIN, //
+                               StdOutProgressStream>;
 
 
 template <typename val_t> struct DiskVec : public std::vector<val_t>
 {
     std::pair<std::string, bool>* fileInfo;
-    public:
-        DiskVec(std::pair<std::string, bool>* fileInfo) : 
-            std::vector<val_t>(),
-            fileInfo(fileInfo)
+
+  public:
+    DiskVec( std::pair<std::string, bool>* fileInfo ) : std::vector<val_t>( ), fileInfo( fileInfo )
+    {
+        auto ifstream =
+            std::ifstream( fileInfo->first, std::ios_base::in | std::ios_base::out | std::ios_base::binary );
+
+        ifstream.unsetf( std::ios::skipws );
+        std::streampos fileSize;
+
+        ifstream.seekg( 0, std::ios::end );
+        fileSize = ifstream.tellg( );
+        if( fileSize > 0 )
         {
-            auto ifstream = std::ifstream(fileInfo->first, std::ios_base::in | std::ios_base::out | 
-                                                           std::ios_base::binary);
+            ifstream.seekg( 0, std::ios::beg );
 
-            ifstream.unsetf(std::ios::skipws);
-            std::streampos fileSize;
+            assert( fileSize % sizeof( val_t ) == 0 );
 
-            ifstream.seekg(0, std::ios::end);
-            fileSize = ifstream.tellg();
-            if(fileSize > 0)
-            {
-                ifstream.seekg(0, std::ios::beg);
-
-                assert(fileSize % sizeof(val_t) == 0);
-
-                this->resize(fileSize / sizeof(val_t), val_t());
-                ifstream.read((char*)this->data(), fileSize);
-            }
-            ifstream.close();
+            this->resize( fileSize / sizeof( val_t ), val_t( ) );
+            ifstream.read( (char*)this->data( ), fileSize );
         }
+        ifstream.close( );
+    }
 
-        ~DiskVec()
+    ~DiskVec( )
+    {
+        if( fileInfo->second )
         {
-            if(fileInfo->second)
-            {
-                auto ofstream = std::ofstream(fileInfo->first, 
-                                              std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-                                              
-                ofstream.write((char*)this->data(), sizeof(val_t) * this->size());
-                ofstream.flush();
-                ofstream.close();
-            }
+            auto ofstream =
+                std::ofstream( fileInfo->first, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc );
+
+            ofstream.write( (char*)this->data( ), sizeof( val_t ) * this->size( ) );
+            ofstream.flush( );
+            ofstream.close( );
         }
-        
-        friend std::ostream& operator<<( std::ostream& os, const DiskVec& rIt )
-        {
-            return os << (std::vector<val_t>)rIt;
-        }
+    }
+
+    friend std::ostream& operator<<( std::ostream& os, const DiskVec& rIt )
+    {
+        return os << (std::vector<val_t>)rIt;
+    }
 };
 
 template <typename val_t> struct DiskVecGenerator
 {
-    
+
     using file_t = std::pair<std::string, bool>;
     using vec_t = DiskVec<val_t>;
     static const bool THREADSAVE = true;
@@ -202,18 +195,17 @@ template <typename val_t> struct DiskVecGenerator
 
     file_t file( std::string sPath, bool bOpenInWriteMode )
     {
-        return std::make_pair( sPath, bOpenInWriteMode);
+        return std::make_pair( sPath, bOpenInWriteMode );
     }
 };
 
 template <size_t D, bool dependant_dim>
 using DiskTypeDef = TypeDefs<default_coordinate_t, //
-                              default_val_t, //
-                              D, //
-                              default_class_key_t, //
-                              DiskVecGenerator, //
-                              RamVectorSorter, //
-                              dependant_dim, //
-                              EXPLAIN, //
-                              StdOutProgressStream
-                              >;
+                             default_val_t, //
+                             D, //
+                             default_class_key_t, //
+                             DiskVecGenerator, //
+                             RamVectorSorter, //
+                             dependant_dim, //
+                             EXPLAIN, //
+                             StdOutProgressStream>;

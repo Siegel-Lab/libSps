@@ -1,16 +1,16 @@
 #pragma once
 
-#include "sps/util.h"
-#include "sps/desc.h"
-#include "sps/points.h"
-#include "sps/type_defs.h"
-#include "sps/sparse_coordinate.h"
-#include "sps/nd_grid.h"
 #include "sps/dataset.h"
-#include <stxxl/vector>
+#include "sps/desc.h"
+#include "sps/nd_grid.h"
+#include "sps/points.h"
+#include "sps/sparse_coordinate.h"
+#include "sps/type_defs.h"
+#include "sps/util.h"
 #include <cassert>
 #include <functional>
 #include <string>
+#include <stxxl/vector>
 
 #if WITH_PYTHON
 #include <pybind11/pybind11.h>
@@ -29,9 +29,9 @@ template <typename type_defs> class Main
 
     using points_t = Points<type_defs>;
     using desc_t = Desc<type_defs>;
-    
-    //template<int s> struct CheckSizeOfOverlay;
-    //CheckSizeOfOverlay<sizeof(Overlay<type_defs>)> xCheckSizeOfOverlay;
+
+    // template<int s> struct CheckSizeOfOverlay;
+    // CheckSizeOfOverlay<sizeof(Overlay<type_defs>)> xCheckSizeOfOverlay;
 
     using overlay_t = AlignedPower2<Overlay<type_defs>>;
     using sparse_coord_t = SparseCoord<type_defs>;
@@ -46,20 +46,20 @@ template <typename type_defs> class Main
     sparse_coord_t vSparseCoord;
     prefix_sum_grid_t vPrefixSumGrid;
     overlay_grid_t vOverlayGrid;
-    
+
     dataset_file_t xFile;
     dataset_vec_t vDataSets;
 
 
   public:
-    Main( std::string sPrefix, bool bWrite = false ) :
-        vPoints( sPrefix, bWrite ), 
-        vDesc( sPrefix, bWrite ),
-        vSparseCoord( sPrefix, bWrite ), 
-        vPrefixSumGrid( sPrefix + ".prefix_sums", bWrite ), 
-        vOverlayGrid( sPrefix + ".overlays", bWrite ),
-        xFile( dataset_vec_generator.file( sPrefix + ".datsets", bWrite ) ), 
-        vDataSets( dataset_vec_generator.vec( xFile ) )
+    Main( std::string sPrefix, bool bWrite = false )
+        : vPoints( sPrefix, bWrite ),
+          vDesc( sPrefix, bWrite ),
+          vSparseCoord( sPrefix, bWrite ),
+          vPrefixSumGrid( sPrefix + ".prefix_sums", bWrite ),
+          vOverlayGrid( sPrefix + ".overlays", bWrite ),
+          xFile( dataset_vec_generator.file( sPrefix + ".datsets", bWrite ) ),
+          vDataSets( dataset_vec_generator.vec( xFile ) )
     {}
 
     void clear( )
@@ -87,33 +87,34 @@ template <typename type_defs> class Main
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        class_key_t uiRet = vDataSets.size();
-        vDataSets.push_back(dataset_t(vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg));
+        class_key_t uiRet = vDataSets.size( );
+        vDataSets.push_back( dataset_t( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg ) );
         return uiRet;
     }
 
     val_t count( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, progress_stream_t& xProg ) const
     {
         val_t uiRet = 0;
-        forAllCombinations<pos_t>([&](pos_t vPos, size_t uiDistToTo){
-            for(size_t uiI = 0; uiI < D; uiI++)
-                --vPos[uiI];
+        forAllCombinations<pos_t>(
+            [ & ]( pos_t vPos, size_t uiDistToTo ) {
+                for( size_t uiI = 0; uiI < D; uiI++ )
+                    --vPos[ uiI ];
 
-            xProg << "query: " << xDatasetId << " " << vPos << "\n";
-            val_t uiCurr = vDataSets[xDatasetId].get(vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, xProg);
+                xProg << "query: " << xDatasetId << " " << vPos << "\n";
+                val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, xProg );
 
-            xProg << "is " << (uiDistToTo % 2 == 0 ? "+" : "-") << uiCurr << "\n";
-            uiRet += uiCurr * (uiDistToTo % 2 == 0 ? 1 : -1);
-
-        }, vFrom, vTo, [](coordinate_t uiPos){ return uiPos > 0; } );
+                xProg << "is " << ( uiDistToTo % 2 == 0 ? "+" : "-" ) << uiCurr << "\n";
+                uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? 1 : -1 );
+            },
+            vFrom, vTo, []( coordinate_t uiPos ) { return uiPos > 0; } );
         return uiRet;
     }
 
-    std::string str() const
+    std::string str( ) const
     {
         std::stringstream ss;
         ss << *this;
-        return ss.str();
+        return ss.str( );
     }
 
     friend std::ostream& operator<<( std::ostream& os, const Main& rMain )
@@ -132,20 +133,21 @@ template <typename type_defs> class Main
         os << rMain.vDesc << std::endl;
 
         os << "Pretty Print: ";
-        for(size_t uiI = 0; uiI < rMain.vDataSets.size(); uiI++)
-            rMain.vDataSets[uiI].stream(os, rMain.vOverlayGrid, rMain.vSparseCoord, rMain.vPrefixSumGrid,
-                                        rMain.vPoints, rMain.vDesc) << std::endl;
+        for( size_t uiI = 0; uiI < rMain.vDataSets.size( ); uiI++ )
+            rMain.vDataSets[ uiI ].stream( os, rMain.vOverlayGrid, rMain.vSparseCoord, rMain.vPrefixSumGrid,
+                                           rMain.vPoints, rMain.vDesc )
+                << std::endl;
 
         return os;
     }
 
-    std::vector<typename dataset_t::OverlayInfo> getOverlayInfo(class_key_t xDatasetId) const
+    std::vector<typename dataset_t::OverlayInfo> getOverlayInfo( class_key_t xDatasetId ) const
     {
-        return vDataSets[xDatasetId].getOverlayInfo(vOverlayGrid, vSparseCoord, vPoints); 
+        return vDataSets[ xDatasetId ].getOverlayInfo( vOverlayGrid, vSparseCoord, vPoints );
     }
 };
 
-}
+} // namespace sps
 
 
 #if WITH_PYTHON
@@ -157,30 +159,28 @@ template <typename type_defs> void exportMain( pybind11::module& m, std::string 
 {
     using OI = typename sps::Dataset<type_defs>::OverlayInfo;
 
-    pybind11::class_<OI>( m, ("__"+sName+"_OverlayInfo").c_str( ) )
-        .def_readonly("bottom_left", &OI::vBottomLeft)
-        .def_readonly("top_right", &OI::vTopRight)
-        .def_readonly("grid_pos", &OI::vGridPos)
-        .def_readonly("index", &OI::uiIdx)
-        .def_readonly("pred_indices", &OI::vPredIds)
-        .def_readonly("points", &OI::vvPoints)
+    pybind11::class_<OI>( m, ( "__" + sName + "_OverlayInfo" ).c_str( ) )
+        .def_readonly( "bottom_left", &OI::vBottomLeft )
+        .def_readonly( "top_right", &OI::vTopRight )
+        .def_readonly( "grid_pos", &OI::vGridPos )
+        .def_readonly( "index", &OI::uiIdx )
+        .def_readonly( "pred_indices", &OI::vPredIds )
+        .def_readonly( "points", &OI::vvPoints )
 
         ;
 
     pybind11::class_<sps::Main<type_defs>>( m, sName.c_str( ) )
-        .def( pybind11::init<std::string, bool>( ), 
+        .def( pybind11::init<std::string, bool>( ),
               pybind11::arg( "path" ),
               pybind11::arg( "write_mode" ) = false ) // constructor
         .def( "add_point", &sps::Main<type_defs>::addPoint )
-        .def( "generate", &sps::Main<type_defs>::generate, 
-                pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 1 ) )
-                //pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
+        .def( "generate", &sps::Main<type_defs>::generate, pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
+              pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 1 ) )
+        // pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         // pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
-        .def( "count", &sps::Main<type_defs>::count, 
-                pybind11::arg( "uiDatasetId" ), pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-                pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 0 ) )
-                //pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
+        .def( "count", &sps::Main<type_defs>::count, pybind11::arg( "uiDatasetId" ), pybind11::arg( "uiFrom" ),
+              pybind11::arg( "uiTo" ), pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 0 ) )
+        // pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         //.def( "get", &sps::Main<type_defs>::get, "" )
         .def( "__str__", &sps::Main<type_defs>::str )
         .def( "__len__", &sps::Main<type_defs>::numPoints )

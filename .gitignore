@@ -4,3 +4,4 @@ build_dbg/*
 test/*
 stxxl.errlog
 stxxl.log
+overlays.html

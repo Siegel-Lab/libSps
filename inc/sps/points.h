@@ -17,16 +17,15 @@ template <typename type_defs> class Points
 
     using point_t = AlignedPower2<Point<type_defs>>;
 
-    //template<int s> struct CheckSizeOfPoint;
-    //CheckSizeOfPoint<sizeof(Point<type_defs>)> xCheckSizeOfPoint;
-    //CheckSizeOfPoint<sizeof(point_t)> xCheckSizeOfAlignedPoint;
+    // template<int s> struct CheckSizeOfPoint;
+    // CheckSizeOfPoint<sizeof(Point<type_defs>)> xCheckSizeOfPoint;
+    // CheckSizeOfPoint<sizeof(point_t)> xCheckSizeOfAlignedPoint;
 
     using desc_t = Desc<type_defs>;
 
   public:
     EXTRACT_VEC_GENERATOR( points, point_t ); // macro call
   private:
-
     using points_it_t = typename points_vec_t::iterator;
     using const_points_it_t = typename points_vec_t::const_iterator;
 
@@ -59,8 +58,9 @@ template <typename type_defs> class Points
   public:
     points_file_t xFile;
     points_vec_t vData;
-    
-    struct Entry{
+
+    struct Entry
+    {
         coordinate_t uiStartIndex;
         coordinate_t uiEndIndex;
 
@@ -68,25 +68,26 @@ template <typename type_defs> class Points
         {
             std::cout << "s";
             std::cout << rEntry.uiStartIndex;
-        
+
             std::cout << " e";
             std::cout << rEntry.uiEndIndex;
 
             return os;
         }
 
-        coordinate_t size() const{
+        coordinate_t size( ) const
+        {
             return uiEndIndex - uiStartIndex;
         }
-        
+
         std::ostream& stream( std::ostream& os, const Points& rPoints, const desc_t& vDesc ) const
         {
-            os << "{ "; 
-            for(size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++)
+            os << "{ ";
+            for( size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++ )
             {
-                if(uiI > uiStartIndex)
+                if( uiI > uiStartIndex )
                     os << ", ";
-                rPoints.vData[uiI].stream(os, vDesc);
+                rPoints.vData[ uiI ].stream( os, vDesc );
             }
             os << " }";
 
@@ -95,53 +96,52 @@ template <typename type_defs> class Points
 
         std::ostream& stream( std::ostream& os, const Points& rPoints ) const
         {
-            os << "{ "; 
-            for(size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++)
+            os << "{ ";
+            for( size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++ )
             {
-                if(uiI > uiStartIndex)
+                if( uiI > uiStartIndex )
                     os << ", ";
-                os << rPoints.vData[uiI];
+                os << rPoints.vData[ uiI ];
             }
             os << " }";
 
             return os;
         }
     };
-    
+
     class EntryIterator
     {
         const Points& rPoints;
         const Entry& rInfo;
         size_t uiI;
-    public:
-        EntryIterator(const Points& rPoints, const Entry& rInfo) :
-            rPoints(rPoints),
-            rInfo(rInfo),
-            uiI(rInfo.uiStartIndex)
+
+      public:
+        EntryIterator( const Points& rPoints, const Entry& rInfo )
+            : rPoints( rPoints ), rInfo( rInfo ), uiI( rInfo.uiStartIndex )
         {}
 
-        void operator++()
+        void operator++( )
         {
-            assert(!eof());
+            assert( !eof( ) );
             uiI++;
         }
 
-        const point_t& operator*() const
+        const point_t& operator*( ) const
         {
-            return rPoints.vData[uiI];
+            return rPoints.vData[ uiI ];
         }
 
-        const point_t* operator->() const
+        const point_t* operator->( ) const
         {
-            return &rPoints.vData[uiI];
+            return &rPoints.vData[ uiI ];
         }
 
-        bool operator!=(const EntryIterator& rOther) const
+        bool operator!=( const EntryIterator& rOther ) const
         {
             return uiI != rOther.uiI;
         }
 
-        bool eof() const
+        bool eof( ) const
         {
             return uiI == rInfo.uiEndIndex;
         }
@@ -168,22 +168,22 @@ template <typename type_defs> class Points
         vData.push_back( point_t( vPos, uiDescOffset ) );
     }
 
-    Entry getEntry() const
+    Entry getEntry( ) const
     {
-        Entry xRet{};
+        Entry xRet{ };
         xRet.uiStartIndex = 0;
         xRet.uiEndIndex = vData.size( );
         return xRet;
     }
 
-    EntryIterator cbegin(const Entry& rInfo) const
+    EntryIterator cbegin( const Entry& rInfo ) const
     {
-        return EntryIterator(*this, rInfo);
+        return EntryIterator( *this, rInfo );
     }
 
-    EntryIterator cend(const Entry& rInfo) const
+    EntryIterator cend( const Entry& rInfo ) const
     {
-        EntryIterator xRet(*this, rInfo);
+        EntryIterator xRet( *this, rInfo );
         xRet.uiI = rInfo.uiEndIndex;
         return xRet;
     }
@@ -197,7 +197,7 @@ template <typename type_defs> class Points
 
     void sortByDim( size_t uiDim, const Entry& rEntry )
     {
-        sort_points( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex, 
+        sort_points( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
                      PointsComperator( uiDim ) );
     }
 
