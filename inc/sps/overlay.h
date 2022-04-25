@@ -426,8 +426,7 @@ template <typename type_defs> class Overlay
                                 rSparseCoords.iterate(
                                     [ & ]( coordinate_t, coordinate_t uiTo ) {
                                         vFullTo[ uiI ] = uiTo;
-                                        size_t uiIdx = rPrefixSums.indexOf( vFullTo, xInternalEntires ) - 
-                                                              xInternalEntires.uiStartIndex;
+                                        size_t uiIdx = rPrefixSums.indexOf( vFullTo, xInternalEntires );
                                         if constexpr(!rPrefixSums.THREADSAVE)
                                             uiIdx -= xInternalEntires.uiStartIndex;
                                         

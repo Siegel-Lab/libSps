@@ -116,9 +116,9 @@ def test(tree, d, n=30):
 
 
 random.seed(6846854546132)
-#fixed(KdpsTree_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
+#fixed(DependantDimSparsePrefixSum_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
 
-test(SparsePrefixSum_2D("test/blub1", True), 2)
-test(SparsePrefixSum_3D("test/blub2", True), 3)
-test(SparsePrefixSum_4D("test/blub3", True), 4)
-test(SparsePrefixSum_5D("test/blub4", True), 5)
+test(DependantDimSparsePrefixSum_2D("test/blub1", True), 2)
+test(DependantDimSparsePrefixSum_3D("test/blub2", True), 3)
+test(DependantDimSparsePrefixSum_4D("test/blub3", True), 4)
+test(DependantDimSparsePrefixSum_5D("test/blub4", True), 5)

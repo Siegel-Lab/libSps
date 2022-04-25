@@ -353,7 +353,6 @@ template <typename type_defs> class Dataset
         coordinate_t uiNumTotal = rOverlays.sizeOf( xOverlays );
         xProfiler.step("overlay gen loop");
 
-#if 0
         std::vector<typename points_t::Entry> vSplitPoints(uiNumTotal);
         for( coordinate_t uiI = 0; uiI < uiNumTotal; uiI++ )
         {
@@ -365,7 +364,6 @@ template <typename type_defs> class Dataset
                 ++vSplitPoints[uiI].uiEndIndex;
         }
         assert(vSplitPoints[uiNumTotal-1].uiEndIndex == xPoints.uiEndIndex);
-#endif
 
         auto xIterator = rOverlays.template genIterator<D>(xOverlays, [&](size_t uiIdx, size_t uiDim, 
                                                               const typename overlay_grid_t::template Entry<D>& xEntry){
@@ -404,18 +402,10 @@ template <typename type_defs> class Dataset
             return vRet;
         });
         size_t uiNumDone = 0;
-        typename points_t::Entry xCurrPoints{ };
-        xCurrPoints.uiStartIndex = xPoints.uiStartIndex;
-        xCurrPoints.uiEndIndex = xPoints.uiStartIndex;
-        //xIterator.process(rPrefixSums.THREADSAVE ? /*std::thread::hardware_concurrency()*/ 1 : 1, [&](size_t uiI)
-        for(size_t uiI = xOverlays.uiStartIndex; uiI < uiNumTotal + xOverlays.uiStartIndex; uiI++)
+        //for(size_t uiI = xOverlays.uiStartIndex; uiI < uiNumTotal + xOverlays.uiStartIndex; uiI++)
+        xIterator.process(rPrefixSums.THREADSAVE ? /*std::thread::hardware_concurrency()*/ 1 : 1, [&](size_t uiI)
         {
-            // typename points_t::Entry xCurrPoints = vSplitPoints[uiI - xOverlays.uiStartIndex];
-            while( xCurrPoints.uiEndIndex < xPoints.uiEndIndex &&
-                   overlayIndex( rOverlays, rSparseCoords, vPoints.vData[ xCurrPoints.uiEndIndex ].vPos ) == uiI )
-                ++xCurrPoints.uiEndIndex;
-            xProg << Verbosity( 1 ) << "generating overlay for points " << xCurrPoints.uiStartIndex << " - "
-                  << xCurrPoints.uiEndIndex << " of " << xPoints.uiStartIndex << " - " << xPoints.uiEndIndex << "\n";
+            typename points_t::Entry xCurrPoints = vSplitPoints[uiI - xOverlays.uiStartIndex];
 
             // get bottom left position (compressed)
             pos_t vGridPos = rOverlays.posOf( uiI, xOverlays );
@@ -485,7 +475,7 @@ template <typename type_defs> class Dataset
                 xProg << Verbosity( 0 ) << uiNumDone << " out of " << uiNumTotal << " overlays, thats "
                       << 100 * uiNumDone / (double)uiNumTotal << "%.\n";
 
-        }//);
+        });
         xProg << Verbosity( 0 ) << "done.\n";
     }
 
