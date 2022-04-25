@@ -1,9 +1,14 @@
 #pragma once
 
 #include "sps/type_defs.h"
+#include "sps/util.h"
 #include <cassert>
 #include <functional>
 #include <string>
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 
 namespace sps
@@ -16,6 +21,8 @@ template <typename type_defs, typename data_t> class NDGrid
     EXTRACT_VEC_GENERATOR( data, data_t ); // macro call
 
   public:
+    static constexpr bool THREADSAVE = data_THREADSAVE;
+    Lockable xLockable;
     data_file_t xFile;
     data_vec_t vData;
     static const data_t uiZero;
@@ -67,10 +74,11 @@ template <typename type_defs, typename data_t> class NDGrid
     };
 
     NDGrid( std::string sFileName, bool bWrite )
-        : xFile( data_vec_generator.file( sFileName, bWrite ) ), vData( data_vec_generator.vec( xFile ) )
+        : xLockable(THREADSAVE ? std::numeric_limits<size_t>::max() : 1), 
+          xFile( data_vec_generator.file( sFileName, bWrite ) ), vData( data_vec_generator.vec( xFile ) )
     {}
 
-    template <size_t N> coordinate_t indexOf( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo ) const
+    template <size_t N> static coordinate_t indexOf( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
     {
         if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
             return std::numeric_limits<coordinate_t>::max( );
@@ -86,7 +94,7 @@ template <typename type_defs, typename data_t> class NDGrid
         return uiRet + rInfo.uiStartIndex;
     }
 
-    template <size_t N> std::array<coordinate_t, N> posOf( coordinate_t uiIndexIn, const Entry<N>& rInfo ) const
+    template <size_t N> static std::array<coordinate_t, N> posOf( coordinate_t uiIndexIn, const Entry<N>& rInfo )
     {
         coordinate_t uiIndex = uiIndexIn - rInfo.uiStartIndex;
         std::array<coordinate_t, N> vRet;
@@ -101,7 +109,7 @@ template <typename type_defs, typename data_t> class NDGrid
         return vRet;
     }
 
-    template <size_t N> coordinate_t sizeOf( const Entry<N>& rInfo ) const
+    template <size_t N> static coordinate_t sizeOf( const Entry<N>& rInfo )
     {
         if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
             return 0;
@@ -157,6 +165,121 @@ template <typename type_defs, typename data_t> class NDGrid
         os << rGrid.vData;
 
         return os;
+    }
+
+    template <size_t N>
+    class ParallelIterator
+    {
+        const Entry<N> xEntry;
+        std::vector<int8_t> vNumPredComputed;
+        std::queue<size_t> vNext;
+        std::mutex xLock;
+        std::condition_variable xVar;
+        std::function<std::vector<size_t>(size_t, size_t,  const Entry<N>&)> fSuccessors;
+
+        public:
+            ParallelIterator(const Entry<N> xEntry, 
+                             std::function<std::vector<size_t>(size_t, size_t, const Entry<N>&)> fSuccessors = 
+                        [](size_t uiIdx, size_t uiDim, const Entry<N>& xEntry){
+                            auto vPos = NDGrid::posOf(uiIdx, xEntry);
+                            ++vPos[uiDim];
+                            std::vector<size_t> vRet;
+                            if(vPos[uiDim] < xEntry.vAxisSizes[uiDim])
+                                vRet.push_back(NDGrid::indexOf(vPos, xEntry));
+                            return vRet;
+                        }) : 
+                    xEntry(xEntry), vNumPredComputed(sizeOf(xEntry)), 
+                    vNext(), xLock(), xVar(), fSuccessors(fSuccessors)
+            {
+                vNext.push(xEntry.uiStartIndex);
+            }
+
+            bool done()
+            {
+                std::unique_lock xGuard(xLock);
+                return vNext.front() == std::numeric_limits<size_t>::max();
+            }
+
+            size_t getNext()
+            {
+                std::unique_lock xGuard(xLock);
+                while(vNext.size() == 0)
+                    xVar.wait(xGuard);
+                assert(vNext.size() > 0);
+                size_t uiRet = vNext.front();
+                if(uiRet != std::numeric_limits<size_t>::max())
+                    vNext.pop();
+                return uiRet;
+            }
+
+            void doneWith(size_t uiIdx)
+            {
+                bool bHas = false;
+                for(size_t uiD = 0; uiD < N; uiD++)
+                    for(size_t uiIdx: fSuccessors(uiIdx, uiD, xEntry))
+                    {
+                        bHas = true;
+                        size_t uiNumReq = 0;
+                        auto vPos = NDGrid::posOf(uiIdx, xEntry);
+                        for(size_t uiI = 0; uiI < N; uiI++)
+                            if(vPos[uiI] > 0)
+                                uiNumReq++;
+
+                        size_t uiX;
+                        {
+                            std::unique_lock xGuard(xLock);
+                            vNumPredComputed[uiIdx]++;
+                            uiX = vNumPredComputed[uiIdx];
+                            assert(uiX <= uiNumReq);
+                            if(uiX == uiNumReq)
+                                vNext.push(uiIdx);
+                        }
+                        if(uiX == uiNumReq)
+                            xVar.notify_one();
+                    }
+                
+                if(!bHas)
+                {
+                    {
+                        std::unique_lock xGuard(xLock);
+                        vNext.push(std::numeric_limits<size_t>::max());
+                    }
+                    xVar.notify_all();
+                }
+            }
+
+            void process(size_t uiNumThreads, std::function<void(size_t)> fDo)
+            {
+                std::vector<std::thread> vThreads;
+                for(size_t uiI = 0; uiI < uiNumThreads; uiI++)
+                    vThreads.emplace_back(
+                        [&](ParallelIterator* xIt, std::function<void(size_t)> fDo){
+                        while(true)
+                        {
+                            size_t uiIdx = xIt->getNext();
+                            if(uiIdx == std::numeric_limits<size_t>::max())
+                                break;
+
+                            fDo(uiIdx);
+
+                            doneWith(uiIdx);
+                        }
+                    }, this, fDo);
+
+                for(auto& xThread : vThreads)
+                    xThread.join();
+            }
+    }; // class
+
+    template <size_t N> ParallelIterator<N> genIterator(const Entry<N> xEntry) const
+    {
+        return ParallelIterator<N>(xEntry);
+    }
+
+    template <size_t N> ParallelIterator<N> genIterator(const Entry<N> xEntry, 
+                                std::function<std::vector<size_t>(size_t, size_t, const Entry<N>&)> fSuccessors) const
+    {
+        return ParallelIterator<N>(xEntry, fSuccessors);
     }
 };
 

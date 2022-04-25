@@ -21,8 +21,8 @@ template <typename type_defs> class SparseCoord
     EXTRACT_VEC_GENERATOR( coord, coordinate_t ); // macro call
 
   public:
-    static const bool THREADSAVE = coord_THREADSAVE;
-
+    static constexpr bool THREADSAVE = coord_THREADSAVE;
+    Lockable xLockable;
     coord_file_t xFile;
     coord_vec_t vData;
 
@@ -93,7 +93,8 @@ template <typename type_defs> class SparseCoord
     };
 
     SparseCoord( std::string sPrefix, bool bWrite )
-        : xFile( coord_vec_generator.file( sPrefix + ".coords", bWrite ) ), vData( coord_vec_generator.vec( xFile ) )
+        : xLockable(THREADSAVE ? std::numeric_limits<size_t>::max() : 1),
+          xFile( coord_vec_generator.file( sPrefix + ".coords", bWrite ) ), vData( coord_vec_generator.vec( xFile ) )
     {}
 
     static void append( EntryArray& rArr, const Entry& rE )

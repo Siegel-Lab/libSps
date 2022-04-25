@@ -97,7 +97,7 @@ template <typename val_t> struct CachedVecGenerator
 {
     using file_t = stxxl::syscall_file;
 
-    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 4096 * 512, 4096>::result;
+    using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, 1, 4096 * 16, 4096>::result;
 
     static const bool THREADSAVE = false;
 

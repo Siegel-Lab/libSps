@@ -2,6 +2,7 @@
 
 #include "sps/nd_grid.h"
 #include "sps/points.h"
+#include "sps/thread_pool.h"
 #include "sps/sparse_coordinate.h"
 #include <cassert>
 #include <functional>
@@ -231,9 +232,11 @@ template <typename type_defs> class Overlay
     void generate( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
                    points_t& vPoints, typename points_t::Entry xPoints,
                    std::array<std::vector<coordinate_t>, D> vPredecessors, pos_t vMyBottomLeft, pos_t vPosTopRight,
-                   dataset_t* pDataset, size_t uiOverlaysNow, size_t uiOverlaysTotal, progress_stream_t& xProg )
+                   dataset_t* pDataset, size_t uiOverlaysNow, size_t uiOverlaysTotal, progress_stream_t& xProg,
+                   Profiler& xProfiler, ThreadPool& rPool )
     {
         this->xPoints = xPoints;
+        xProfiler.step("overlay coord construction");
         // construct sparse coordinates for each dimension
         xProg << Verbosity( 1 ) << "constructing sparse coordinates for overlay bottom left= " << vMyBottomLeft
               << " top right " << vPosTopRight << "\n";
@@ -307,23 +310,32 @@ template <typename type_defs> class Overlay
                 MergeIterator xBegin( vBegin, vEnd, vPosTopRight[ uiJAct ] );
                 MergeIterator xEnd( vEnd, vEnd, vPosTopRight[ uiJAct ] );
 
-                // skip over positions that are before and after this overlay
-                while( xBegin != xEnd && *xBegin < vMyBottomLeft[ uiJAct ] )
-                    ++xBegin;
+                {
+                    auto xPartialLock = rSparseCoords.xLockable.partialLock();
+                    // skip over positions that are before and after this overlay
+                    while( xBegin != xEnd && *xBegin < vMyBottomLeft[ uiJAct ] )
+                        ++xBegin;
+                } // end of scope xPartialLock
 
-                if( vPredecessors[ uiJAct ].size( ) > 0 )
-                    vSparseCoordsOverlay[ uiI ][ uiJ ] =
-                        rSparseCoords.addStart( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
-                else
-                    vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
+                {
+                    auto xFullLock = rSparseCoords.xLockable.fullLock();
 
-                if( xProg.active( ) )
-                    vSparseCoordsOverlay[ uiI ][ uiJ ].stream( std::cout << "result: ", rSparseCoords ) << std::endl;
+                    if( vPredecessors[ uiJAct ].size( ) > 0 )
+                        vSparseCoordsOverlay[ uiI ][ uiJ ] =
+                            rSparseCoords.addStart( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
+                    else
+                        vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
+
+                    if( xProg.active( ) )
+                        vSparseCoordsOverlay[ uiI ][ uiJ ].stream( std::cout << "result: ", rSparseCoords )
+                                     << std::endl;
+                }// end of scope xFullLock
             }
         }
 
         if( xPoints.size( ) > 0 )
         {
+            xProfiler.step("internal coord construction");
             xProg << Verbosity( 1 ) << "constructing sparse coordinates for points\n";
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
@@ -333,75 +345,166 @@ template <typename type_defs> class Overlay
                 if( xProg.active( ) )
                     xPoints.stream( std::cout << "from points: ", vPoints ) << std::endl;
 
+                auto xFullLock = rSparseCoords.xLockable.fullLock();
                 vSparseCoordsInternal[ uiI ] = rSparseCoords.add( PointIterator( vPoints.cbegin( xPoints ), uiI ),
                                                                   PointIterator( vPoints.cend( xPoints ), uiI ) );
                 if( xProg.active( ) )
                     vSparseCoordsInternal[ uiI ].stream( std::cout << "result: ", rSparseCoords ) << std::endl;
+                // end of scope xFullLock
             }
 
             // construct internal grid
             xProg << Verbosity( 1 ) << "constructing internal grid\n";
-            pos_t vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
+            pos_t vInternalAxisSizes;
+            {
+                auto xPartialLock = rSparseCoords.xLockable.partialLock();
+                vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
+            }
             xProg << Verbosity( 2 ) << "axis sizes: " << vInternalAxisSizes << "\n";
-            xInternalEntires = rPrefixSums.add( vInternalAxisSizes );
-            vPoints.iterate(
-                [ & ]( const point_t& xPoint ) {
-                    rPrefixSums.get( rSparseCoords.sparse( xPoint.vPos, vSparseCoordsInternal ), xInternalEntires ) +=
-                        1;
-                },
-                xPoints );
+            {
+                auto xFullLock = rPrefixSums.xLockable.fullLock();
+                xInternalEntires = rPrefixSums.add( vInternalAxisSizes );
+            }
+
+            coordinate_t uiNumTotal = prefix_sum_grid_t::sizeOf( xInternalEntires );
+            coordinate_t uiNumDone = 0;
+            std::vector<coordinate_t> vTmp(rPrefixSums.THREADSAVE ? 0 : uiNumTotal);
+
+            {
+                auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
+                auto xPartialLock2 = rPrefixSums.xLockable.partialLock();
+                vPoints.iterate(
+                    [ & ]( const point_t& xPoint ) {
+                        size_t uiIdx = prefix_sum_grid_t::indexOf( 
+                                                            rSparseCoords.sparse( xPoint.vPos, vSparseCoordsInternal ),
+                                                            xInternalEntires );
+                        if constexpr(rPrefixSums.THREADSAVE)
+                            ++rPrefixSums.vData[uiIdx];
+                        else
+                        {
+                            uiIdx -= xInternalEntires.uiStartIndex;
+                            ++vTmp[uiIdx];
+                        }
+                    },
+                    xPoints );
+            }
 
             xProg << "vSparseCoordsOverlay " << vSparseCoordsOverlay << "\n";
             xProg << "vSparseCoordsInternal " << vSparseCoordsInternal << "\n";
             xProg << "rSparseCoords " << rSparseCoords << "\n";
 
+
+            xProfiler.step("prefix sum computation");
             // compute internal prefix sum
-            coordinate_t uiNumTotal = rPrefixSums.sizeOf( xInternalEntires ) * D;
-            coordinate_t uiNumDone = 0;
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
                 xProg << Verbosity( 3 ) << "computing prefix sums over dimension " << uiI << "\n";
                 red_entry_arr_t vRelevantSparseCoordsInternal = relevant( vSparseCoordsInternal, uiI );
+                std::mutex xLock;
+                std::condition_variable xCv;
+                size_t uiEnqueuedTasks = 0;
+
+                auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
+                auto xPartialLock2 = rPrefixSums.xLockable.partialLock();
+
                 rSparseCoords.template iterate<D - 1>(
                     [ & ]( const red_pos_t&, const red_pos_t& vTo ) {
-                        pos_t vFullTo = expand( vTo, uiI );
-                        val_t uiPrefixSum = 0;
-                        xProg << Verbosity( 3 ) << "starting...: " << vFullTo << ": " << uiPrefixSum << "\n";
-                        rSparseCoords.iterate(
-                            [ & ]( coordinate_t, coordinate_t uiTo ) {
-                                vFullTo[ uiI ] = uiTo;
-                                uiPrefixSum += rPrefixSums.get( vFullTo, xInternalEntires );
-                                xProg << Verbosity( 3 ) << vFullTo << ": " << uiPrefixSum << "\n";
-                                rPrefixSums.get( vFullTo, xInternalEntires ) = uiPrefixSum;
+                        {
+                            std::unique_lock xGuard(xLock);
+                            ++uiEnqueuedTasks;
+                        }
+                        rPool.enqueue(
+                            [&](size_t uiTid, const red_pos_t& vTo ){
+                                pos_t vFullTo = expand( vTo, uiI );
+                                val_t uiPrefixSum = 0;
 
-                                ++uiNumDone;
-                                if( xProg.printAgain( ) )
+                                if( uiTid == 0 )
+                                    xProg << Verbosity( 3 ) << "starting...: " << vFullTo << ": " << uiPrefixSum 
+                                          << "\n";
+
+                                coordinate_t uiNumDoneLocal = 0;
+                                rSparseCoords.iterate(
+                                    [ & ]( coordinate_t, coordinate_t uiTo ) {
+                                        vFullTo[ uiI ] = uiTo;
+                                        size_t uiIdx = rPrefixSums.indexOf( vFullTo, xInternalEntires ) - 
+                                                              xInternalEntires.uiStartIndex;
+                                        if constexpr(!rPrefixSums.THREADSAVE)
+                                            uiIdx -= xInternalEntires.uiStartIndex;
+                                        
+                                        if constexpr(rPrefixSums.THREADSAVE)
+                                            uiPrefixSum += rPrefixSums.vData[uiIdx];
+                                        else
+                                            uiPrefixSum += vTmp[uiIdx];
+
+                                        if( uiTid == 0 )
+                                            xProg << Verbosity( 3 ) << vFullTo << ": " << uiPrefixSum 
+                                                  << "\n";
+
+                                        if constexpr(rPrefixSums.THREADSAVE)
+                                            rPrefixSums.vData[uiIdx] = uiPrefixSum;
+                                        else
+                                            vTmp[uiIdx] = uiPrefixSum;
+
+                                        ++uiNumDoneLocal;
+                                    },
+                                    vSparseCoordsInternal[ uiI ] );
+                                    
+                                std::unique_lock xGuard(xLock);
+                                uiNumDone += uiNumDoneLocal;
+                                --uiEnqueuedTasks;
+                                if(uiEnqueuedTasks == 0)
+                                    xCv.notify_one();
+                                if( uiTid == 0 && xProg.printAgain( ) )
                                     xProg << Verbosity( 0 ) << uiOverlaysNow << " out of " << uiOverlaysTotal
-                                          << " overlays, thats "
-                                          << 100.0 * ( (double)uiOverlaysNow / (double)uiOverlaysTotal ) << "%. "
-                                          << uiNumDone << " out of " << uiNumTotal << " prefix sums, thats "
-                                          << 100.0 * ( (double)uiNumDone / (double)uiNumTotal ) << "%.\n";
-                            },
-                            vSparseCoordsInternal[ uiI ] );
+                                        << " overlays, thats "
+                                        << 100.0 * ( (double)uiOverlaysNow / (double)uiOverlaysTotal ) << "%. "
+                                        << uiNumDone << " out of " << uiNumTotal * D << " prefix sums, thats "
+                                        << 100.0 * ( (double)uiNumDone / (double)(uiNumTotal * D) ) << "%.\n";
+                            }, vTo
+                        );
+                        xCv.notify_one();
                     },
                     vRelevantSparseCoordsInternal );
+                {
+                    std::unique_lock xGuard(xLock);
+                    if(uiEnqueuedTasks > 0)
+                        xCv.wait(xGuard);
+                    assert(uiEnqueuedTasks == 0);
+                }
+            }
+            if constexpr(!rPrefixSums.THREADSAVE)
+            {
+                xProfiler.step("copying prefix sums");
+                auto xPartialLock = rPrefixSums.xLockable.partialLock();
+                for(size_t uiIdx = 0; uiIdx < uiNumTotal; uiIdx++)
+                    rPrefixSums.vData[uiIdx + xInternalEntires.uiStartIndex] = vTmp[uiIdx];
             }
         }
 
         // construct overlay sum grid
-        // @todo multiprocess by exploiting diagonals
-        // also the bottom half of this grid is always zero -> can that be fixed?
         xProg << Verbosity( 1 ) << "constructing overlay sum grid\n";
+        xProfiler.step("filling overlay");
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vPredecessors[ uiI ].size( ) > 0 )
             {
                 xProg << Verbosity( 2 ) << "dim " << uiI << "\n";
 
-                red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
+                red_pos_t vAxisSizes;
+                {
+                    auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
+                    vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
+                }
+                {
+                    auto xFullLock = rPrefixSums.xLockable.fullLock();
+                    vOverlayEntries[ uiI ] = rPrefixSums.add( vAxisSizes );
+                }
 
-                vOverlayEntries[ uiI ] = rPrefixSums.add( vAxisSizes );
                 assert( vMyBottomLeft[ uiI ] > 0 );
-                if( rPrefixSums.sizeOf( vOverlayEntries[ uiI ] ) > 0 )
+                if( prefix_sum_grid_t::sizeOf( vOverlayEntries[ uiI ] ) > 0 )
+                {
+                    auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
+                    auto xPartialLock2 = rPrefixSums.xLockable.partialLock();
+
                     rSparseCoords.template iterate<D - 1>(
                         [ & ]( const red_pos_t& vFrom, const red_pos_t& vTo ) {
                             pos_t vFullFrom = expand( vFrom, uiI );
@@ -409,12 +512,12 @@ template <typename type_defs> class Overlay
 
                             xProg << Verbosity( 3 ) << "query " << vFullFrom << "\n";
                             auto uiRet = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, xProg );
-                            // auto uiRet = vPredecessors[ uiI ]->get( rSparseCoords, rPrefixSums, vFullFrom, xProg );
                             xProg << Verbosity( 3 ) << "query " << vFullFrom << ": " << uiRet << "\n";
 
                             rPrefixSums.get( vTo, vOverlayEntries[ uiI ] ) = uiRet;
                         },
                         vSparseCoordsOverlay[ uiI ] );
+                }
             }
         xProg << Verbosity( 1 ) << "done\n";
     }

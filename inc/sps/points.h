@@ -2,7 +2,9 @@
 
 #include "sps/desc.h"
 #include "sps/point.h"
+#include "sps/util.h"
 #include "sps/type_defs.h"
+
 #include <cassert>
 #include <functional>
 #include <string>

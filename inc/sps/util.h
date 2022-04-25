@@ -6,6 +6,9 @@
 #include <stxxl/vector>
 #include <utility>
 #include <vector>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 // https://stackoverflow.com/questions/24110928/overload-of-operator-not-found-when-called-from-stdostream-iterator
 
@@ -168,7 +171,7 @@ template <typename C_T> class AlignedPower2 : public POWER_2_COND( C_T )
 
 const std::string CLRLN = "\r\033[K";
 
-#define DO_PROFILE 1
+#define DO_PROFILE 0
 
 #if DO_PROFILE == 1
 struct Profiler
@@ -178,6 +181,10 @@ struct Profiler
     std::map<std::string, double> xTimes;
     Profiler( std::string sLabel ) : xLastTimePoint( std::chrono::high_resolution_clock::now( ) ), sLastLabel( sLabel )
     {}
+    ~Profiler( )
+    {
+        print( "" );
+    }
     void step( std::string sLabel )
     {
         if( xTimes.count( sLastLabel ) == 0 )
@@ -196,25 +203,90 @@ struct Profiler
             std::cerr << xEntry.first << ": " << xEntry.second << "ms" << std::endl;
         xTimes.clear( );
     }
-    ~Profiler( )
-    {
-        step( "" );
-    }
 };
 #else
 struct Profiler
 {
     Profiler( std::string )
     {}
-    void step( std::string )
-    {}
     ~Profiler( )
     {
-        step( "" );
+        print( "" );
     }
     void print( std::string )
     {}
+    void step( std::string )
+    {}
 };
 #endif
+
+class Lockable
+{
+    size_t uiMaxPartialLocks;
+    size_t uiNumPartialLocks = 0;
+    bool bFullLock = false;
+    size_t bFullLockWaiting = 0;
+    std::mutex xLock;
+    std::condition_variable xCv;
+
+public:
+    Lockable(size_t uiMaxPartialLocks) : uiMaxPartialLocks(uiMaxPartialLocks)
+    {}
+
+    class FullLock
+    {
+            Lockable& rX;
+        public:
+            FullLock(Lockable& rX) : rX(rX)
+            {
+                std::unique_lock xGuard(rX.xLock);
+                ++rX.bFullLockWaiting;
+                while(rX.uiNumPartialLocks > 0 || rX.bFullLock)
+                    rX.xCv.wait(xGuard);
+                assert(rX.uiNumPartialLocks == 0 && !rX.bFullLock);
+                --rX.bFullLockWaiting;
+                rX.bFullLock = true;
+            }
+
+            ~FullLock()
+            {
+                std::unique_lock xGuard(rX.xLock);
+                rX.bFullLock = false;
+                rX.xCv.notify_all();
+            }
+    };
+    class PartialLock
+    {
+            Lockable& rX;
+        public:
+            PartialLock(Lockable& rX) : rX(rX)
+            {
+                std::unique_lock xGuard(rX.xLock);
+                while(rX.bFullLock || rX.uiNumPartialLocks >= rX.uiMaxPartialLocks || rX.bFullLockWaiting > 0)
+                    rX.xCv.wait(xGuard);
+                assert(!rX.bFullLock && rX.uiNumPartialLocks < rX.uiMaxPartialLocks && rX.bFullLockWaiting == 0);
+                ++rX.uiNumPartialLocks;
+            }
+
+            ~PartialLock()
+            {
+                std::unique_lock xGuard(rX.xLock);
+                assert(rX.uiNumPartialLocks > 0);
+                --rX.uiNumPartialLocks;
+                if(rX.uiNumPartialLocks == 0 || rX.uiNumPartialLocks + 1 == rX.uiMaxPartialLocks)
+                    rX.xCv.notify_one();
+            }
+    };
+
+    FullLock fullLock()
+    {
+        return FullLock(*this);
+    }
+
+    PartialLock partialLock()
+    {
+        return PartialLock(*this);
+    }
+};
 
 } // namespace sps

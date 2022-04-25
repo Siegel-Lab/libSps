@@ -2,7 +2,8 @@
 #include "sps/main.h"
 #include <stdlib.h>
 
-template <size_t D, bool dependant_dim> using TD = CachedTypeDef<D, dependant_dim>;
+//template <size_t D, bool dependant_dim> using TD = CachedTypeDef<D, dependant_dim>;
+template <size_t D, bool dependant_dim> using TD = DiskTypeDef<D, dependant_dim>;
 
 PYBIND11_MODULE( libSps, m )
 {
