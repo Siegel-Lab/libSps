@@ -214,11 +214,19 @@ template <typename type_defs, typename data_t> class NDGrid
 
             void doneWith(size_t uiIdx)
             {
-                bool bHas = false;
                 for(size_t uiD = 0; uiD < N; uiD++)
                     for(size_t uiIdx: fSuccessors(uiIdx, uiD, xEntry))
                     {
-                        bHas = true;
+                        if(uiIdx == std::numeric_limits<size_t>::max()) // poison
+                        {
+                            {
+                                std::unique_lock xGuard(xLock);
+                                vNext.push(std::numeric_limits<size_t>::max());
+                            }
+                            xVar.notify_all();
+                            return;
+                        }
+
                         size_t uiNumReq = 0;
                         auto vPos = NDGrid::posOf(uiIdx, xEntry);
                         for(size_t uiI = 0; uiI < N; uiI++)
@@ -237,15 +245,6 @@ template <typename type_defs, typename data_t> class NDGrid
                         if(uiX == uiNumReq)
                             xVar.notify_one();
                     }
-                
-                if(!bHas)
-                {
-                    {
-                        std::unique_lock xGuard(xLock);
-                        vNext.push(std::numeric_limits<size_t>::max());
-                    }
-                    xVar.notify_all();
-                }
             }
 
             void process(size_t uiNumThreads, std::function<void(size_t)> fDo)
