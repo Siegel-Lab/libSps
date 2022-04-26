@@ -274,7 +274,7 @@ public:
                 assert(rX.uiNumPartialLocks > 0);
                 --rX.uiNumPartialLocks;
                 if(rX.uiNumPartialLocks == 0 || rX.uiNumPartialLocks + 1 == rX.uiMaxPartialLocks)
-                    rX.xCv.notify_one();
+                    rX.xCv.notify_all();
             }
     };
 

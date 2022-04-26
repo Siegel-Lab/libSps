@@ -194,12 +194,6 @@ template <typename type_defs, typename data_t> class NDGrid
                 vNext.push(xEntry.uiStartIndex);
             }
 
-            bool done()
-            {
-                std::unique_lock xGuard(xLock);
-                return vNext.front() == std::numeric_limits<size_t>::max();
-            }
-
             size_t getNext()
             {
                 std::unique_lock xGuard(xLock);
@@ -250,19 +244,19 @@ template <typename type_defs, typename data_t> class NDGrid
             void process(size_t uiNumThreads, std::function<void(size_t)> fDo)
             {
                 std::vector<std::thread> vThreads;
-                for(size_t uiI = 0; uiI < uiNumThreads; uiI++)
+                for(size_t uiI = 0; uiI < uiNumThreads && uiI < vNumPredComputed.size(); uiI++)
                     vThreads.emplace_back(
                         [&](ParallelIterator* xIt, std::function<void(size_t)> fDo){
-                        while(true)
-                        {
-                            size_t uiIdx = xIt->getNext();
-                            if(uiIdx == std::numeric_limits<size_t>::max())
-                                break;
+                            while(true)
+                            {
+                                size_t uiIdx = xIt->getNext();
+                                if(uiIdx == std::numeric_limits<size_t>::max())
+                                    break;
 
-                            fDo(uiIdx);
+                                fDo(uiIdx);
 
-                            doneWith(uiIdx);
-                        }
+                                doneWith(uiIdx);
+                            }
                     }, this, fDo);
 
                 for(auto& xThread : vThreads)

@@ -1,5 +1,5 @@
-from build_dbg.libSps import *
-#from build_rel.libSps import *
+#from build_dbg.libSps import *
+from build_rel.libSps import *
 import random
 from bokeh.plotting import figure, output_file, save
 from bokeh.models import ColumnDataSource
