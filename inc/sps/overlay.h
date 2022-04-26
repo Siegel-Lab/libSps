@@ -323,6 +323,7 @@ template <typename type_defs> class Overlay
                     else
                         vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
 
+                    xProg << Verbosity( 2 );
                     if( xProg.active( ) )
                         vSparseCoordsOverlay[ uiI ][ uiJ ].stream( std::cout << "result: ", rSparseCoords )
                                      << std::endl;

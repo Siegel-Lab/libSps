@@ -360,7 +360,8 @@ template <typename type_defs> class Dataset
             vSplitPoints[uiI].uiEndIndex = vSplitPoints[uiI].uiStartIndex;
             // collect points for overlay uiI
             while( vSplitPoints[uiI].uiEndIndex < xPoints.uiEndIndex &&
-                   overlayIndex( rOverlays, rSparseCoords, vPoints.vData[ vSplitPoints[uiI].uiEndIndex ].vPos ) == uiI )
+                   overlayIndex( rOverlays, rSparseCoords, vPoints.vData[ vSplitPoints[uiI].uiEndIndex ].vPos ) == 
+                    uiI + xOverlays.uiStartIndex )
                 ++vSplitPoints[uiI].uiEndIndex;
         }
         assert(vSplitPoints[uiNumTotal-1].uiEndIndex == xPoints.uiEndIndex);
