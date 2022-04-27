@@ -230,8 +230,8 @@ template <typename type_defs, typename data_t> class NDGrid
                         size_t uiX;
                         {
                             std::unique_lock xGuard(xLock);
-                            vNumPredComputed[uiIdx]++;
-                            uiX = vNumPredComputed[uiIdx];
+                            vNumPredComputed[uiIdx - xEntry.uiStartIndex]++;
+                            uiX = vNumPredComputed[uiIdx - xEntry.uiStartIndex];
                             assert(uiX <= uiNumReq);
                             if(uiX == uiNumReq)
                                 vNext.push(uiIdx);
@@ -243,24 +243,29 @@ template <typename type_defs, typename data_t> class NDGrid
 
             void process(size_t uiNumThreads, std::function<void(size_t)> fDo)
             {
-                std::vector<std::thread> vThreads;
-                for(size_t uiI = 0; uiI < uiNumThreads && uiI < vNumPredComputed.size(); uiI++)
-                    vThreads.emplace_back(
-                        [&](ParallelIterator* xIt, std::function<void(size_t)> fDo){
-                            while(true)
-                            {
-                                size_t uiIdx = xIt->getNext();
-                                if(uiIdx == std::numeric_limits<size_t>::max())
-                                    break;
+                auto fTask = [&](ParallelIterator* xIt, std::function<void(size_t)> fDo){
+                    while(true)
+                    {
+                        size_t uiIdx = xIt->getNext();
+                        if(uiIdx == std::numeric_limits<size_t>::max())
+                            break;
 
-                                fDo(uiIdx);
+                        fDo(uiIdx);
 
-                                doneWith(uiIdx);
-                            }
-                    }, this, fDo);
+                        doneWith(uiIdx);
+                    }
+                };
+                if(uiNumThreads == 1 || vNumPredComputed.size() == 1)
+                    fTask(this, fDo);
+                else
+                {
+                    std::vector<std::thread> vThreads;
+                    for(size_t uiI = 0; uiI < uiNumThreads && uiI < vNumPredComputed.size(); uiI++)
+                        vThreads.emplace_back(fTask, this, fDo);
 
-                for(auto& xThread : vThreads)
-                    xThread.join();
+                    for(auto& xThread : vThreads)
+                        xThread.join();
+                }
             }
     }; // class
 

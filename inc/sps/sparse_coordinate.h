@@ -17,7 +17,6 @@ template <typename type_defs> class SparseCoord
 {
     EXTRACT_TYPE_DEFS; // macro call
 
-
     EXTRACT_VEC_GENERATOR( coord, coordinate_t ); // macro call
 
   public:

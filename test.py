@@ -1,5 +1,5 @@
-#from build_dbg.libSps import *
-from build_rel.libSps import *
+from build_dbg.libSps import *
+#from build_rel.libSps import *
 import random
 from bokeh.plotting import figure, output_file, save
 from bokeh.models import ColumnDataSource
@@ -118,7 +118,7 @@ def test(tree, d, n=30):
 random.seed(6846854546132)
 #fixed(DependantDimSparsePrefixSum_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
 
-test(DependantDimSparsePrefixSum_2D("test/blub1", True), 2)
-test(DependantDimSparsePrefixSum_3D("test/blub2", True), 3)
-test(DependantDimSparsePrefixSum_4D("test/blub3", True), 4)
-test(DependantDimSparsePrefixSum_5D("test/blub4", True), 5)
+#test(CachedDependantDimPrefixSum_2D("test/blub1", True), 2)
+#test(CachedDependantDimPrefixSum_3D("test/blub2", True), 3)
+#test(CachedDependantDimPrefixSum_4D("test/blub3", True), 4)
+test(CachedDependantDimPrefixSum_5D("test/blub4", True), 5)
