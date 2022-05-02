@@ -350,9 +350,7 @@ template <typename type_defs> class Dataset
                          PointsBinComperator( *this, rOverlays, rSparseCoords, xLock ) );
 
         // generate all overlays
-        xProg << Verbosity( 0 ) << "generating overlays.\n";
         coordinate_t uiNumTotal = rOverlays.sizeOf( xOverlays ); // @todo count considering non existant entries
-        xProfiler.step("overlay gen loop");
 
         std::vector<typename points_t::Entry> vSplitPoints(uiNumTotal);
         for( coordinate_t uiI = 0; uiI < uiNumTotal; uiI++ )
@@ -366,6 +364,9 @@ template <typename type_defs> class Dataset
                 ++vSplitPoints[uiI].uiEndIndex;
         }
         assert(vSplitPoints[uiNumTotal-1].uiEndIndex == xPoints.uiEndIndex);
+
+        xProg << Verbosity( 0 ) << "generating overlays.\n";
+        xProfiler.step("overlay gen loop");
 
         auto xIterator = rOverlays.template genIterator<D>(xOverlays, [&](size_t uiIdx, size_t uiDim, 
                                                               const typename overlay_grid_t::template Entry<D>& xEntry){
@@ -510,7 +511,7 @@ template <typename type_defs> class Dataset
             std::unique_lock xGuard(xLock);
             ++uiNumDone;
             if( xProg.printAgain( ) )
-                xProg << Verbosity( 0 ) << uiNumDone << " out of " << uiNumTotal << " overlays, thats "
+                xProg << Verbosity( 0 ) << "computed " << uiNumDone << " out of " << uiNumTotal << " overlays, thats "
                       << 100 * uiNumDone / (double)uiNumTotal << "%.\n";
 
         });

@@ -8,13 +8,13 @@
 template<size_t D, bool dependant_dim>
 void exportStorage(pybind11::module& m, std::string sPref, std::string sSuff)
 {
-#if DISK == ON
+#ifdef DISK
     exportMain<DiskTypeDef<D, dependant_dim>>( m, ("Disk" + sPref + "PrefixSum" + sSuff).c_str() );
 #endif
-#if CACHED == ON
+#ifdef CACHED
     exportMain<CachedTypeDef<D, dependant_dim>>( m, ("Cached" + sPref + "PrefixSum" + sSuff).c_str() );
 #endif
-#if RAM == ON
+#ifdef RAM
     exportMain<InMemTypeDef<D, dependant_dim>>( m, ("Ram" + sPref + "PrefixSum" + sSuff).c_str() );
 #endif
 }
@@ -22,10 +22,10 @@ void exportStorage(pybind11::module& m, std::string sPref, std::string sSuff)
 template<size_t D>
 void exportDependant(pybind11::module& m, std::string sSuff)
 {
-#if W_DEPENDANT_DIM == ON
+#ifdef W_DEPENDANT_DIM
     exportStorage<D, true>(m, "DependantDim", sSuff);
 #endif
-#if WO_DEPENDANT_DIM == ON
+#ifdef WO_DEPENDANT_DIM
     exportStorage<D, false>(m, "", sSuff);
 #endif
 }

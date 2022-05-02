@@ -229,6 +229,37 @@ template <typename type_defs> class Overlay
     Overlay( ) : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, xPoints{ }
     {}
 
+    void iterate( coordinate_t uiEnd, std::function<void( coordinate_t )> fDo ) const
+    {
+        for(coordinate_t uiI = 0; uiI < uiEnd; uiI++)
+            fDo(uiI);
+    }
+
+    template <size_t I, size_t N>
+    inline void
+    iterateHelper( const std::array<coordinate_t, N>& rEnds, 
+                   std::function<void( const std::array<coordinate_t, N>& )> fDo,
+                   std::array<coordinate_t, N>& rCurr ) const
+    {
+        if constexpr( I == N )
+            fDo( rCurr );
+        else
+            iterate(
+                rEnds[ I ],
+                [ & ]( coordinate_t uiCurr ) {
+                    rCurr[ I ] = uiCurr;
+                    iterateHelper<I + 1, N>( rEnds, fDo, rCurr );
+                } );
+    }
+
+    template <size_t N>
+    void iterate( const std::array<coordinate_t, N>& rEnds, 
+                   std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    {
+        std::array<coordinate_t, N> rCurr;
+        iterateHelper<0, N>( rEnds, fDo, rCurr );
+    }
+
 //#ifndef NDEBUG
 #pragma GCC diagnostic push
 // multiple unused variabels in release mode
@@ -432,22 +463,24 @@ template <typename type_defs> class Overlay
 #ifndef NDEBUG
                 xProg << Verbosity( 3 ) << "computing prefix sums over dimension " << uiI << "\n";
 #endif
-                red_entry_arr_t vRelevantSparseCoordsInternal = relevant( vSparseCoordsInternal, uiI );
+                red_pos_t vRelevantInternalAxisSizes = relevant( vInternalAxisSizes, uiI );
                 std::mutex xLock;
                 std::condition_variable xCv;
                 size_t uiEnqueuedTasks = 0;
 
-                auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
                 auto xPartialLock2 = rPrefixSums.xLockable.partialLock();
 
-                rSparseCoords.template iterate<D - 1>(
-                    [ & ]( const red_pos_t&, const red_pos_t& vTo ) {
+                std::vector<red_pos_t> vvTos;
+                std::vector<coordinate_t> vuiTos;
+                iterate<D - 1>(
+                    vRelevantInternalAxisSizes,
+                    [ & ]( const red_pos_t& vTo ) {
                         {
                             std::unique_lock xGuard(xLock);
                             ++uiEnqueuedTasks;
                         }
                         rPool.enqueue(
-                            [&](size_t uiTid, const red_pos_t& vTo ){
+                            [&](size_t uiTid, red_pos_t vTo, size_t uiI ){
                                 pos_t vFullTo = expand( vTo, uiI );
                                 val_t uiPrefixSum = 0;
 
@@ -458,10 +491,11 @@ template <typename type_defs> class Overlay
 #endif
 
                                 coordinate_t uiNumDoneLocal = 0;
-                                rSparseCoords.iterate(
-                                    [ & ]( coordinate_t, coordinate_t uiTo ) {
+                                iterate(
+                                    vInternalAxisSizes[ uiI ],
+                                    [ & ]( coordinate_t uiTo ) {
                                         vFullTo[ uiI ] = uiTo;
-                                        size_t uiIdx = rPrefixSums.indexOf( vFullTo, xInternalEntires );
+                                        size_t uiIdx = prefix_sum_grid_t::indexOf( vFullTo, xInternalEntires );
                                         if constexpr(!rPrefixSums.THREADSAVE)
                                             uiIdx -= xInternalEntires.uiStartIndex;
                                         
@@ -482,8 +516,7 @@ template <typename type_defs> class Overlay
                                             vTmp[uiIdx] = uiPrefixSum;
 
                                         ++uiNumDoneLocal;
-                                    },
-                                    vSparseCoordsInternal[ uiI ] );
+                                    } );
                                     
                                 std::unique_lock xGuard(xLock);
                                 uiNumDone += uiNumDoneLocal;
@@ -492,17 +525,16 @@ template <typename type_defs> class Overlay
                                     xCv.notify_one();
 #ifndef NDEBUG
                                 if( uiTid == 0 && xProg.printAgain( ) )
-                                    xProg << Verbosity( 0 ) << uiOverlaysNow << " out of " << uiOverlaysTotal
+                                    xProg << Verbosity( 0 ) << "computed " << uiOverlaysNow << " out of " << uiOverlaysTotal
                                         << " overlays, thats "
                                         << 100.0 * ( (double)uiOverlaysNow / (double)uiOverlaysTotal ) << "%. "
                                         << uiNumDone << " out of " << uiNumTotal * D << " prefix sums, thats "
                                         << 100.0 * ( (double)uiNumDone / (double)(uiNumTotal * D) ) << "%.\n";
 #endif
-                            }, vTo
+                            }, vTo, uiI
                         );
                         xCv.notify_one();
-                    },
-                    vRelevantSparseCoordsInternal );
+                    } );
                 {
                     std::unique_lock xGuard(xLock);
                     if(uiEnqueuedTasks > 0)
