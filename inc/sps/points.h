@@ -165,9 +165,26 @@ template <typename type_defs> class Points
         : xFile( points_vec_generator.file( sPrefix + ".points", bWrite ) ), vData( points_vec_generator.vec( xFile ) )
     {}
 
-    void add( pos_t vPos, size_t uiDescOffset )
+    template<bool trigger = !IS_ORTHOTOPE>
+    typename std::enable_if_t<trigger> add( pos_t vPos, size_t uiDescOffset )
     {
         vData.push_back( point_t( vPos, uiDescOffset ) );
+    }
+
+    template<bool trigger = IS_ORTHOTOPE>
+    typename std::enable_if_t<trigger> add( pos_t vStart, pos_t vEnd, size_t uiDescOffset )
+    {
+        forAllCombinationsN<pos_t, ORTHOTOPE_DIMS>(
+            [ & ]( size_t uiI, pos_t vPos, size_t uiDistToTo ) {
+                for(size_t uiD = ORTHOTOPE_DIMS; uiD < D + ORTHOTOPE_DIMS; uiD++)
+                {
+                    assert(vStart[uiD] == vEnd[uiD]);
+                    vPos[uiD] = vStart[uiD];
+                }
+                vData.push_back( point_t( vPos, uiDescOffset, uiI ) );
+            },
+            vStart, vEnd
+        );
     }
 
     Entry getEntry( ) const

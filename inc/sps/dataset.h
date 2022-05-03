@@ -23,7 +23,7 @@ template <typename type_defs> class Dataset
     using sparse_coord_t = SparseCoord<type_defs>;
     using overlay_t = AlignedPower2<Overlay<type_defs>>;
     using overlay_grid_t = NDGrid<type_defs, overlay_t>;
-    using prefix_sum_grid_t = NDGrid<type_defs, val_t>;
+    using prefix_sum_grid_t = NDGrid<type_defs, sps_t>;
     using point_t = AlignedPower2<Point<type_defs>>;
     using points_t = Points<type_defs>;
     using desc_t = Desc<type_defs>;
@@ -627,7 +627,7 @@ template <typename type_defs> class Dataset
         return rOverlays.indexOf( vPosOverlay, xOverlays );
     }
 
-    val_t get( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
+    sps_t get( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
                const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg ) const
     {
         auto vSparsePos = overlayCoord( rSparseCoords, vPos );
@@ -637,7 +637,7 @@ template <typename type_defs> class Dataset
                   << rOverlays.indexOf( vSparsePos, xOverlays ) << "\n";
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vSparsePos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
-                return 0;
+                return sps_t{};
         return rOverlays.get( vSparsePos, xOverlays )
             .get( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( rSparseCoords, vSparsePos ), xProg );
     }

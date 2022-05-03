@@ -35,7 +35,7 @@ template <typename type_defs> class Main
 
     using overlay_t = AlignedPower2<Overlay<type_defs>>;
     using sparse_coord_t = SparseCoord<type_defs>;
-    using prefix_sum_grid_t = NDGrid<type_defs, val_t>;
+    using prefix_sum_grid_t = NDGrid<type_defs, sps_t>;
     using overlay_grid_t = NDGrid<type_defs, overlay_t>;
     using dataset_t = AlignedPower2<Dataset<type_defs>>;
 
@@ -72,9 +72,33 @@ template <typename type_defs> class Main
         vDataSets.clear( );
     }
 
-    void addPoint( pos_t vPos, std::string sDesc )
+    template<bool trigger = !IS_ORTHOTOPE>
+    typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, std::string sDesc )
     {
         vPoints.add( vPos, vDesc.add( sDesc ) );
+    }
+
+    std::array<pos_t, 2> addDims(ret_pos_t vStart, ret_pos_t vEnd) const
+    {
+        std::array<pos_t, 2> vRet;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            vRet[0][uiI] = vStart[uiI];
+            vRet[1][uiI] = vEnd[uiI];
+        }
+        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
+        {
+            vRet[0][uiI + D] = vEnd[uiI] - vStart[uiI];
+            vRet[1][uiI + D] = vEnd[uiI] - vStart[uiI];
+        }
+        return vRet;
+    }
+
+    template<bool trigger = IS_ORTHOTOPE>
+    typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, std::string sDesc )
+    {
+        auto vP = addDims(vStart, vEnd);
+        vPoints.add( vP[0], vP[1], vDesc.add( sDesc ) );
     }
 
     coordinate_t numPoints( ) const
@@ -92,21 +116,34 @@ template <typename type_defs> class Main
         return uiRet;
     }
 
-    val_t count( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, progress_stream_t& xProg ) const
+    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, progress_stream_t& xProg ) const
     {
+        auto vP = addDims(vFromR, vToR);
+        pos_t& vFrom = vP[0];
+        pos_t& vTo = vP[1];
         val_t uiRet = 0;
+#pragma GCC diagnostic push
+// uiD unused if IS_ORTHOTOPE = false
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
         forAllCombinations<pos_t>(
-            [ & ]( pos_t vPos, size_t uiDistToTo ) {
+            [ & ]( size_t uiD, pos_t vPos, size_t uiDistToTo ) {
                 for( size_t uiI = 0; uiI < D; uiI++ )
                     --vPos[ uiI ];
 
                 xProg << "query: " << xDatasetId << " " << vPos << "\n";
-                val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, xProg );
+                sps_t vCurrArr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, xProg );
+
+                val_t uiCurr;
+                if constexpr(IS_ORTHOTOPE)
+                    uiCurr = vCurrArr[uiD / (2 << D)];
+                else
+                    uiCurr = vCurrArr;
 
                 xProg << "is " << ( uiDistToTo % 2 == 0 ? "+" : "-" ) << uiCurr << "\n";
                 uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? 1 : -1 );
             },
             vFrom, vTo, []( coordinate_t uiPos ) { return uiPos > 0; } );
+#pragma GCC diagnostic pop
         return uiRet;
     }
 
@@ -169,22 +206,40 @@ template <typename type_defs> void exportMain( pybind11::module& m, std::string 
 
         ;
 
-    pybind11::class_<sps::Main<type_defs>>( m, sName.c_str( ) )
-        .def( pybind11::init<std::string, bool>( ),
+
+    pybind11::class_<sps::Main<type_defs>> xMain( m, sName.c_str( ) );
+    
+    if constexpr(!type_defs::IS_ORTHOTOPE)
+        xMain.def( "add_point", [](sps::Main<type_defs>& rM, typename type_defs::pos_t vPos, std::string sDesc){
+            rM.addPoint(vPos, sDesc);
+        },
+               "Append a point to the data structure."
+               "The point will not be queryable until generate is called." );
+    else
+        xMain.def( "add_point", [](sps::Main<type_defs>& rM, typename type_defs::ret_pos_t vStart, typename type_defs::ret_pos_t vEnd, std::string sDesc){
+            rM.addPoint(vStart, vEnd, sDesc);
+        },
+               "Append a point to the data structure."
+               "The point will not be queryable until generate is called." );
+
+
+    xMain.def( pybind11::init<std::string, bool>( ),
               pybind11::arg( "path" ),
               pybind11::arg( "write_mode" ) = false ) // constructor
-        .def( "add_point", &sps::Main<type_defs>::addPoint )
         .def( "generate", &sps::Main<type_defs>::generate, pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-              pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 1 ) )
+              pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 1 ),
+              "Generate a new dataset. " )
             // pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         // pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
-        .def( "count", &sps::Main<type_defs>::count, pybind11::arg( "uiDatasetId" ), pybind11::arg( "uiFrom" ),
-                                                     pybind11::arg( "uiTo" ), //
-               pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 0 ) )
+        .def( "count", &sps::Main<type_defs>::count, pybind11::arg( "dataset_id" ), pybind11::arg( "from" ),
+                                                     pybind11::arg( "to" ), //
+               pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 0 ),
+               "Count the number of points between from and to and in the given dataset." )
          //  pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         //.def( "get", &sps::Main<type_defs>::get, "" )
         .def( "__str__", &sps::Main<type_defs>::str )
-        .def( "__len__", &sps::Main<type_defs>::numPoints )
+        .def( "__len__", &sps::Main<type_defs>::numPoints,
+              "Total number of points (among all datasets)." )
         .def( "clear", &sps::Main<type_defs>::clear )
         .def( "get_overlay_info", &sps::Main<type_defs>::getOverlayInfo )
 

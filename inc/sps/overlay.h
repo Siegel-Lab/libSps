@@ -19,7 +19,7 @@ template <typename type_defs> class Overlay
     EXTRACT_TYPE_DEFS; // macro call
 
     using sparse_coord_t = SparseCoord<type_defs>;
-    using prefix_sum_grid_t = NDGrid<type_defs, val_t>;
+    using prefix_sum_grid_t = NDGrid<type_defs, sps_t>;
     using overlay_grid_t = NDGrid<type_defs, AlignedPower2<Overlay>>;
 
 
@@ -428,7 +428,7 @@ template <typename type_defs> class Overlay
 
             coordinate_t uiNumTotal = prefix_sum_grid_t::sizeOf( xInternalEntires );
             coordinate_t uiNumDone = 0;
-            std::vector<coordinate_t> vTmp(rPrefixSums.THREADSAVE ? 0 : uiNumTotal);
+            std::vector<sps_t> vTmp(rPrefixSums.THREADSAVE ? 0 : uiNumTotal);
 
             {
                 auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
@@ -439,11 +439,11 @@ template <typename type_defs> class Overlay
                                                             rSparseCoords.sparse( xPoint.vPos, vSparseCoordsInternal ),
                                                             xInternalEntires );
                         if constexpr(rPrefixSums.THREADSAVE)
-                            ++rPrefixSums.vData[uiIdx];
+                            xPoint.addTo(rPrefixSums.vData[uiIdx]);
                         else
                         {
                             uiIdx -= xInternalEntires.uiStartIndex;
-                            ++vTmp[uiIdx];
+                            xPoint.addTo(vTmp[uiIdx]);
                         }
                     },
                     xPoints );
@@ -482,7 +482,7 @@ template <typename type_defs> class Overlay
                         rPool.enqueue(
                             [&](size_t uiTid, red_pos_t vTo, size_t uiI ){
                                 pos_t vFullTo = expand( vTo, uiI );
-                                val_t uiPrefixSum = 0;
+                                sps_t uiPrefixSum = {};
 
 #ifndef NDEBUG
                                 if( uiTid == 0 )
@@ -608,10 +608,10 @@ template <typename type_defs> class Overlay
 //#endif
 
 
-    val_t get( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
+    sps_t get( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
                pos_t vMyBottomLeft, progress_stream_t& xProg ) const
     {
-        val_t uiRet = 0;
+        sps_t uiRet {};
 
         xProg << Verbosity( 2 ) << "\tquerying overlay for " << vCoords << "...\n";
 
@@ -620,7 +620,7 @@ template <typename type_defs> class Overlay
         xProg << Verbosity( 3 ) << "\t\tvMyBottomLeft " << vMyBottomLeft << "\n";
 
         forAllCombinations<pos_t>(
-            [ & ]( pos_t vPos, size_t uiDistToTo ) {
+            [ & ]( size_t, pos_t vPos, size_t uiDistToTo ) {
                 if( uiDistToTo == 0 )
                     return;
                 size_t uiI = 0;
@@ -639,7 +639,7 @@ template <typename type_defs> class Overlay
 
                 xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
 
-                val_t uiCurr = rPrefixSums.get( vSparse, vOverlayEntries[ uiI ] );
+                sps_t uiCurr = rPrefixSums.get( vSparse, vOverlayEntries[ uiI ] );
 
                 xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
                 uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? -1 : 1 );

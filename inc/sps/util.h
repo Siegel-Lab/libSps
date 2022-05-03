@@ -155,6 +155,7 @@ template <typename C_T, size_t ALIGN_TO> class AlignTo : public C_T
 }; // class
 
 
+// conditional inheritance required to force minimal memory usage (memory of disabled types is still allocated)
 #define POWER_2_COND( C_T )                                                                                            \
     std::conditional<( sizeof( C_T ) < nextPower2( sizeof( C_T ) ) ), AlignTo<C_T, nextPower2( sizeof( C_T ) )>,       \
                      C_T>::type

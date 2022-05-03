@@ -62,29 +62,55 @@ def render_overlays(tree, x, title):
 
 
 
-def fixed(tree, points, d=2, cont=0):
+def fixed(tree, points, d=2, cont=0, area=False):
     for idx, pos in enumerate(points):
-        tree.add_point(pos, "p" + str(idx))
-    x = tree.generate(0, len(points))
+        if area:
+            tree.add_point(*pos, "p" + str(idx))
+        else:
+            tree.add_point(pos, "p" + str(idx))
+    x = tree.generate(0, len(points) * 2 if area else 1)
     if print_all:
         print("done generating")
         print(tree)
         print("generated")
-    for p1 in points:
-        for p2 in points + [[max(p[i] for p in points)+1 for i in range(d)]]:
+    if area:
+        p_end = points + [(list(range(d)), [max(p[i] for _, p in points)+1 for i in range(d)])]
+        max_w = [max(p2[i] - p1[i] for p1, p2 in points) for i in range(d)]
+    else:
+        p_end = points + [[max(p[i] for p in points)+1 for i in range(d)]]
+    for a1 in points:
+        for a2 in p_end:
+            if area:
+                p1 = a1[0]
+                p2 = a2[1]
+                if not all(j-i >= w for w, i, j in zip(max_w, p1, p2)):
+                    if print_all:
+                        print("not wide enough")
+                    continue
+            else:
+                p1 = a1
+                p2 = a2
             if all(a < b for a, b in zip(p1, p2)):
                 cnt = tree.count(x, p1, p2)
-                truth = sum(1 if all(i >= j and i < k for i, j, k in zip(p, p1, p2)) else 0 for p in points)
-                itr = list(range(truth))#tree.get(x, p1, p2)
-                if not cnt == len(itr) == truth:
+                if area:
+                    truth = sum(1 if all(i >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
+                                    for ps, pe in points)
+                else:
+                    truth = sum(1 if all(i >= j and i < k for i, j, k in zip(p, p1, p2)) else 0 for p in points)
+                if not cnt == truth:
                     render_overlays(tree, x, str(d) + "-" + str(cont))
-                    print("counts:", cnt, len(itr), truth)
+                    print("counts:", cnt, truth)
                     for pc in combinations(p1, p2):
-                        corner_c = sum(1 if all(i < j for i, j in zip(p, pc)) else 0 for p in points)
+                        if area:
+                            if pc == p2:
+                                corner_c = sum(1 if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe in points)
+                            else:
+                                corner_c = sum(1 if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _ in points)
+                        else:
+                            corner_c = sum(1 if all(i < j for i, j in zip(p, pc)) else 0 for p in points)
                         print("expected corner count", corner_c, "for", pc)
                     print("query", p1, p2)
                     print("points", points)
-                    print("iteration result", itr)
                     print(tree)
                     print("failure", d, cont)
                     exit()
@@ -97,20 +123,25 @@ def fixed(tree, points, d=2, cont=0):
     print("success", d, cont)
 
 
-def test(tree, d, n=30):
+def test(tree, d, n=30, area=False):
     cont = 0
     for x in range(1, n):
         for _ in range(min(x*2, 100)):
             tree.clear()
             points = []
             for _ in range(x):
-                pos = []
+                pos_s = []
+                pos_e = []
                 for _ in range(d):
-                    pos.append(random.choice(range(x)))
-                points.append(pos)
+                    pos_s.append(random.choice(range(x)))
+                    pos_e.append(pos_s[-1] + 1 + random.choice(range(x)))
+                if area:
+                    points.append((pos_s, pos_e))
+                else:
+                    points.append(pos_s)
                 if print_all:
                     print("adding", points[-1])
-            fixed(tree, points, d, cont)
+            fixed(tree, points, d, cont, area)
             cont += 1
 
 
@@ -119,6 +150,14 @@ random.seed(6846854546132)
 #fixed(DependantDimSparsePrefixSum_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
 
 #test(CachedDependantDimPrefixSum_2D("test/blub1", True), 2)
-#test(CachedDependantDimPrefixSum_3D("test/blub2", True), 3)
 #test(CachedDependantDimPrefixSum_4D("test/blub3", True), 4)
-test(CachedDependantDimPrefixSum_5D("test/blub4", True), 5)
+
+
+#test(DiskDependantDimPointsPrefixSum_3D("test/blub2", True), 3)
+#test(DiskDependantDimPointsPrefixSum_5D("test/blub4", True), 5)
+
+
+test(DiskDependantDimRectanglesPrefixSum_2D("test/blub5", True), 2, area=True)
+
+
+#test(DiskDependantDimRectanglesPrefixSum_3D("test/blub6", True), 3, area=True)

@@ -81,7 +81,7 @@ using default_val_t = uint32_t;
 using default_class_key_t = uint16_t;
 static const bool EXPLAIN = false;
 
-template <size_t D, bool dependant_dim>
+template <size_t D, bool dependant_dim, size_t orthope>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
                               D, //
@@ -89,6 +89,7 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               RamVecGenerator, //
                               RamVectorSorter, //
                               dependant_dim, //
+                              orthope, //
                               EXPLAIN, //
                               StdOutProgressStream>;
 
@@ -122,7 +123,7 @@ template <typename it_t, typename cmp_t> struct CachedVectorSorter
     }
 };
 
-template <size_t D, bool dependant_dim>
+template <size_t D, bool dependant_dim, size_t orthope>
 using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                default_val_t, //
                                D, //
@@ -130,6 +131,7 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                CachedVecGenerator, //
                                CachedVectorSorter, //
                                dependant_dim, //
+                               orthope, //
                                EXPLAIN, //
                                StdOutProgressStream>;
 
@@ -199,7 +201,7 @@ template <typename val_t> struct DiskVecGenerator
     }
 };
 
-template <size_t D, bool dependant_dim>
+template <size_t D, bool dependant_dim, size_t orthope>
 using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              default_val_t, //
                              D, //
@@ -207,5 +209,6 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              DiskVecGenerator, //
                              RamVectorSorter, //
                              dependant_dim, //
+                             orthope, //
                              EXPLAIN, //
                              StdOutProgressStream>;
