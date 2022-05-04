@@ -5,10 +5,6 @@
 #include <functional>
 #include <string>
 
-#if WITH_PYTHON
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#endif
 
 namespace sps
 {
@@ -385,21 +381,3 @@ template <typename type_defs> class SparseCoord
 
 } // namespace sps
 
-
-#if WITH_PYTHON
-template <typename type_defs> void exportSparseCoord( pybind11::module& m, std::string sName )
-{
-    pybind11::class_<typename sps::SparseCoord<type_defs>::Entry>( m, ( sName + "__Entry" ).c_str( ) )
-        .def( "__str__", &sps::SparseCoord<type_defs>::Entry::str );
-
-    pybind11::class_<sps::SparseCoord<type_defs>>( m, sName.c_str( ) )
-        .def( pybind11::init<std::string, bool>( ),
-              pybind11::arg( "path" ),
-              pybind11::arg( "write_mode" ) = false ) // constructor
-        .def( "add", &sps::SparseCoord<type_defs>::add_vec )
-        .def( "replace", &sps::SparseCoord<type_defs>::replace )
-        .def( "inv_replace", &sps::SparseCoord<type_defs>::invReplace )
-        .def( "__str__", &sps::SparseCoord<type_defs>::str )
-        .def( "clear", &sps::SparseCoord<type_defs>::clear );
-}
-#endif

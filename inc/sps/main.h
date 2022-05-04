@@ -78,18 +78,21 @@ template <typename type_defs> class Main
         vPoints.add( vPos, vDesc.add( sDesc ) );
     }
 
-    std::array<pos_t, 2> addDims(ret_pos_t vStart, ret_pos_t vEnd) const
+    std::array<pos_t, 2> addDims(ret_pos_t vStart, ret_pos_t vEnd, bool bStartZero) const
     {
         std::array<pos_t, 2> vRet;
-        for( size_t uiI = 0; uiI < D; uiI++ )
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
         {
             vRet[0][uiI] = vStart[uiI];
             vRet[1][uiI] = vEnd[uiI];
         }
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            vRet[0][uiI + D] = vEnd[uiI] - vStart[uiI];
-            vRet[1][uiI + D] = vEnd[uiI] - vStart[uiI];
+            if(bStartZero)
+                vRet[0][uiI + D - ORTHOTOPE_DIMS] = 0;
+            else
+                vRet[0][uiI + D - ORTHOTOPE_DIMS] = vEnd[uiI] - vStart[uiI];
+            vRet[1][uiI + D - ORTHOTOPE_DIMS] = vEnd[uiI] - vStart[uiI];
         }
         return vRet;
     }
@@ -97,7 +100,7 @@ template <typename type_defs> class Main
     template<bool trigger = IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, std::string sDesc )
     {
-        auto vP = addDims(vStart, vEnd);
+        auto vP = addDims(vStart, vEnd, false);
         vPoints.add( vP[0], vP[1], vDesc.add( sDesc ) );
     }
 
@@ -106,8 +109,9 @@ template <typename type_defs> class Main
         return vPoints.size( );
     }
 
-    class_key_t generate( coordinate_t uiFrom, coordinate_t uiTo, progress_stream_t& xProg )
+    class_key_t generate( coordinate_t uiFrom, coordinate_t uiTo, size_t uiVerbosity=1 )
     {
+        progress_stream_t xProg(uiVerbosity);
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
@@ -116,9 +120,10 @@ template <typename type_defs> class Main
         return uiRet;
     }
 
-    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, progress_stream_t& xProg ) const
+    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, size_t uiVerbosity=0 ) const
     {
-        auto vP = addDims(vFromR, vToR);
+        progress_stream_t xProg(uiVerbosity);
+        auto vP = addDims(vFromR, vToR, true);
         pos_t& vFrom = vP[0];
         pos_t& vTo = vP[1];
         val_t uiRet = 0;
@@ -135,11 +140,12 @@ template <typename type_defs> class Main
 
                 val_t uiCurr;
                 if constexpr(IS_ORTHOTOPE)
-                    uiCurr = vCurrArr[uiD / (2 << D)];
+                    uiCurr = vCurrArr[uiD / (1 << (D - ORTHOTOPE_DIMS))]; // uiD / 2 ^ (D - ORTHOTOPE_DIMS)
                 else
                     uiCurr = vCurrArr;
 
-                xProg << "is " << ( uiDistToTo % 2 == 0 ? "+" : "-" ) << uiCurr << "\n";
+                xProg << "is " << ( uiDistToTo % 2 == 0 ? "+" : "-" ) << uiCurr << " [" 
+                      << uiD << "/" << (1 << (D - ORTHOTOPE_DIMS)) << "]" << "\n";
                 uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? 1 : -1 );
             },
             vFrom, vTo, []( coordinate_t uiPos ) { return uiPos > 0; } );
@@ -188,10 +194,6 @@ template <typename type_defs> class Main
 
 
 #if WITH_PYTHON
-template <typename type_defs> void exportStream( pybind11::module& m, std::string sName )
-{
-    pybind11::class_<typename type_defs::progress_stream_t>( m, sName.c_str( ) );
-}
 template <typename type_defs> void exportMain( pybind11::module& m, std::string sName )
 {
     using OI = typename sps::Dataset<type_defs>::OverlayInfo;
@@ -226,16 +228,13 @@ template <typename type_defs> void exportMain( pybind11::module& m, std::string 
     xMain.def( pybind11::init<std::string, bool>( ),
               pybind11::arg( "path" ),
               pybind11::arg( "write_mode" ) = false ) // constructor
-        .def( "generate", &sps::Main<type_defs>::generate, pybind11::arg( "uiFrom" ), pybind11::arg( "uiTo" ),
-              pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 1 ),
+        .def( "generate", &sps::Main<type_defs>::generate, pybind11::arg( "from_points" ), pybind11::arg( "to_points" ),
+              pybind11::arg( "verbosity" ) =  1 ,
               "Generate a new dataset. " )
-            // pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
-        // pybind11::arg( "xProg" ) = std::optional<typename type_defs::progress_stream_t>( ) )
-        .def( "count", &sps::Main<type_defs>::count, pybind11::arg( "dataset_id" ), pybind11::arg( "from" ),
-                                                     pybind11::arg( "to" ), //
-               pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 0 ),
+        .def( "count", &sps::Main<type_defs>::count, pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
+                                                     pybind11::arg( "to_pos" ), //
+               pybind11::arg( "verbosity" ) = 0 ,
                "Count the number of points between from and to and in the given dataset." )
-         //  pybind11::arg( "xProg" ) = typename type_defs::progress_stream_t( 5 ) )
         //.def( "get", &sps::Main<type_defs>::get, "" )
         .def( "__str__", &sps::Main<type_defs>::str )
         .def( "__len__", &sps::Main<type_defs>::numPoints,

@@ -175,8 +175,8 @@ template <typename type_defs> class Points
     typename std::enable_if_t<trigger> add( pos_t vStart, pos_t vEnd, size_t uiDescOffset )
     {
         forAllCombinationsN<pos_t, ORTHOTOPE_DIMS>(
-            [ & ]( size_t uiI, pos_t vPos, size_t uiDistToTo ) {
-                for(size_t uiD = ORTHOTOPE_DIMS; uiD < D + ORTHOTOPE_DIMS; uiD++)
+            [ & ]( size_t uiI, pos_t vPos, size_t ) {
+                for(size_t uiD = D - ORTHOTOPE_DIMS; uiD < D; uiD++)
                 {
                     assert(vStart[uiD] == vEnd[uiD]);
                     vPos[uiD] = vStart[uiD];

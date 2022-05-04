@@ -2,6 +2,8 @@
 #include "sps/main.h"
 #include <stdlib.h>
 
+#define STRINGIFY(s) XSTRINGIFY(s)
+#define XSTRINGIFY(s) #s
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -23,13 +25,13 @@ template<size_t D, bool dependant_dim>
 void exportOrthope(pybind11::module& m, std::string sPref, std::string sSuff)
 {
 #ifdef W_CUBES
-    exportStorage<D, dependant_dim, 3>(m, sPref + "Cubes", sSuff);
+    exportStorage<D + 3, dependant_dim, 3>(m, sPref + "Cubes", sSuff);
 #endif
 #ifdef W_RECTANGLES
-    exportStorage<D, dependant_dim, 2>(m, sPref + "Rectangles", sSuff);
+    exportStorage<D + 2, dependant_dim, 2>(m, sPref + "Rectangles", sSuff);
 #endif
 #ifdef W_INTERVALS
-    exportStorage<D, dependant_dim, 1>(m, sPref + "Intervals", sSuff);
+    exportStorage<D + 1, dependant_dim, 1>(m, sPref + "Intervals", sSuff);
 #endif
 #ifdef W_POINTS
     exportStorage<D, dependant_dim, 0>(m, sPref + "Points", sSuff);
@@ -73,8 +75,6 @@ PYBIND11_MODULE( libSps, m )
         putenv( (char*)"STXXLERRLOGFILE=/dev/null" );
 
     // export various types
-    exportSparseCoord<InMemTypeDef<2, false, false>>( m, "SparseCoords" );
-    exportStream<InMemTypeDef<2, false, false>>( m, "__ProgressOutStream" );
 
     exportDims(m);
 }

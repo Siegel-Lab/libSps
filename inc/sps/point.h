@@ -32,7 +32,7 @@ template <typename type_defs> class BasePoint
         return os;
     }
 
-    void addTo(sps_t& uiTo) const
+    void addTo(val_t& uiTo) const
     {
         ++uiTo;
     }
@@ -44,6 +44,8 @@ template <typename type_defs> class OrthotopeCorner: public BasePoint<type_defs>
 {
     EXTRACT_TYPE_DEFS; // macro call
 
+    using desc_t = Desc<type_defs>;
+
     uint8_t uiIdx;
 
   public:
@@ -54,9 +56,15 @@ template <typename type_defs> class OrthotopeCorner: public BasePoint<type_defs>
     OrthotopeCorner( ) : BasePoint<type_defs>(), uiIdx(0)
     {}
 
+    std::ostream& stream( std::ostream& os, const desc_t& vDesc ) const
+    {
+        BasePoint<type_defs>::stream(os, vDesc) << " i" << (size_t)uiIdx;
+        return os;
+    }
+
     void addTo(sps_t& uiTo) const
     {
-        ++uiTo[uiIdx];
+        BasePoint<type_defs>::addTo(uiTo[uiIdx]);
     }
 };
 
@@ -89,9 +97,9 @@ inline void forAllCombinationsHelper( std::function<void( size_t, pos_t, size_t 
         if( fCond( vCurr[ N ] ) )
             forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo + 1, uiNum, fCond );
         vCurr[ N ] = vTo[ N ];
-        uiNum += 1 << (NE - (N+1));
         if( fCond( vCurr[ N ] ) )
-            forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo, uiNum, fCond );
+            forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo, 
+                                                        uiNum + (1 << (NE - (N+1))), fCond );
     }
 }
 

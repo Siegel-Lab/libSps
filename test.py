@@ -62,13 +62,13 @@ def render_overlays(tree, x, title):
 
 
 
-def fixed(tree, points, d=2, cont=0, area=False):
+def fixed(tree, points, d=2, cont=0, area=False, enforce_wide_queries=True):
     for idx, pos in enumerate(points):
         if area:
             tree.add_point(*pos, "p" + str(idx))
         else:
             tree.add_point(pos, "p" + str(idx))
-    x = tree.generate(0, len(points) * 2 if area else 1)
+    x = tree.generate(0, len(tree), 5 if print_all else 1)
     if print_all:
         print("done generating")
         print(tree)
@@ -83,15 +83,16 @@ def fixed(tree, points, d=2, cont=0, area=False):
             if area:
                 p1 = a1[0]
                 p2 = a2[1]
-                if not all(j-i >= w for w, i, j in zip(max_w, p1, p2)):
-                    if print_all:
-                        print("not wide enough")
-                    continue
+                if enforce_wide_queries:
+                    if not all(j-i >= w for w, i, j in zip(max_w, p1, p2)):
+                        if print_all:
+                            print("not wide enough")
+                        continue
             else:
                 p1 = a1
                 p2 = a2
             if all(a < b for a, b in zip(p1, p2)):
-                cnt = tree.count(x, p1, p2)
+                cnt = tree.count(x, p1, p2, 5 if print_all else 0)
                 if area:
                     truth = sum(1 if all(i >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
                                     for ps, pe in points)
@@ -123,7 +124,7 @@ def fixed(tree, points, d=2, cont=0, area=False):
     print("success", d, cont)
 
 
-def test(tree, d, n=30, area=False):
+def test(tree, d, n=30, area=False, enforce_wide_queries=True):
     cont = 0
     for x in range(1, n):
         for _ in range(min(x*2, 100)):
@@ -141,7 +142,7 @@ def test(tree, d, n=30, area=False):
                     points.append(pos_s)
                 if print_all:
                     print("adding", points[-1])
-            fixed(tree, points, d, cont, area)
+            fixed(tree, points, d, cont, area, enforce_wide_queries)
             cont += 1
 
 
@@ -156,8 +157,9 @@ random.seed(6846854546132)
 #test(DiskDependantDimPointsPrefixSum_3D("test/blub2", True), 3)
 #test(DiskDependantDimPointsPrefixSum_5D("test/blub4", True), 5)
 
+#test(DiskDependantDimPointsPrefixSum_2D("test/blub5", True), 2)
 
-test(DiskDependantDimRectanglesPrefixSum_2D("test/blub5", True), 2, area=True)
+test(DiskDependantDimRectanglesPrefixSum_2D("test/blub6", True), 2, area=True, enforce_wide_queries=False)
 
 
-#test(DiskDependantDimRectanglesPrefixSum_3D("test/blub6", True), 3, area=True)
+#test(DiskDependantDimRectanglesPrefixSum_3D("test/blub7", True), 3, area=True)

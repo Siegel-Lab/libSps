@@ -36,7 +36,7 @@ class TypeDefs
     using coordinate_t = _coordinate_t;
     using val_t = _val_t;
     static constexpr coordinate_t D = _D;
-    using ret_pos_t = std::array<coordinate_t, D>;
+    using pos_t = std::array<coordinate_t, D>;
     using class_key_t = _class_key_t;
 
     template <typename val_type_t> using vec_generator_t = _vec_generator<val_type_t>;
@@ -49,11 +49,11 @@ class TypeDefs
 
     static constexpr coordinate_t ORTHOTOPE_DIMS = _orthotope_dims;
 
-    using pos_t = std::array<coordinate_t, D + ORTHOTOPE_DIMS>;
+    using ret_pos_t = std::array<coordinate_t, D - ORTHOTOPE_DIMS>;
 
     static constexpr bool IS_ORTHOTOPE = ORTHOTOPE_DIMS > 0;
 
-    using sps_t = typename std::conditional<IS_ORTHOTOPE, std::op_array<val_t, 2 << ORTHOTOPE_DIMS>, val_t>::type;
+    using sps_t = typename std::conditional<IS_ORTHOTOPE, std::op_array<val_t, 1 << ORTHOTOPE_DIMS>, val_t>::type;
 
     using progress_stream_t = _progress_stream_t;
 };
