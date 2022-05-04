@@ -104,6 +104,12 @@ template <typename type_defs> class Main: public AbstractMain
     template<bool trigger = IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, std::string sDesc )
     {
+        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
+            if(vStart[uiI] > vEnd[uiI])
+                throw std::invalid_argument("end must be larger-equal than start for orthotope dimensions.");
+        for( size_t uiI = ORTHOTOPE_DIMS; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            if(vStart[uiI] != vEnd[uiI])
+                throw std::invalid_argument("end must equal start for non-orthotope dimensions.");
         auto vP = addDims(vStart, vEnd, false);
         vPoints.add( vP[0], vP[1], vDesc.add( sDesc ) );
     }
@@ -126,6 +132,9 @@ template <typename type_defs> class Main: public AbstractMain
 
     val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, size_t uiVerbosity=0 ) const
     {
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            if(vFromR[uiI] > vToR[uiI])
+                throw std::invalid_argument("end must be larger-equal than start.");
         progress_stream_t xProg(uiVerbosity);
         auto vP = addDims(vFromR, vToR, true);
         pos_t& vFrom = vP[0];

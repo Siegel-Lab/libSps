@@ -75,11 +75,11 @@ def fixed(tree, points, d=2, cont=0, area=False, enforce_wide_queries=True):
         print("generated")
     if area:
         p_start = points + [(list(range(d)), [max(p[i] for _, p in points)+1 for i in range(d)])]
-        p_end = p_start + [(list(range(d)), [max(p[i] for _, p in points)+1 for i in range(d)])]
+        p_end = p_start + [(list(range(d)), [max(p[i] for _, p in p_start)+1 for i in range(d)])]
         max_w = [max(p2[i] - p1[i] for p1, p2 in points) for i in range(d)]
     else:
         p_start = points + [[max(p[i] for p in points)+1 for i in range(d)]]
-        p_end = p_start + [[max(p[i] for p in points)+1 for i in range(d)]]
+        p_end = p_start + [[max(p[i] for p in p_start)+1 for i in range(d)]]
     for a1 in p_start:
         for a2 in p_end:
             if area:
@@ -139,7 +139,7 @@ def test(tree, d, n=30, area=False, enforce_wide_queries=True):
                     pos_s.append(random.choice(range(x)))
                     pos_e.append(pos_s[-1])
                     if d < 2:
-                        pos_e[-1] += 1 + random.choice(range(x))
+                        pos_e[-1] += random.choice(range(x))
                 if area:
                     points.append((pos_s, pos_e))
                 else:

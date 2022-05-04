@@ -6,20 +6,20 @@ project("KdpsTree" VERSION 0.0.1)
 option(WITH_PYTHON "Build python library." ON)
 
 set(NUM_DIMENSIONS_A "2" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
-set(NUM_DIMENSIONS_B "3" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
-set(NUM_DIMENSIONS_C "4" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
-set(NUM_DIMENSIONS_D "5" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
+set(NUM_DIMENSIONS_B "0" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
+set(NUM_DIMENSIONS_C "0" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
+set(NUM_DIMENSIONS_D "0" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
 
-option(W_DEPENDANT_DIM "Build datastructures with dependant dimension." ON)
+option(W_DEPENDANT_DIM "Build datastructures with dependant dimension." OFF)
 option(WO_DEPENDANT_DIM "Build datastructures without dependant dimension." ON)
 
 option(W_CUBES "" OFF)
-option(W_RECTANGLES "" ON)
+option(W_RECTANGLES "" OFF)
 option(W_INTERVALS "" OFF)
 option(W_POINTS "" ON)
 
-option(DISK "Build disk based datastructures (IO on load & unload)." ON)
-option(CACHED "Build cached datastructures (IO during runtime)." ON)
+option(DISK "Build disk based datastructures (IO on load & unload)." OFF)
+option(CACHED "Build cached datastructures (IO during runtime)." OFF)
 option(RAM "Build ram datastructures (Non-persistent)." ON)
 
 # disallow in-source builds
