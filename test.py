@@ -168,3 +168,5 @@ test(DiskDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, e
 
 
 #test(DiskDependantDimRectanglesPrefixSum_3D("test/blub7", True), 3, area=True)
+
+## libSps.index("", 2, True, 0, "Disk", True)

@@ -22,7 +22,9 @@ namespace sps
 
 class AbstractMain
 {
-
+    public:
+    // make AbstractMain downcastable to Main<something something...> in python by making it abstract
+    virtual void dummy() {}
 };
 
 template <typename type_defs> class Main: public AbstractMain
@@ -222,20 +224,24 @@ template <typename type_defs> void exportMain( pybind11::module& m, std::string 
         ;
 
 
-    pybind11::class_<sps::Main<type_defs>> xMain( m, sName.c_str( ) );
+    pybind11::class_<sps::Main<type_defs>, sps::AbstractMain> xMain( 
+            m, sName.c_str( ) );
     
     if constexpr(!type_defs::IS_ORTHOTOPE)
-        xMain.def( "add_point", [](sps::Main<type_defs>& rM, typename type_defs::pos_t vPos, std::string sDesc){
-            rM.addPoint(vPos, sDesc);
-        },
-               "Append a point to the data structure."
-               "The point will not be queryable until generate is called." );
+        xMain.def( "add_point", 
+            [](sps::Main<type_defs>& rM, typename type_defs::pos_t vPos, std::string sDesc){
+                rM.addPoint(vPos, sDesc);
+            },
+            "Append a point to the data structure."
+            "The point will not be queryable until generate is called." );
     else
-        xMain.def( "add_point", [](sps::Main<type_defs>& rM, typename type_defs::ret_pos_t vStart, typename type_defs::ret_pos_t vEnd, std::string sDesc){
-            rM.addPoint(vStart, vEnd, sDesc);
-        },
-               "Append a point to the data structure."
-               "The point will not be queryable until generate is called." );
+        xMain.def( "add_point", 
+            [](sps::Main<type_defs>& rM, typename type_defs::ret_pos_t vStart, 
+                typename type_defs::ret_pos_t vEnd, std::string sDesc){
+                rM.addPoint(vStart, vEnd, sDesc);
+            },
+            "Append a point to the data structure."
+            "The point will not be queryable until generate is called." );
 
 
     xMain.def( pybind11::init<std::string, bool>( ),
