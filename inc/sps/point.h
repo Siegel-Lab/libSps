@@ -53,6 +53,10 @@ template <typename type_defs> class OrthotopeCorner: public BasePoint<type_defs>
         BasePoint<type_defs>(vPos, uiDescOffset), uiIdx(uiIdx)
     {}
 
+    OrthotopeCorner( pos_t vPos, size_t uiDescOffset ) : 
+        BasePoint<type_defs>(vPos, uiDescOffset), uiIdx(0)
+    {}
+
     OrthotopeCorner( ) : BasePoint<type_defs>(), uiIdx(0)
     {}
 
@@ -112,7 +116,7 @@ inline void forAllCombinationsN(
     pos_t vTo,
     std::function<bool( typename pos_t::value_type )> fCond = []( typename pos_t::value_type ) { return true; } )
 {
-    pos_t vCurr;
+    pos_t vCurr {};
     forAllCombinationsHelper<pos_t, 0, N>( fDo, vCurr, vFrom, vTo, 0, 0, fCond );
 }
 

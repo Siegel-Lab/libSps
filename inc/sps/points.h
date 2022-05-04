@@ -176,7 +176,7 @@ template <typename type_defs> class Points
     {
         forAllCombinationsN<pos_t, ORTHOTOPE_DIMS>(
             [ & ]( size_t uiI, pos_t vPos, size_t ) {
-                for(size_t uiD = D - ORTHOTOPE_DIMS; uiD < D; uiD++)
+                for(size_t uiD = ORTHOTOPE_DIMS; uiD < D; uiD++)
                 {
                     assert(vStart[uiD] == vEnd[uiD]);
                     vPos[uiD] = vStart[uiD];

@@ -20,8 +20,12 @@
 namespace sps
 {
 
+class AbstractMain
+{
 
-template <typename type_defs> class Main
+};
+
+template <typename type_defs> class Main: public AbstractMain
 {
     EXTRACT_TYPE_DEFS; // macro call
 
