@@ -1,0 +1,26 @@
+﻿libSps.DiskIntervalsPrefixSum\_2D
+=================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: DiskIntervalsPrefixSum_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DiskIntervalsPrefixSum_2D.__init__
+      ~DiskIntervalsPrefixSum_2D.add_point
+      ~DiskIntervalsPrefixSum_2D.clear
+      ~DiskIntervalsPrefixSum_2D.count
+      ~DiskIntervalsPrefixSum_2D.generate
+   
+   
+
+   
+   
+   
