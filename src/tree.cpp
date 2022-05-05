@@ -1,5 +1,5 @@
 #include "sps/default.h"
-#include "sps/main.h"
+#include "sps/index.h"
 #include <stdlib.h>
 #include <fstream>
 #include <unistd.h>
@@ -28,15 +28,15 @@ std::string exportStorage(pybind11::module& m, std::string sPref, std::string sS
         sDesc += ", with a dependent dimension";
     std::string sRet = "";
 #ifdef DISK
-    sRet += exportMain<DiskTypeDef<D, dependant_dim, orthope>>( m, ("Disk" + sPref + "PrefixSum" + sSuff).c_str(), 
+    sRet += exportIndex<DiskTypeDef<D, dependant_dim, orthope>>( m, ("Disk" + sPref + "PrefixSum" + sSuff).c_str(), 
                                                                  sDesc );
 #endif
 #ifdef CACHED
-    sRet += exportMain<CachedTypeDef<D, dependant_dim, orthope>>( m, ("Cached" + sPref + "PrefixSum" + sSuff).c_str(), 
+    sRet += exportIndex<CachedTypeDef<D, dependant_dim, orthope>>( m, ("Cached" + sPref + "PrefixSum" + sSuff).c_str(), 
                                                                  sDesc );
 #endif
 #ifdef RAM
-    sRet += exportMain<InMemTypeDef<D, dependant_dim, orthope>>( m, ("Ram" + sPref + "PrefixSum" + sSuff).c_str(), 
+    sRet += exportIndex<InMemTypeDef<D, dependant_dim, orthope>>( m, ("Ram" + sPref + "PrefixSum" + sSuff).c_str(), 
                                                                  sDesc );
 #endif
     return sRet;
@@ -106,14 +106,14 @@ size_t getTotalSystemMemory()
 }
 
 template<size_t D, bool dependant_dim, size_t orthope>
-std::unique_ptr<AbstractMain> factoryHelper(std::string sStorageType, std::string sPrefix, bool bWrite )
+std::unique_ptr<AbstractIndex> factoryHelper(std::string sStorageType, std::string sPrefix, bool bWrite )
 {
 #ifdef DISK 
 #ifdef CACHED
     if(sStorageType == "PickByFileSize")
     {
         if(bWrite) // cached
-            return std::make_unique<sps::Main<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+            return std::make_unique<sps::Index<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
         
         std::ifstream::pos_type uiTotalSize = 0;
         uiTotalSize += filesize((sPrefix + ".coords").c_str());
@@ -125,30 +125,30 @@ std::unique_ptr<AbstractMain> factoryHelper(std::string sStorageType, std::strin
         uiTotalSize += filesize((sPrefix + ".prefix_sums").c_str());
 
         if( (size_t)uiTotalSize * 2 < getTotalSystemMemory()) // Disk
-            return std::make_unique<sps::Main<DiskTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+            return std::make_unique<sps::Index<DiskTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
         else // CACHED
-            return std::make_unique<sps::Main<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+            return std::make_unique<sps::Index<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
     }
 #endif
 #endif
 
 #ifdef DISK
     if(sStorageType == "Disk")
-        return std::make_unique<sps::Main<DiskTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+        return std::make_unique<sps::Index<DiskTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
 #endif
 #ifdef CACHED
     if(sStorageType == "Cached")
-        return std::make_unique<sps::Main<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+        return std::make_unique<sps::Index<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
 #endif
 #ifdef RAM
     if(sStorageType == "Ram")
-        return std::make_unique<sps::Main<InMemTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+        return std::make_unique<sps::Index<InMemTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
 #endif
     throw std::invalid_argument("libSps has not been compiled with the requested storage type.");
 }
 
 template<size_t D, bool dependant_dim>
-std::unique_ptr<AbstractMain> factoryHelper(size_t uiOrthtopeDims, std::string sStorageType, 
+std::unique_ptr<AbstractIndex> factoryHelper(size_t uiOrthtopeDims, std::string sStorageType, 
                                             std::string sPrefix, bool bWrite )
 {
 #ifdef W_CUBES
@@ -171,7 +171,7 @@ std::unique_ptr<AbstractMain> factoryHelper(size_t uiOrthtopeDims, std::string s
 }
 
 template<size_t D>
-std::unique_ptr<AbstractMain> factoryHelper(bool bDependentDimension, size_t uiOrthtopeDims, 
+std::unique_ptr<AbstractIndex> factoryHelper(bool bDependentDimension, size_t uiOrthtopeDims, 
                                       std::string sStorageType, std::string sPrefix, bool bWrite )
 {
     #ifdef W_DEPENDANT_DIM
@@ -185,7 +185,7 @@ std::unique_ptr<AbstractMain> factoryHelper(bool bDependentDimension, size_t uiO
     throw std::invalid_argument("libSps has not been compiled with the requested dependent dimension configuration.");
 }
 
-std::unique_ptr<AbstractMain> factory(std::string sPrefix, size_t uiD, bool bDependentDimension, size_t uiOrthtopeDims, 
+std::unique_ptr<AbstractIndex> factory(std::string sPrefix, size_t uiD, bool bDependentDimension, size_t uiOrthtopeDims, 
                                       std::string sStorageType, bool bWrite )
 {
 #if NUM_DIMENSIONS_A != 0
@@ -218,7 +218,7 @@ PYBIND11_MODULE( libSps, m )
 
 
     // export various types
-    pybind11::class_<sps::AbstractMain>( m, "AbstractIndex",
+    pybind11::class_<sps::AbstractIndex>( m, "AbstractIndex",
 R"pbdoc(
     Abstract Index class. Not usefull on it's own.
 )pbdoc" );

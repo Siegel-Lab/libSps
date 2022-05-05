@@ -115,6 +115,8 @@ target_link_libraries(test PUBLIC stxxl )
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake) 
 find_package(Sphinx)
 
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/docs/")
+
 if(Sphinx_FOUND)
     # configured documentation tools and intermediate build results
     set(BINARY_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/_docs_build")
@@ -123,10 +125,10 @@ if(Sphinx_FOUND)
     set(SPHINX_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
     
     # HTML output directory
-    set(SPHINX_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs")
+    set(SPHINX_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs/py")
 
-    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/docs_conv/" DESTINATION "${BINARY_BUILD_DIR}")
-    add_custom_target(docs ALL
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/docs_conf/" DESTINATION "${BINARY_BUILD_DIR}")
+    add_custom_target(docs-py ALL
         ${SPHINX_EXECUTABLE}
             -q -b html
             -d "${SPHINX_CACHE_DIR}"
@@ -137,4 +139,19 @@ if(Sphinx_FOUND)
 else()
     message(WARNING "No Sphinx found. Documentation target not available.")
 endif()
+
+find_package(Doxygen)
+if (DOXYGEN_FOUND)
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs_conf/doxygen.config)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doxygen.config.out)
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+    # note the option ALL which allows to build the docs together with the application
+    add_custom_target( docs-cpp ALL
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM )
+else (DOXYGEN_FOUND)
+    message("No Doxygen foud. Documentation target not available.")
+endif (DOXYGEN_FOUND)
 

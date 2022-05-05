@@ -100,19 +100,23 @@ If you plan using libSps from C++ you can set all these options via template par
 
 ## Usage
 
-### Documentation
-
 The libSps workflow is seperated in two phases: Creating an index and querying the index. 
 
 ### Creating indices
 
 #### Python
 
-
-
 #### C++
 
 ### Querying indices
+
+
+### Documentation
+
+[Technical Documentation for the python module can be found here.](https://github.com/MarkusRainerSchmidt/libSps/docs/py/index.html "Documentation")
+
+
+[Technical Documentation for the c++ code can be found here.](https://github.com/MarkusRainerSchmidt/libSps/docs/cpp/index.html "Documentation") 
 
 #### Dependent Dimensions
 
