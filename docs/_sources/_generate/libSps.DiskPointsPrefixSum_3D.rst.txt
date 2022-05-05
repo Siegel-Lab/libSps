@@ -1,0 +1,26 @@
+﻿libSps.DiskPointsPrefixSum\_3D
+==============================
+
+.. currentmodule:: libSps
+
+.. autoclass:: DiskPointsPrefixSum_3D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DiskPointsPrefixSum_3D.__init__
+      ~DiskPointsPrefixSum_3D.add_point
+      ~DiskPointsPrefixSum_3D.clear
+      ~DiskPointsPrefixSum_3D.count
+      ~DiskPointsPrefixSum_3D.generate
+   
+   
+
+   
+   
+   

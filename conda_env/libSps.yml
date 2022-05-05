@@ -1,0 +1,12 @@
+name: libSps
+channels:
+  - conda-forge 
+dependencies:
+  - python=3.6.15
+  - cmake=3.19 #.6
+  - gcc=9.4.0
+  - git=2.23.0
+  - make=4.3
+  - sphinx
+  - sphinx_rtd_theme
+  - expect

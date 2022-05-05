@@ -1,0 +1,22 @@
+﻿libSps.AbstractIndex
+====================
+
+.. currentmodule:: libSps
+
+.. autoclass:: AbstractIndex
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~AbstractIndex.__init__
+   
+   
+
+   
+   
+   

@@ -1,0 +1,6 @@
+﻿libSps.make\_sps\_index
+=======================
+
+.. currentmodule:: libSps
+
+.. autofunction:: make_sps_index

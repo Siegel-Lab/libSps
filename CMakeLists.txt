@@ -10,8 +10,8 @@ set(NUM_DIMENSIONS_B "0" CACHE STRING "Build datastructures with this amount of 
 set(NUM_DIMENSIONS_C "0" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
 set(NUM_DIMENSIONS_D "0" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
 
-option(W_DEPENDANT_DIM "Build datastructures with dependant dimension." OFF)
-option(WO_DEPENDANT_DIM "Build datastructures without dependant dimension." ON)
+option(W_DEPENDENT_DIM "Build datastructures with dependent dimension." OFF)
+option(WO_DEPENDENT_DIM "Build datastructures without dependent dimension." ON)
 
 option(W_CUBES "" OFF)
 option(W_RECTANGLES "" OFF)
@@ -72,10 +72,10 @@ if(WITH_PYTHON)
     target_compile_definitions( Sps PRIVATE NUM_DIMENSIONS_C=${NUM_DIMENSIONS_C} )
     target_compile_definitions( Sps PRIVATE NUM_DIMENSIONS_D=${NUM_DIMENSIONS_D} )
 
-    if(${W_DEPENDANT_DIM})
+    if(${W_DEPENDENT_DIM})
         target_compile_definitions( Sps PRIVATE W_DEPENDANT_DIM )
     endif()
-    if(${WO_DEPENDANT_DIM})
+    if(${WO_DEPENDENT_DIM})
         target_compile_definitions( Sps PRIVATE WO_DEPENDANT_DIM )
     endif()
     
@@ -111,4 +111,30 @@ target_include_directories( test PUBLIC inc )
 target_include_directories( test SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
 target_link_libraries(test PUBLIC stxxl )
 #target_link_libraries(test PUBLIC -lpthread )
+
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake) 
+find_package(Sphinx)
+
+if(Sphinx_FOUND)
+    # configured documentation tools and intermediate build results
+    set(BINARY_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/_docs_build")
+    
+    # Sphinx cache with pickled ReST documents
+    set(SPHINX_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
+    
+    # HTML output directory
+    set(SPHINX_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs")
+
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/docs_conv/" DESTINATION "${BINARY_BUILD_DIR}")
+    add_custom_target(docs ALL
+        ${SPHINX_EXECUTABLE}
+            -q -b html
+            -d "${SPHINX_CACHE_DIR}"
+            "${BINARY_BUILD_DIR}"
+            "${SPHINX_HTML_DIR}"
+        DEPENDS Sps
+        COMMENT "Building HTML documentation with Sphinx")
+else()
+    message(WARNING "No Sphinx found. Documentation target not available.")
+endif()
 

@@ -79,7 +79,7 @@ template <typename type_defs> class Main: public AbstractMain
     }
 
     template<bool trigger = !IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, std::string sDesc )
+    typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, std::string sDesc = "" )
     {
         vPoints.add( vPos, vDesc.add( sDesc ) );
     }
@@ -104,7 +104,7 @@ template <typename type_defs> class Main: public AbstractMain
     }
 
     template<bool trigger = IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, std::string sDesc )
+    typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, std::string sDesc = "" )
     {
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
             if(vStart[uiI] > vEnd[uiI])
@@ -209,7 +209,7 @@ template <typename type_defs> class Main: public AbstractMain
 
 
 #if WITH_PYTHON
-template <typename type_defs> void exportMain( pybind11::module& m, std::string sName )
+template <typename type_defs> std::string exportMain( pybind11::module& m, std::string sName, std::string sDesc )
 {
     using OI = typename sps::Dataset<type_defs>::OverlayInfo;
 
@@ -225,42 +225,148 @@ template <typename type_defs> void exportMain( pybind11::module& m, std::string 
 
 
     pybind11::class_<sps::Main<type_defs>, sps::AbstractMain> xMain( 
-            m, sName.c_str( ) );
+            m, sName.c_str( ), 
+            (R"pbdoc(
+    Prefix sum index )pbdoc" + sDesc + R"pbdoc(.
     
+    .. automethod:: add_point
+    .. automethod:: generate
+    .. automethod:: count
+    .. automethod:: __str__
+    .. automethod:: __len__
+    .. automethod:: clear
+
+)pbdoc").c_str()
+        );
+    
+
+    std::string sPointName;
+    if(type_defs::ORTHOTOPE_DIMS == 0)
+        sPointName = "point";
+    else if(type_defs::ORTHOTOPE_DIMS == 1)
+        sPointName = "interval";
+    else if(type_defs::ORTHOTOPE_DIMS == 2)
+        sPointName = "rectangle";
+    else if(type_defs::ORTHOTOPE_DIMS == 3)
+        sPointName = "cube";
+    else
+        sPointName = "" + std::to_string(type_defs::ORTHOTOPE_DIMS) + "-orthotope";
+
+
     if constexpr(!type_defs::IS_ORTHOTOPE)
         xMain.def( "add_point", 
             [](sps::Main<type_defs>& rM, typename type_defs::pos_t vPos, std::string sDesc){
                 rM.addPoint(vPos, sDesc);
             },
-            "Append a point to the data structure."
-            "The point will not be queryable until generate is called." );
+            pybind11::arg( "pos" ),
+            pybind11::arg( "desc" ) = "",
+(R"pbdoc(
+    Append a point to the data structure.
+    
+    :param pos: The position of the point.
+    :type pos: list[int[)pbdoc" + std::to_string(type_defs::D - type_defs::ORTHOTOPE_DIMS) + R"pbdoc(]]
+    
+    :param desc: A description for the Point, defaults to "".
+    :type desc: str
+
+    The point will not be queryable until generate is called.
+)pbdoc").c_str()
+        );
     else
         xMain.def( "add_point", 
             [](sps::Main<type_defs>& rM, typename type_defs::ret_pos_t vStart, 
                 typename type_defs::ret_pos_t vEnd, std::string sDesc){
                 rM.addPoint(vStart, vEnd, sDesc);
             },
-            "Append a point to the data structure."
-            "The point will not be queryable until generate is called." );
+            pybind11::arg( "start" ),
+            pybind11::arg( "end" ),
+            pybind11::arg( "desc" ) = "",
+(R"pbdoc(
+    Append a )pbdoc" + sPointName + R"pbdoc( to the data structure.
+    
+    :param start: The bottom left position of the )pbdoc" + sPointName + R"pbdoc(.
+    :type start: list[int[)pbdoc" + std::to_string(type_defs::D - type_defs::ORTHOTOPE_DIMS) + R"pbdoc(]]
+    
+    :param end: The top right position of the )pbdoc" + sPointName + R"pbdoc(.
+    :type end: list[int[)pbdoc" + std::to_string(type_defs::D - type_defs::ORTHOTOPE_DIMS) + R"pbdoc(]]
+    
+    :param desc: A description for the Point, defaults to "".
+    :type desc: str
+
+    The )pbdoc" + sPointName + R"pbdoc( will not be queryable until generate is called.
+
+    Dimensions 1 - )pbdoc" + std::to_string(type_defs::ORTHOTOPE_DIMS) + R"pbdoc( of start and end may have different values, where the value of end must be larger equal to the value of start.
+    Dimensions )pbdoc" + std::to_string(type_defs::ORTHOTOPE_DIMS + 1) + " - " + 
+    std::to_string(type_defs::D - type_defs::ORTHOTOPE_DIMS) + R"pbdoc( of start and end must have equal values.
+
+    Note that this function will add one point for each outside corner of the given )pbdoc" + sPointName + ".").c_str() );
 
 
     xMain.def( pybind11::init<std::string, bool>( ),
-              pybind11::arg( "path" ),
-              pybind11::arg( "write_mode" ) = false ) // constructor
+              pybind11::arg( "path" ) = "",
+              pybind11::arg( "write_mode" ) = false,
+R"pbdoc(
+    Create a new Index.
+    
+    :param path: Prefix path of the index on the filesystem (multiple files with different endings will be created), defaults to "".
+    :type path: str
+    
+    :param write_mode: Open the index in write mode (if this is set to False no changes can be made to the index), defaults to True.
+    :type write_mode: str
+)pbdoc" ) // constructor
         .def( "generate", &sps::Main<type_defs>::generate, pybind11::arg( "from_points" ), pybind11::arg( "to_points" ),
-              pybind11::arg( "verbosity" ) =  1 ,
-              "Generate a new dataset. " )
+              pybind11::arg( "verbosity" ) = 1,
+R"pbdoc(
+    Generate a new dataset.
+    
+    :param from_points: Index of the first point that shall be part of this dataset.
+    :type from_points: int
+    
+    :param to_points: Index of the last point that shall be part of this dataset.
+    :type to_points: int
+    
+    :param verbosity: Degree of verbosity while creating the dataset, defaults to 1.
+    :type verbosity: int
+
+    :return: The id of the generated dataset.
+    :rtype: int
+
+    This may take a long time to compute.
+
+    Use len(index) to determine the index of the first and last point, as add_point may add multiple points per call.
+
+    This function is multithreaded.
+)pbdoc" )
         .def( "count", &sps::Main<type_defs>::count, pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
                                                      pybind11::arg( "to_pos" ), //
                pybind11::arg( "verbosity" ) = 0 ,
-               "Count the number of points between from and to and in the given dataset." )
+               (R"pbdoc(
+    Count the number of points between from and to and in the given dataset.
+    
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+    
+    :param from_pos: The bottom left position of the query region.
+    :type from_pos: list[int[)pbdoc" + std::to_string(type_defs::D - type_defs::ORTHOTOPE_DIMS) + R"pbdoc(]]
+    
+    :param to_pos: The top right position of the query region.
+    :type to_pos: list[int[)pbdoc" + std::to_string(type_defs::D - type_defs::ORTHOTOPE_DIMS) + R"pbdoc(]]
+    
+    :param verbosity: Degree of verbosity while counting, defaults to 0.
+    :type verbosity: int
+
+    :return: The number of points in dataset_id between from_pos and to_pos.
+    :rtype: int
+
+    to_pos must be larger equal than from_pos in each dimension.
+)pbdoc").c_str() )
         //.def( "get", &sps::Main<type_defs>::get, "" )
-        .def( "__str__", &sps::Main<type_defs>::str )
-        .def( "__len__", &sps::Main<type_defs>::numPoints,
-              "Total number of points (among all datasets)." )
-        .def( "clear", &sps::Main<type_defs>::clear )
-        .def( "get_overlay_info", &sps::Main<type_defs>::getOverlayInfo )
+        .def( "__str__", &sps::Main<type_defs>::str, "Return a string describing the index." )
+        .def( "__len__", &sps::Main<type_defs>::numPoints, "Total number of points (among all datasets)." )
+        .def( "clear", &sps::Main<type_defs>::clear, "Clear the complete index." )
+        .def( "__get_overlay_info", &sps::Main<type_defs>::getOverlayInfo )
 
         ;
+    return "    " + sName + "\n";
 }
 #endif

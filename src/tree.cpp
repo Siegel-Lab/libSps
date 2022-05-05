@@ -10,61 +10,86 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 template<size_t D, bool dependant_dim, size_t orthope>
-void exportStorage(pybind11::module& m, std::string sPref, std::string sSuff)
+std::string exportStorage(pybind11::module& m, std::string sPref, std::string sSuff)
 {
+    std::string sDesc = "for";
+    if(orthope == 0)
+        sDesc += " points";
+    else if(orthope == 1)
+        sDesc += " intervals";
+    else if(orthope == 2)
+        sDesc += " rectangles";
+    else if(orthope == 3)
+        sDesc += " cubes";
+    else
+        sDesc += " " + std::to_string(D) + "-orthotopes";
+    sDesc += " in " + std::to_string(D - orthope) + "-dimensional space";
+    if(dependant_dim)
+        sDesc += ", with a dependent dimension";
+    std::string sRet = "";
 #ifdef DISK
-    exportMain<DiskTypeDef<D, dependant_dim, orthope>>( m, ("Disk" + sPref + "PrefixSum" + sSuff).c_str() );
+    sRet += exportMain<DiskTypeDef<D, dependant_dim, orthope>>( m, ("Disk" + sPref + "PrefixSum" + sSuff).c_str(), 
+                                                                 sDesc );
 #endif
 #ifdef CACHED
-    exportMain<CachedTypeDef<D, dependant_dim, orthope>>( m, ("Cached" + sPref + "PrefixSum" + sSuff).c_str() );
+    sRet += exportMain<CachedTypeDef<D, dependant_dim, orthope>>( m, ("Cached" + sPref + "PrefixSum" + sSuff).c_str(), 
+                                                                 sDesc );
 #endif
 #ifdef RAM
-    exportMain<InMemTypeDef<D, dependant_dim, orthope>>( m, ("Ram" + sPref + "PrefixSum" + sSuff).c_str() );
+    sRet += exportMain<InMemTypeDef<D, dependant_dim, orthope>>( m, ("Ram" + sPref + "PrefixSum" + sSuff).c_str(), 
+                                                                 sDesc );
 #endif
+    return sRet;
 }
 
 template<size_t D, bool dependant_dim>
-void exportOrthope(pybind11::module& m, std::string sPref, std::string sSuff)
+std::string exportOrthope(pybind11::module& m, std::string sPref, std::string sSuff)
 {
+    std::string sRet = "";
 #ifdef W_CUBES
-    exportStorage<D + 3, dependant_dim, 3>(m, sPref + "Cubes", sSuff);
+    sRet += exportStorage<D + 3, dependant_dim, 3>(m, sPref + "Cubes", sSuff);
 #endif
 #ifdef W_RECTANGLES
-    exportStorage<D + 2, dependant_dim, 2>(m, sPref + "Rectangles", sSuff);
+    sRet += exportStorage<D + 2, dependant_dim, 2>(m, sPref + "Rectangles", sSuff);
 #endif
 #ifdef W_INTERVALS
-    exportStorage<D + 1, dependant_dim, 1>(m, sPref + "Intervals", sSuff);
+    sRet += exportStorage<D + 1, dependant_dim, 1>(m, sPref + "Intervals", sSuff);
 #endif
 #ifdef W_POINTS
-    exportStorage<D, dependant_dim, 0>(m, sPref + "Points", sSuff);
+    sRet += exportStorage<D, dependant_dim, 0>(m, sPref + "Points", sSuff);
 #endif
+    return sRet;
 }
 
 template<size_t D>
-void exportDependant(pybind11::module& m, std::string sSuff)
+std::string exportDependant(pybind11::module& m, std::string sSuff)
 {
+    std::string sRet = "";
 #ifdef W_DEPENDANT_DIM
-    exportOrthope<D, true>(m, "DependantDim", sSuff);
+    sRet += exportOrthope<D, true>(m, "DependantDim", sSuff);
 #endif
 #ifdef WO_DEPENDANT_DIM
-    exportOrthope<D, false>(m, "", sSuff);
+    sRet += exportOrthope<D, false>(m, "", sSuff);
 #endif
+    return sRet;
 }
 
-void exportDims(pybind11::module& m)
+std::string exportDims(pybind11::module& m)
 {
+    std::string sRet = "";
 #if NUM_DIMENSIONS_A != 0
-    exportDependant<NUM_DIMENSIONS_A>(m, "_" + std::to_string(NUM_DIMENSIONS_A) + "D");
+    sRet += exportDependant<NUM_DIMENSIONS_A>(m, "_" + std::to_string(NUM_DIMENSIONS_A) + "D");
 #endif
 #if NUM_DIMENSIONS_B != 0
-    exportDependant<NUM_DIMENSIONS_B>(m, "_" + std::to_string(NUM_DIMENSIONS_B) + "D");
+    sRet += exportDependant<NUM_DIMENSIONS_B>(m, "_" + std::to_string(NUM_DIMENSIONS_B) + "D");
 #endif
 #if NUM_DIMENSIONS_C != 0
-    exportDependant<NUM_DIMENSIONS_C>(m, "_" + std::to_string(NUM_DIMENSIONS_C) + "D");
+    sRet += exportDependant<NUM_DIMENSIONS_C>(m, "_" + std::to_string(NUM_DIMENSIONS_C) + "D");
 #endif
 #if NUM_DIMENSIONS_D != 0
-    exportDependant<NUM_DIMENSIONS_D>(m, "_" + std::to_string(NUM_DIMENSIONS_D) + "D");
+    sRet += exportDependant<NUM_DIMENSIONS_D>(m, "_" + std::to_string(NUM_DIMENSIONS_D) + "D");
 #endif
+    return sRet;
 }
 
 std::ifstream::pos_type filesize(const char* filename)
@@ -99,8 +124,8 @@ std::unique_ptr<AbstractMain> factoryHelper(std::string sStorageType, std::strin
         uiTotalSize += filesize((sPrefix + ".points").c_str());
         uiTotalSize += filesize((sPrefix + ".prefix_sums").c_str());
 
-        if( (size_t)uiTotalSize * 2 < getTotalSystemMemory()) // RAM
-            return std::make_unique<sps::Main<InMemTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+        if( (size_t)uiTotalSize * 2 < getTotalSystemMemory()) // Disk
+            return std::make_unique<sps::Main<DiskTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
         else // CACHED
             return std::make_unique<sps::Main<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
     }
@@ -123,7 +148,8 @@ std::unique_ptr<AbstractMain> factoryHelper(std::string sStorageType, std::strin
 }
 
 template<size_t D, bool dependant_dim>
-std::unique_ptr<AbstractMain> factoryHelper(size_t uiOrthtopeDims, std::string sStorageType, std::string sPrefix, bool bWrite )
+std::unique_ptr<AbstractMain> factoryHelper(size_t uiOrthtopeDims, std::string sStorageType, 
+                                            std::string sPrefix, bool bWrite )
 {
 #ifdef W_CUBES
     if(uiOrthtopeDims == 3)
@@ -190,17 +216,66 @@ PYBIND11_MODULE( libSps, m )
     if( getenv( (char*)"STXXLERRLOGFILE" ) == nullptr )
         putenv( (char*)"STXXLERRLOGFILE=/dev/null" );
 
+
     // export various types
-    pybind11::class_<sps::AbstractMain>( m, "__AbstractMain" );
-    exportDims(m);
+    pybind11::class_<sps::AbstractMain>( m, "AbstractIndex",
+R"pbdoc(
+    Abstract Index class. Not usefull on it's own.
+)pbdoc" );
+
+    std::string sIndices = exportDims(m);
+    std::string sRaw = R"pbdoc(
+The libSps Python Module
+------------------------
+.. currentmodule:: libSps
+.. autosummary::
+    :toctree: _generate
+
+    make_sps_index
+    AbstractIndex
+)pbdoc";
+
+    m.doc() = sRaw + sIndices;
 
     // export the factory function
-    m.def("make_sps_index", &factory, 
-            pybind11::arg( "filepath_prefix" ),
-            pybind11::arg( "num_dimensions" ),
-            pybind11::arg( "with_dependent_dimension" ),
-            pybind11::arg( "num_orthotope_dimensions" ),
-            pybind11::arg( "storage_type" ),
-            pybind11::arg( "open_in_write_mode" ),
-          "A factory for the sparse prefix sum datastructure");
+    m.def("make_sps_index", &factory,
+            pybind11::arg( "filepath_prefix" ) = "",
+            pybind11::arg( "num_dimensions" ) = 2,
+            pybind11::arg( "with_dependent_dimension" ) = false,
+            pybind11::arg( "num_orthotope_dimensions" ) = 0,
+            pybind11::arg( "storage_type" ) = "Ram",
+            pybind11::arg( "open_in_write_mode" ) = true,
+R"pbdoc(
+    Factory for the sparse prefix sum indices.
+    
+    :param filepath_prefix: Prefix path of the index on the filesystem (multiple files with different endings will be created), defaults to "".
+    :type filepath_prefix: str
+
+    :param num_dimensions: Number of dimensions for datapoints in the index, defaults to 2.
+    :type num_dimensions: int
+
+    :param with_dependent_dimension: Whether the overlay grid in the 2nd dimension is dependent on the grid in the 1st, defaults to False.
+    :type with_dependent_dimension: bool
+
+    :param num_orthotope_dimensions: Number of orthotope dimensions (set this to 1, 2, 3, ... to add intervals, rectangles, cubes, ... instead of points), defaults to 0.
+    :type num_orthotope_dimensions: int
+
+    :param storage_type: The way the datastructure interacts with the filesystem, defaults to Ram.
+    :type storage_type: str
+
+    :param open_in_write_mode: Open the index in write mode (if this is set to False no changes can be made to the index), defaults to True.
+    :type open_in_write_mode: str
+
+    :return: The sparse prefix sum datastructure.
+    :rtype: A child of libSps.AbstractIndex.
+
+    
+    Acceptable storage_types are:
+
+    * "Disk" to create indices that load all data from a file on startup and store it back to the file on shutdown. Expect them to consume as much RAM as the filesize.
+    * "Cached" to create indices that use a cache to load data from and store data to a file dynamically as needed during runtime. Expect this storage type to be slightly slower than the other two options. For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data stored.
+    * "Ram" to create indices stores all information in RAM and never interacts with the filesystem.
+    * "PickByFileSize" to use the Disk option if the index is opened with open_in_write_mode=False and the index file requires less than half of the available RAM, otherwise Cached is used.
+)pbdoc"
+              );
 }
