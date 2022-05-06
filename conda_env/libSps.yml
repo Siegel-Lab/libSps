@@ -12,3 +12,7 @@ dependencies:
   - expect
   - doxygen
   - graphviz
+  - pip
+  - pip:
+    - sphinx-mdinclude
+  - breathe

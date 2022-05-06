@@ -1,4 +1,4 @@
-# libSps - Sparse Prefix Sums C++ Library
+# libSps - The Sparse Prefix Sums C++ Library
 
 libSps is a C++ Library that allows counting points in n-dimensional space in constant time O(1). 
 It was written to analyze [Hi-C and RADICL-seq data](https://en.wikipedia.org/wiki/Chromosome_conformation_capture "Wikipedia") 
@@ -72,10 +72,20 @@ The bioconda installation is easier, but restricts you to using <=5 dimensions.
 
 To compile libSps from the githug source use the following commands:
 
+    # clone repository
     git clone https://github.com/MarkusRainerSchmidt/libSps
+    cd libSps
+
+    # create and activate conda environment
+    ./conda_env_create_env.sh
+    conda activate libSps
+
+    # configure build
     mkdir build
     cd build
-    cmake ../libSps/ # see below to config correctly
+    cmake ../libSps/
+
+    # build
     make
 
 Various parameters of libSps are set during compile time as they affect the underlying memory layout and as this improves runtime performance. 
@@ -113,10 +123,10 @@ The libSps workflow is seperated in two phases: Creating an index and querying t
 
 ### Documentation
 
-[Technical Documentation for the python module can be found here.](https://github.com/MarkusRainerSchmidt/libSps/docs/py/index.html "Documentation")
+[Technical Documentation for the python module can be found here.](https://github.com/MarkusRainerSchmidt/libSps/docs/Python.html "Python Documentation")
 
 
-[Technical Documentation for the c++ code can be found here.](https://github.com/MarkusRainerSchmidt/libSps/docs/cpp/index.html "Documentation") 
+[Technical Documentation for the c++ code can be found here.](https://github.com/MarkusRainerSchmidt/libSps/docs/Cpp.html "C++ Documentation") 
 
 #### Dependent Dimensions
 

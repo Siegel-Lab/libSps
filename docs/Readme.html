@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>libSps - The Sparse Prefix Sums C++ Library &mdash; libSps 0.0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Technical Documentation for the Python Module" href="Python.html" />
+    <link rel="prev" title="libSps" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> libSps
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">libSps - The Sparse Prefix Sums C++ Library</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#bioconda">BioConda</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cmake">CMake</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#creating-indices">Creating indices</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#python">Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#c">C++</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#querying-indices">Querying indices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#documentation">Documentation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#dependent-dimensions">Dependent Dimensions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#intervals-cubes-rectangles-orthotopes">Intervals / Cubes / Rectangles / Orthotopes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#limitations">Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#thanks">Thanks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#citing-libsps">Citing libSps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Python.html">Technical Documentation for the Python Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cpp.html">Technical Documentation for the C++ Project</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">libSps</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>libSps - The Sparse Prefix Sums C++ Library</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Readme.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="libsps-the-sparse-prefix-sums-c-library">
+<h1>libSps - The Sparse Prefix Sums C++ Library<a class="headerlink" href="#libsps-the-sparse-prefix-sums-c-library" title="Permalink to this headline"></a></h1>
+<p>libSps is a C++ Library that allows counting points in n-dimensional space in constant time O(1).
+It was written to analyze <span class="raw-html-md"><a href="https://en.wikipedia.org/wiki/Chromosome_conformation_capture" title="Wikipedia">Hi-C and RADICL-seq data</a></span>
+and is based on the algorithms in Shekelyan et al.:raw-html-md:<cite>&lt;sup&gt;1&lt;/sup&gt; as well as Schmidt et al.&lt;sup&gt;2&lt;/sup&gt;</cite>.</p>
+<p>The basic principle is to compute and store the prefix sums of all datapoints.
+For example: The points 1, 3, 3, &amp; 5</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">X</span>       <span class="n">XX</span>      <span class="n">X</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+<span class="mi">0</span>   <span class="mi">1</span>   <span class="mi">2</span>   <span class="mi">3</span>   <span class="mi">4</span>   <span class="mi">5</span>
+</pre></div>
+</div>
+<p>would have the following prefix sums (the prefix sum is incremented at each point): 0, 1, 1, 3, 3, 4</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">4</span> <span class="o">-</span>                     <span class="o">----</span>
+<span class="mi">3</span> <span class="o">-</span>             <span class="o">--------</span>
+<span class="mi">2</span> <span class="o">-</span>
+<span class="mi">1</span> <span class="o">-</span>     <span class="o">--------</span>
+<span class="mi">0</span> <span class="o">-</span> <span class="o">----</span>
+    <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
+    <span class="mi">0</span>   <span class="mi">1</span>   <span class="mi">2</span>   <span class="mi">3</span>   <span class="mi">4</span>   <span class="mi">5</span>
+</pre></div>
+</div>
+<p>If we now want to count the number of points in any given interval (a, b],
+we merely have to subtract the prefix sum at position a from the prefix sum at position b.
+E.g. count( (1, 4] ) = 3 - 1 = 2; i.e. the two points at postion 3 but no other point are within the interval (1, 4].
+No matter the number of points in our index nor the size of the queried interval, we need two lookups and one substraction operation to count the points.</p>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h2>
+<p>The easiest way to install libSps is Bioconda</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="o">-</span><span class="n">c</span> <span class="n">bioconda</span> <span class="n">install</span> <span class="n">libSps</span>
+</pre></div>
+</div>
+<p>First, we create an index and fill it with points.
+The following is example python code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">libSps</span> <span class="kn">import</span> <span class="n">make_sps_index</span>
+
+<span class="c1"># create a 2D index</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">make_sps_index</span><span class="p">()</span>
+
+<span class="c1"># add points</span>
+<span class="n">initial_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+<span class="n">index</span><span class="o">.</span><span class="n">add_point</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="s2">&quot;description of point1&quot;</span><span class="p">)</span>
+<span class="n">index</span><span class="o">.</span><span class="n">add_point</span><span class="p">((</span><span class="mi">20</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;description of point2&quot;</span><span class="p">)</span>
+
+<span class="c1"># preprocess the index</span>
+<span class="n">dataset_id</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">initial_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Once we have a preprocessed dataset, we can query it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">dataset_id</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="c1"># a == 0</span>
+
+<span class="n">b</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">dataset_id</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="c1"># b == 1</span>
+</pre></div>
+</div>
+<p>Note that, index.count() takes constant O(1)! time, no matter the amount of points in the index or size of the area that is queried.</p>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h2>
+<p>There are two ways to install libSps: via bioconda and via github.
+The bioconda installation is easier, but restricts you to using &lt;=5 dimensions.</p>
+<section id="bioconda">
+<h3>BioConda<a class="headerlink" href="#bioconda" title="Permalink to this headline"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="o">-</span><span class="n">c</span> <span class="n">bioconda</span> <span class="n">install</span> <span class="n">libSps</span>
+</pre></div>
+</div>
+</section>
+<section id="cmake">
+<h3>CMake<a class="headerlink" href="#cmake" title="Permalink to this headline"></a></h3>
+<p>To compile libSps from the githug source use the following commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># clone repository</span>
+<span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">MarkusRainerSchmidt</span><span class="o">/</span><span class="n">libSps</span>
+<span class="n">cd</span> <span class="n">libSps</span>
+
+<span class="c1"># create and activate conda environment</span>
+<span class="o">./</span><span class="n">conda_env_create_env</span><span class="o">.</span><span class="n">sh</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">libSps</span>
+
+<span class="c1"># configure build</span>
+<span class="n">mkdir</span> <span class="n">build</span>
+<span class="n">cd</span> <span class="n">build</span>
+<span class="n">cmake</span> <span class="o">../</span><span class="n">libSps</span><span class="o">/</span>
+
+<span class="c1"># build</span>
+<span class="n">make</span>
+</pre></div>
+</div>
+<p>Various parameters of libSps are set during compile time as they affect the underlying memory layout and as this improves runtime performance.
+Hence, With CMake, you can configure libSps in various ways:</p>
+<p>add <code class="docutils literal notranslate"><span class="pre">-DWITH_PYTHON=ON</span></code> to create a shared object file that can be imported as a python module. If this parameter is set:</p>
+<ul class="simple">
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DNUM_DIMENSIONS_A=X</span> <span class="pre">-DNUM_DIMENSIONS_B=Y</span> <span class="pre">...</span> <span class="pre">-DNUM_DIMENSIONS_D=Z</span></code> to create indices with X, Y, …, Z dimensions.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_DEPENDENT_DIM=ON</span></code> to create indices where the overlay grids’ dimension 1 is dependent on its dimension 0.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DWO_DEPENDENT_DIM=ON</span></code> to create indices where the overlay grids’ dimensions are independent of each other.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_CUBES=ON</span></code> to create indices where entries are not point-like but interval-like on the first 3 dimensions.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_RECTANGLES=ON</span></code> to create indices where entries are not point-like but interval-like on the first 2 dimensions.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_INTERVALS=ON</span></code> to create indices where entries are not point-like but interval-like on the first dimension.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_POINTS=ON</span></code> to create indices where entries are fully point-like.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DDISK=ON</span></code> to create indices that load all data from a file on startup and store it back to the file on shutdown. Expect them to consume as much RAM as the filesize.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DCACHED=ON</span></code> to create indices that use a cache to load data from and store data to a file dynamically as needed during runtime. Expect this storage type to be slightly slower than the other two options. For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data stored.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">-DRAM=ON</span></code> to create indices stores all information in RAM and never interacts with the filesystem.</p></li>
+</ul>
+<p>If multiple contradicting options are turned on as e.g. <code class="docutils literal notranslate"><span class="pre">-DNUM_DIMENSIONS_A=7</span> <span class="pre">-DNUM_DIMENSIONS_B=3</span></code> and <code class="docutils literal notranslate"><span class="pre">-DRAM=ON</span> <span class="pre">-DDISK=ON</span></code> indices with all valid combinations will be compiled and made available via the <code class="docutils literal notranslate"><span class="pre">make_sps_index()</span></code> factory function.
+Hence, you may want to consider turning options off to save compiletime: E.g. <code class="docutils literal notranslate"><span class="pre">-DCACHED=OFF</span> <span class="pre">-DNUM_DIMENSIONS_A=0</span></code>.</p>
+<p>If you plan using libSps from C++ you can set all these options via template parameters (see “Creating indices” below).</p>
+</section>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline"></a></h2>
+<p>The libSps workflow is seperated in two phases: Creating an index and querying the index.</p>
+<section id="creating-indices">
+<h3>Creating indices<a class="headerlink" href="#creating-indices" title="Permalink to this headline"></a></h3>
+<section id="python">
+<h4>Python<a class="headerlink" href="#python" title="Permalink to this headline"></a></h4>
+</section>
+<section id="c">
+<h4>C++<a class="headerlink" href="#c" title="Permalink to this headline"></a></h4>
+</section>
+</section>
+<section id="querying-indices">
+<h3>Querying indices<a class="headerlink" href="#querying-indices" title="Permalink to this headline"></a></h3>
+</section>
+<section id="documentation">
+<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline"></a></h3>
+<p><span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/docs/index.html" title="Documentation">Technical Documentation for the python module and c++ code can be found here.</a></span></p>
+<section id="dependent-dimensions">
+<h4>Dependent Dimensions<a class="headerlink" href="#dependent-dimensions" title="Permalink to this headline"></a></h4>
+</section>
+<section id="intervals-cubes-rectangles-orthotopes">
+<h4>Intervals / Cubes / Rectangles / Orthotopes<a class="headerlink" href="#intervals-cubes-rectangles-orthotopes" title="Permalink to this headline"></a></h4>
+</section>
+</section>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>libSps does not work with negative coordinates.</p></li>
+<li><p>dimension 1 is the only dimension that can be made dependent on another dimension and it can only be made dependent on dimenison 0.</p></li>
+</ul>
+</section>
+<section id="thanks">
+<h2>Thanks<a class="headerlink" href="#thanks" title="Permalink to this headline"></a></h2>
+<p>libSps uses several other projects. These are:</p>
+<ul class="simple">
+<li><p><span class="raw-html-md"><a href="https://github.com/pybind/pybind11" title="GitHub">Pybind11</a></span>: Seamless operability between C++11 and Python</p></li>
+<li><p><span class="raw-html-md"><a href="https://github.com/stxxl/stxxl" title="GitHub">STXXL</a></span>: Standard Template Library for Extra Large Data Sets</p></li>
+</ul>
+</section>
+<section id="citing-libsps">
+<h2>Citing libSps<a class="headerlink" href="#citing-libsps" title="Permalink to this headline"></a></h2>
+<p>For citing libSps, please use:
+&#64;todo</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h2>
+<ol class="arabic simple">
+<li><p>Shekelyan, M., Dignös, A. &amp; Gamper, J. Sparse prefix sums: Constant-time range sum queries over sparse multidimensional data cubes. Information Systems 82, 136–147 (2019).</p></li>
+<li><p>Schmidt et al. &#64;todo</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="libSps" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Python.html" class="btn btn-neutral float-right" title="Technical Documentation for the Python Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Markus Schmidt.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
