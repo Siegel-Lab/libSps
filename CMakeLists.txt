@@ -126,7 +126,7 @@ if(Sphinx_FOUND)
 
     add_custom_target(copy_docs_conf ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory 
-        "${CMAKE_CURRENT_SOURCE_DIR}/docs_conf" "${CMAKE_CURRENT_BINARY_DIR}/_docs_conf")
+        "${CMAKE_CURRENT_SOURCE_DIR}/docs_conf" "${CMAKE_CURRENT_BINARY_DIR}/_docs_build")
 
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs_conf/doxygen.config)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doxygen.config.out)
@@ -151,12 +151,12 @@ if(Sphinx_FOUND)
 
     add_custom_target(docs-py ALL
         ${SPHINX_EXECUTABLE}
-            -q -b html
+            -E -a -q -b html
             -d "${SPHINX_CACHE_DIR}"
             -Dbreathe_projects.libSps="${CMAKE_CURRENT_BINARY_DIR}/doxygen/xml"
             "${BINARY_BUILD_DIR}"
             "${SPHINX_HTML_DIR}"
-        DEPENDS Sps docs-cpp
+        DEPENDS Sps docs-cpp copy_docs_conf
         COMMENT "Building HTML documentation with Sphinx")
 
 else(Sphinx_FOUND)

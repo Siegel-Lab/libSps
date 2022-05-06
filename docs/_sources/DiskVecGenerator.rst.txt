@@ -1,0 +1,5 @@
+DiskVecGenerator
+----------------
+
+.. doxygenstruct:: DiskVecGenerator
+    :members:

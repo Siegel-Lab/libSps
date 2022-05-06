@@ -1,0 +1,4 @@
+InMemTypeDef
+------------
+
+.. doxygentypedef:: InMemTypeDef

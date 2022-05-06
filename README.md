@@ -77,13 +77,13 @@ To compile libSps from the githug source use the following commands:
     cd libSps
 
     # create and activate conda environment
-    ./conda_env_create_env.sh
+    ./conda_env/create_env.sh
     conda activate libSps
 
     # configure build
     mkdir build
     cd build
-    cmake ../libSps/
+    cmake ../libSps/ # Here you can configure various options (see below)
 
     # build
     make

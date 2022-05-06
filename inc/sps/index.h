@@ -27,13 +27,26 @@
 namespace sps
 {
 
+/**
+ * @brief Abstract Superclass for all Indices.
+ *
+ * Not usefull on it's own.
+ */
 class AbstractIndex
 {
     public:
-    // make AbstractMain downcastable to Main<something something...> in python by making it abstract
+    /**
+     * @brief Does nothing.
+     * required to make AbstractIndex downcastable to Index<type_defs> in python by making it abstract
+     */
     virtual void dummy() {}
 };
 
+/**
+ * @brief The main sparse prefix sum index class.
+ * 
+ * @tparam type_defs An instance of TypeDefs, that defines all compiletime parameters
+ */
 template <typename type_defs> class Index: public AbstractIndex
 {
     EXTRACT_TYPE_DEFS; // macro call
@@ -65,7 +78,13 @@ template <typename type_defs> class Index: public AbstractIndex
 
 
   public:
-    Index( std::string sPrefix, bool bWrite = false )
+    /**
+     * @brief Construct a new Index object
+     * 
+     * @param sPrefix Prefix path of the index on the filesystem (multiple files with different endings will be created), defaults to "".
+     * @param bWrite Open the index in write mode (if this is set to False no changes can be made to the index), defaults to true.
+     */
+    Index( std::string sPrefix, bool bWrite = true )
         : vPoints( sPrefix, bWrite ),
           vDesc( sPrefix, bWrite ),
           vSparseCoord( sPrefix, bWrite ),
@@ -75,6 +94,11 @@ template <typename type_defs> class Index: public AbstractIndex
           vDataSets( dataset_vec_generator.vec( xFile ) )
     {}
 
+    /**
+     * @brief Clear the complete index.
+     *
+     * Clears all datasets.
+     */
     void clear( )
     {
         vPoints.clear( );
@@ -85,6 +109,16 @@ template <typename type_defs> class Index: public AbstractIndex
         vDataSets.clear( );
     }
 
+    /**
+     * @brief Append a point to the data structure.
+     * 
+     * The point will not be queryable until generate is called.
+     *
+     * @tparam trigger 
+     * @param vPos The position of the point.
+     * @param sDesc A description for the Point, defaults to "".
+     * @return std::enable_if_t<trigger> This function is only active if IS_ORTHOTOPE = false
+     */
     template<bool trigger = !IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, std::string sDesc = "" )
     {
@@ -110,6 +144,17 @@ template <typename type_defs> class Index: public AbstractIndex
         return vRet;
     }
 
+    /**
+     * @brief Append an orthotope to the data structure.
+     * 
+     * The orthotope will not be queryable until generate is called.
+     *
+     * @tparam trigger 
+     * @param vStart The bottom left position of the orthotope.
+     * @param vEnd The top right position of the orthotope.
+     * @param sDesc A description for the orthotope, defaults to "".
+     * @return std::enable_if_t<trigger> This function is only active if IS_ORTHOTOPE = true
+     */
     template<bool trigger = IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, std::string sDesc = "" )
     {
@@ -123,11 +168,28 @@ template <typename type_defs> class Index: public AbstractIndex
         vPoints.add( vP[0], vP[1], vDesc.add( sDesc ) );
     }
 
+    /**
+     * @brief Total number of points (among all datasets).
+     */
     coordinate_t numPoints( ) const
     {
         return vPoints.size( );
     }
 
+    /**
+     * @brief Generate a new dataset.
+     * 
+     * This may take a long time to compute.
+     *
+     * Use len(index) to determine the index of the first and last point, as add_point may add multiple points per call.
+     *
+     * This function is multithreaded.
+     *
+     * @param uiFrom Index of the first point that shall be part of this dataset.
+     * @param uiTo Index of the last point that shall be part of this dataset.
+     * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
+     * @return class_key_t The id of the generated dataset.
+     */
     class_key_t generate( coordinate_t uiFrom, coordinate_t uiTo, size_t uiVerbosity=1 )
     {
         progress_stream_t xProg(uiVerbosity);
@@ -139,6 +201,18 @@ template <typename type_defs> class Index: public AbstractIndex
         return uiRet;
     }
 
+
+    /**
+     * @brief Count the number of points between from and to and in the given dataset.
+     * 
+     * to_pos must be larger equal than from_pos in each dimension.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @param vFromR The bottom left position of the query region.
+     * @param vToR The top right position of the query region.
+     * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
+     * @return val_t The number of points in dataset_id between from_pos and to_pos.
+     */
     val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, size_t uiVerbosity=0 ) const
     {
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
@@ -175,6 +249,9 @@ template <typename type_defs> class Index: public AbstractIndex
         return uiRet;
     }
 
+    /**
+     * @brief Return a string describing the index.
+     */
     std::string str( ) const
     {
         std::stringstream ss;

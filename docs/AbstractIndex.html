@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Technical Documentation for the C++ Project &mdash; libSps 0.0.1 documentation</title>
+  <title>AbstractIndex &mdash; libSps 0.0.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="shortcut icon" href="_static/favicon.ico"/>
@@ -19,8 +19,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="AbstractIndex" href="AbstractIndex.html" />
-    <link rel="prev" title="libSps.DiskPointsPrefixSum_3D" href="_generate/libSps.DiskPointsPrefixSum_3D.html" /> 
+    <link rel="next" title="Index" href="CppIndex.html" />
+    <link rel="prev" title="Technical Documentation for the C++ Project" href="Cpp.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,8 +41,8 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Readme.html">libSps - The Sparse Prefix Sums C++ Library</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Python.html">Technical Documentation for the Python Module</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Technical Documentation for the C++ Project</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="AbstractIndex.html">AbstractIndex</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Cpp.html">Technical Documentation for the C++ Project</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">AbstractIndex</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CppIndex.html">Index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="TypeDefs.html">TypeDefs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InMemTypeDef.html">InMemTypeDef</a></li>
@@ -69,9 +69,10 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Technical Documentation for the C++ Project</li>
+          <li><a href="Cpp.html">Technical Documentation for the C++ Project</a> &raquo;</li>
+      <li>AbstractIndex</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/Cpp.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/AbstractIndex.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -79,53 +80,33 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="technical-documentation-for-the-c-project">
-<h1>Technical Documentation for the C++ Project<a class="headerlink" href="#technical-documentation-for-the-c-project" title="Permalink to this headline"></a></h1>
-<div class="toctree-wrapper compound">
+  <section id="abstractindex">
+<h1>AbstractIndex<a class="headerlink" href="#abstractindex" title="Permalink to this headline"></a></h1>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N3sps13AbstractIndexE">
+<span id="_CPPv3N3sps13AbstractIndexE"></span><span id="_CPPv2N3sps13AbstractIndexE"></span><span id="sps::AbstractIndex"></span><span class="target" id="classsps_1_1AbstractIndex"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">AbstractIndex</span></span></span><a class="headerlink" href="#_CPPv4N3sps13AbstractIndexE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Abstract Superclass for all Indices. </p>
+<p>Not usefull on it’s own. </p>
+<p>Subclassed by <a class="reference internal" href="CppIndex.html#classsps_1_1Index"><span class="std std-ref">sps::Index&lt; type_defs &gt;</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3sps13AbstractIndex5dummyEv">
+<span id="_CPPv3N3sps13AbstractIndex5dummyEv"></span><span id="_CPPv2N3sps13AbstractIndex5dummyEv"></span><span id="sps::AbstractIndex::dummy"></span><span class="target" id="classsps_1_1AbstractIndex_1a07428403e4118935c2bc1f08dc735609"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dummy</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3sps13AbstractIndex5dummyEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Does nothing. required to make <a class="reference internal" href="#classsps_1_1AbstractIndex"><span class="std std-ref">AbstractIndex</span></a> downcastable to Index&lt;type_defs&gt; in python by making it abstract. </p>
+</dd></dl>
+
 </div>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="AbstractIndex.html"><span class="doc">AbstractIndex</span></a></p></td>
-<td><p>Abstract Superclass for all Indices.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="CppIndex.html"><span class="doc">Index</span></a></p></td>
-<td><p>The main sparse prefix sum index class.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="TypeDefs.html"><span class="doc">TypeDefs</span></a></p></td>
-<td><p>Definition of all compiletime parameters for Index.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="InMemTypeDef.html"><span class="doc">InMemTypeDef</span></a></p></td>
-<td><p>Type definitions for a RAM Index</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="CachedTypeDef.html"><span class="doc">CachedTypeDef</span></a></p></td>
-<td><p>Type definitions for a Cached Index.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="DiskTypeDef.html"><span class="doc">DiskTypeDef</span></a></p></td>
-<td><p>Type definitions for a Disk Index.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="DiskVecGenerator.html"><span class="doc">DiskVecGenerator</span></a></p></td>
-<td><p>Generator class for a std::vector like.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="RamVectorSorter.html"><span class="doc">RamVectorSorter</span></a></p></td>
-<td><p>Sorter for a std::vector.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="StdOutProgressStream.html"><span class="doc">StdOutProgressStream</span></a></p></td>
-<td><p>Catches all print output.</p></td>
-</tr>
-</tbody>
-</table>
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="_generate/libSps.DiskPointsPrefixSum_3D.html" class="btn btn-neutral float-left" title="libSps.DiskPointsPrefixSum_3D" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="AbstractIndex.html" class="btn btn-neutral float-right" title="AbstractIndex" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Cpp.html" class="btn btn-neutral float-left" title="Technical Documentation for the C++ Project" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="CppIndex.html" class="btn btn-neutral float-right" title="Index" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

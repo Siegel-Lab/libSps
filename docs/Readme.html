@@ -7,6 +7,7 @@
   <title>libSps - The Sparse Prefix Sums C++ Library &mdash; libSps 0.0.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -19,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Technical Documentation for the Python Module" href="Python.html" />
-    <link rel="prev" title="libSps" href="index.html" /> 
+    <link rel="prev" title="Contents" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -169,13 +170,13 @@ The bioconda installation is easier, but restricts you to using &lt;=5 dimension
 <span class="n">cd</span> <span class="n">libSps</span>
 
 <span class="c1"># create and activate conda environment</span>
-<span class="o">./</span><span class="n">conda_env_create_env</span><span class="o">.</span><span class="n">sh</span>
+<span class="o">./</span><span class="n">conda_env</span><span class="o">/</span><span class="n">create_env</span><span class="o">.</span><span class="n">sh</span>
 <span class="n">conda</span> <span class="n">activate</span> <span class="n">libSps</span>
 
 <span class="c1"># configure build</span>
 <span class="n">mkdir</span> <span class="n">build</span>
 <span class="n">cd</span> <span class="n">build</span>
-<span class="n">cmake</span> <span class="o">../</span><span class="n">libSps</span><span class="o">/</span>
+<span class="n">cmake</span> <span class="o">../</span><span class="n">libSps</span><span class="o">/</span> <span class="c1"># Here you can configure various options (see below)</span>
 
 <span class="c1"># build</span>
 <span class="n">make</span>
@@ -218,7 +219,8 @@ Hence, you may want to consider turning options off to save compiletime: E.g. <c
 </section>
 <section id="documentation">
 <h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline"></a></h3>
-<p><span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/docs/index.html" title="Documentation">Technical Documentation for the python module and c++ code can be found here.</a></span></p>
+<p><span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/docs/Python.html" title="Python Documentation">Technical Documentation for the python module can be found here.</a></span></p>
+<p><span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/docs/Cpp.html" title="C++ Documentation">Technical Documentation for the c++ code can be found here.</a></span></p>
 <section id="dependent-dimensions">
 <h4>Dependent Dimensions<a class="headerlink" href="#dependent-dimensions" title="Permalink to this headline"></a></h4>
 </section>
@@ -260,7 +262,7 @@ Hence, you may want to consider turning options off to save compiletime: E.g. <c
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="libSps" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Contents" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="Python.html" class="btn btn-neutral float-right" title="Technical Documentation for the Python Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

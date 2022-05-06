@@ -1,0 +1,5 @@
+StdOutProgressStream
+--------------------
+
+.. doxygenstruct:: StdOutProgressStream
+    :members:

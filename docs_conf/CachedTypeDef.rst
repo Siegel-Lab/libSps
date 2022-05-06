@@ -1,0 +1,4 @@
+CachedTypeDef
+-------------
+
+.. doxygentypedef:: CachedTypeDef

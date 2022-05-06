@@ -1,0 +1,5 @@
+RamVectorSorter
+----------------
+
+.. doxygenstruct:: RamVectorSorter
+    :members:

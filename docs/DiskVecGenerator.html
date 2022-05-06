@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiskVecGenerator &mdash; libSps 0.0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="RamVectorSorter" href="RamVectorSorter.html" />
+    <link rel="prev" title="DiskTypeDef" href="DiskTypeDef.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> libSps
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Readme.html">libSps - The Sparse Prefix Sums C++ Library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Python.html">Technical Documentation for the Python Module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Cpp.html">Technical Documentation for the C++ Project</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="AbstractIndex.html">AbstractIndex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CppIndex.html">Index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TypeDefs.html">TypeDefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InMemTypeDef.html">InMemTypeDef</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CachedTypeDef.html">CachedTypeDef</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DiskTypeDef.html">DiskTypeDef</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">DiskVecGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RamVectorSorter.html">RamVectorSorter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="StdOutProgressStream.html">StdOutProgressStream</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">libSps</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="Cpp.html">Technical Documentation for the C++ Project</a> &raquo;</li>
+      <li>DiskVecGenerator</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/DiskVecGenerator.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="diskvecgenerator">
+<h1>DiskVecGenerator<a class="headerlink" href="#diskvecgenerator" title="Permalink to this headline"></a></h1>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4I0E16DiskVecGenerator">
+<span id="_CPPv3I0E16DiskVecGenerator"></span><span id="_CPPv2I0E16DiskVecGenerator"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">val_t</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structDiskVecGenerator"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DiskVecGenerator</span></span></span><a class="headerlink" href="#_CPPv4I0E16DiskVecGenerator" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generator class for a std::vector like. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters</dt>
+<dd class="field-odd"><p><strong>val_t</strong> – content type for the vector </p>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N16DiskVecGenerator6file_tE">
+<span id="_CPPv3N16DiskVecGenerator6file_tE"></span><span id="_CPPv2N16DiskVecGenerator6file_tE"></span><span class="target" id="structDiskVecGenerator_1a827e32a41752c946f1e67fec366ce46e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">file_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N16DiskVecGenerator6file_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>type of the file information </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N16DiskVecGenerator5vec_tE">
+<span id="_CPPv3N16DiskVecGenerator5vec_tE"></span><span id="_CPPv2N16DiskVecGenerator5vec_tE"></span><span class="target" id="structDiskVecGenerator_1a696f24eb313f2993e6fca3062b234ee0"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vec_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DiskVec</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0E16DiskVecGenerator" title="DiskVecGenerator::val_t"><span class="n"><span class="pre">val_t</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N16DiskVecGenerator5vec_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>type of the actual vector </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16DiskVecGenerator3vecER6file_t">
+<span id="_CPPv3N16DiskVecGenerator3vecER6file_t"></span><span id="_CPPv2N16DiskVecGenerator3vecER6file_t"></span><span id="DiskVecGenerator::vec__file_tR"></span><span class="target" id="structDiskVecGenerator_1a33bfd1d7bd142030396ac571bebd0012"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N16DiskVecGenerator5vec_tE" title="DiskVecGenerator::vec_t"><span class="n"><span class="pre">vec_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vec</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16DiskVecGenerator6file_tE" title="DiskVecGenerator::file_t"><span class="n"><span class="pre">file_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rFile</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16DiskVecGenerator3vecER6file_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>generate a vector for a given file. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>rFile</strong> – the file. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>vec_t the generated vector. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16DiskVecGenerator4fileENSt6stringEb">
+<span id="_CPPv3N16DiskVecGenerator4fileENSt6stringEb"></span><span id="_CPPv2N16DiskVecGenerator4fileENSt6stringEb"></span><span id="DiskVecGenerator::file__ss.b"></span><span class="target" id="structDiskVecGenerator_1a5dc95537cd45f5d8b5610352c6b3460d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N16DiskVecGenerator6file_tE" title="DiskVecGenerator::file_t"><span class="n"><span class="pre">file_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">file</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sPath</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bOpenInWriteMode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16DiskVecGenerator4fileENSt6stringEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>generate a file for a given path. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sPath</strong> – path of the file. </p></li>
+<li><p><strong>bOpenInWriteMode</strong> – whether the file shall be opened in write mode. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>file_t the generated file. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16DiskVecGenerator10THREADSAVEE">
+<span id="_CPPv3N16DiskVecGenerator10THREADSAVEE"></span><span id="_CPPv2N16DiskVecGenerator10THREADSAVEE"></span><span id="DiskVecGenerator::THREADSAVE__bC"></span><span class="target" id="structDiskVecGenerator_1a990e6b89a0efae8b972faab921cdb595"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">THREADSAVE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N16DiskVecGenerator10THREADSAVEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>this vector is threadsave (as long as it’s size is not changed) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="DiskTypeDef.html" class="btn btn-neutral float-left" title="DiskTypeDef" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="RamVectorSorter.html" class="btn btn-neutral float-right" title="RamVectorSorter" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Markus Schmidt.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
