@@ -1,5 +1,5 @@
-Technical Documentation for the C++ Project
-*******************************************
+Documentation for the C++ Library
+*********************************
  
 .. toctree::
     :maxdepth: 2

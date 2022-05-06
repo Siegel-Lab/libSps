@@ -225,8 +225,8 @@ R"pbdoc(
 
     std::string sIndices = exportDims(m);
     std::string sRaw = R"pbdoc(
-Technical Documentation for the Python Module
----------------------------------------------
+Documentation for the Python Module
+-----------------------------------
 .. currentmodule:: libSps
 .. autosummary::
     :toctree: _generate

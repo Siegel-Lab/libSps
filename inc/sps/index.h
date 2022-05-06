@@ -185,13 +185,18 @@ template <typename type_defs> class Index: public AbstractIndex
      *
      * This function is multithreaded.
      *
-     * @param uiFrom Index of the first point that shall be part of this dataset.
-     * @param uiTo Index of the last point that shall be part of this dataset.
+     * @param uiFrom Index of the first point that shall be part of this dataset, defaults to zero.
+     * @param uiTo Index of the last point that shall be part of this dataset, defaults to the current size of the index.
      * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
      * @return class_key_t The id of the generated dataset.
      */
-    class_key_t generate( coordinate_t uiFrom, coordinate_t uiTo, size_t uiVerbosity=1 )
+    class_key_t generate( coordinate_t uiFrom = 0, 
+                          coordinate_t uiTo = std::numeric_limits<coordinate_t>::max(), 
+                          size_t uiVerbosity=1 )
     {
+        if(uiTo == std::numeric_limits<coordinate_t>::max())
+            uiTo = numPoints();
+
         progress_stream_t xProg(uiVerbosity);
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
@@ -397,15 +402,18 @@ R"pbdoc(
     :param write_mode: Open the index in write mode (if this is set to False no changes can be made to the index), defaults to True.
     :type write_mode: str
 )pbdoc" ) // constructor
-        .def( "generate", &sps::Index<type_defs>::generate, pybind11::arg( "from_points" ), pybind11::arg( "to_points" ),
+        .def( "generate", 
+              &sps::Index<type_defs>::generate, 
+              pybind11::arg( "from_points" ) = 0, 
+              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max(),
               pybind11::arg( "verbosity" ) = 1,
 R"pbdoc(
     Generate a new dataset.
     
-    :param from_points: Index of the first point that shall be part of this dataset.
+    :param from_points: Index of the first point that shall be part of this dataset, defaults to zero.
     :type from_points: int
     
-    :param to_points: Index of the last point that shall be part of this dataset.
+    :param to_points: Index of the last point that shall be part of this dataset, defaults to the current size of the index.
     :type to_points: int
     
     :param verbosity: Degree of verbosity while creating the dataset, defaults to 1.

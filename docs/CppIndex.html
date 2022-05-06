@@ -40,8 +40,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Readme.html">libSps - The Sparse Prefix Sums C++ Library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Python.html">Technical Documentation for the Python Module</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="Cpp.html">Technical Documentation for the C++ Project</a><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Python.html">Documentation for the Python Module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Cpp.html">Documentation for the C++ Library</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="AbstractIndex.html">AbstractIndex</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="TypeDefs.html">TypeDefs</a></li>
@@ -69,7 +69,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="Cpp.html">Technical Documentation for the C++ Project</a> &raquo;</li>
+          <li><a href="Cpp.html">Documentation for the C++ Library</a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/CppIndex.rst.txt" rel="nofollow"> View page source</a>
@@ -165,7 +165,7 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N3sps5Index8generateE12coordinate_t12coordinate_t6size_t">
-<span id="_CPPv3N3sps5Index8generateE12coordinate_t12coordinate_t6size_t"></span><span id="_CPPv2N3sps5Index8generateE12coordinate_t12coordinate_t6size_t"></span><span id="sps::Index::generate__coordinate_t.coordinate_t.s"></span><span class="target" id="classsps_1_1Index_1a9b12652f3988eea05b7c90912627b776"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">class_key_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">coordinate_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiFrom</span></span>, <span class="n"><span class="pre">coordinate_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiTo</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiVerbosity</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3sps5Index8generateE12coordinate_t12coordinate_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N3sps5Index8generateE12coordinate_t12coordinate_t6size_t"></span><span id="_CPPv2N3sps5Index8generateE12coordinate_t12coordinate_t6size_t"></span><span id="sps::Index::generate__coordinate_t.coordinate_t.s"></span><span class="target" id="classsps_1_1Index_1a19e427697889064429120c181b6547c8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">class_key_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">coordinate_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiFrom</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span>, <span class="n"><span class="pre">coordinate_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiTo</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">coordinate_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiVerbosity</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3sps5Index8generateE12coordinate_t12coordinate_t6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Generate a new dataset. </p>
 <p>This may take a long time to compute.</p>
 <p>Use len(index) to determine the index of the first and last point, as add_point may add multiple points per call.</p>
@@ -173,8 +173,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>uiFrom</strong> – <a class="reference internal" href="#classsps_1_1Index"><span class="std std-ref">Index</span></a> of the first point that shall be part of this dataset. </p></li>
-<li><p><strong>uiTo</strong> – <a class="reference internal" href="#classsps_1_1Index"><span class="std std-ref">Index</span></a> of the last point that shall be part of this dataset. </p></li>
+<li><p><strong>uiFrom</strong> – <a class="reference internal" href="#classsps_1_1Index"><span class="std std-ref">Index</span></a> of the first point that shall be part of this dataset, defaults to zero. </p></li>
+<li><p><strong>uiTo</strong> – <a class="reference internal" href="#classsps_1_1Index"><span class="std std-ref">Index</span></a> of the last point that shall be part of this dataset, defaults to the current size of the index. </p></li>
 <li><p><strong>uiVerbosity</strong> – Degree of verbosity while creating the dataset, defaults to 1. </p></li>
 </ul>
 </dd>
