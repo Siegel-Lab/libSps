@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>libSps - The Sparse Prefix Sums C++ Library &mdash; libSps 0.0.1 documentation</title>
+  <title>libSps - The Sparse Prefix Sums Library &mdash; libSps 0.0.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="shortcut icon" href="_static/favicon.ico"/>
@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Documentation for the Python Module" href="Python.html" />
+    <link rel="next" title="libSps - Manual" href="Manual.html" />
     <link rel="prev" title="Contents" href="index.html" /> 
 </head>
 
@@ -39,37 +39,15 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">libSps - The Sparse Prefix Sums C++ Library</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">libSps - The Sparse Prefix Sums Library</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting started</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#bioconda">BioConda</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#github-cmake">Github/CMake</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#python">Python</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#creating-indices">Creating indices</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#querying-indices">Querying indices</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#documentation">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#c">C++</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id1">Creating indices</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id2">Querying indices</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id3">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#dependent-dimensions">Dependent Dimensions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#intervals-rectangles-cubes-orthotopes">Intervals / Rectangles / Cubes / Orthotopes</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#limitations">Limitations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#thanks">Thanks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started-quickly">Getting started quickly</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#manual">Manual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#citing-libsps">Citing libSps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="Manual.html">libSps - Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Python.html">Documentation for the Python Module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Cpp.html">Documentation for the C++ Library</a></li>
 </ul>
@@ -88,7 +66,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>libSps - The Sparse Prefix Sums C++ Library</li>
+      <li>libSps - The Sparse Prefix Sums Library</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/Readme.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -98,13 +76,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="libsps-the-sparse-prefix-sums-c-library">
-<h1>libSps - The Sparse Prefix Sums C++ Library<a class="headerlink" href="#libsps-the-sparse-prefix-sums-c-library" title="Permalink to this headline"></a></h1>
+  <section id="libsps-the-sparse-prefix-sums-library">
+<h1>libSps - The Sparse Prefix Sums Library<a class="headerlink" href="#libsps-the-sparse-prefix-sums-library" title="Permalink to this headline"></a></h1>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline"></a></h2>
 <p>libSps is a C++ Library that allows counting points in n-dimensional space in constant time O(1).
 It was written to analyze <span class="raw-html-md"><a href="https://en.wikipedia.org/wiki/Chromosome_conformation_capture" title="Wikipedia">Hi-C and RADICL-seq data</a></span>
 and is based on the algorithms in Shekelyan et al. [1] as well as Schmidt et al. [2].</p>
+<p>It can be loaded and used as a python3 module.</p>
 <p>The basic principle is to compute and store the prefix sums of all datapoints.
 For example: The points 1, 3, 3 &amp; 5</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">X</span>       <span class="n">XX</span>      <span class="n">X</span>
@@ -127,8 +106,8 @@ we merely have to subtract the prefix sum at position a from the prefix sum at p
 E.g. count( (1, 4] ) = 3 - 1 = 2; i.e. the two points at postion 3 but no other point are within the interval (1, 4].
 No matter the number of points in our index nor the size of the queried interval, we need two lookups and one substraction operation to count the points.</p>
 </section>
-<section id="getting-started">
-<h2>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h2>
+<section id="getting-started-quickly">
+<h2>Getting started quickly<a class="headerlink" href="#getting-started-quickly" title="Permalink to this headline"></a></h2>
 <p>The easiest way to install libSps is Bioconda</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="o">-</span><span class="n">c</span> <span class="n">bioconda</span> <span class="n">install</span> <span class="n">libSps</span>
 </pre></div>
@@ -158,200 +137,9 @@ The following is example python code:</p>
 </div>
 <p>Note that, index.count() takes constant O(1)! time, no matter the amount of points in the index or size of the area that is queried.</p>
 </section>
-<section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h2>
-<p>There are two ways to install libSps: via bioconda and via github/cmake.
-The bioconda installation is easier, but restricts you to using &lt;=5 dimensions.</p>
-<section id="bioconda">
-<h3>BioConda<a class="headerlink" href="#bioconda" title="Permalink to this headline"></a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="o">-</span><span class="n">c</span> <span class="n">bioconda</span> <span class="n">install</span> <span class="n">libSps</span>
-</pre></div>
-</div>
-</section>
-<section id="github-cmake">
-<h3>Github/CMake<a class="headerlink" href="#github-cmake" title="Permalink to this headline"></a></h3>
-<p>To compile libSps from the githug source use the following commands:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># clone repository</span>
-<span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">MarkusRainerSchmidt</span><span class="o">/</span><span class="n">libSps</span>
-<span class="n">cd</span> <span class="n">libSps</span>
-
-<span class="c1"># create and activate conda environment (alternativeley, install the software in conda_env/libSps.yaml yourself)</span>
-<span class="o">./</span><span class="n">conda_env</span><span class="o">/</span><span class="n">create_env</span><span class="o">.</span><span class="n">sh</span>
-<span class="n">conda</span> <span class="n">activate</span> <span class="n">libSps</span>
-
-<span class="c1"># configure build</span>
-<span class="n">mkdir</span> <span class="n">build</span>
-<span class="n">cd</span> <span class="n">build</span>
-<span class="n">cmake</span> <span class="o">../</span><span class="n">libSps</span><span class="o">/</span> <span class="c1"># Here you can configure various options (see below)</span>
-
-<span class="c1"># build</span>
-<span class="n">make</span>
-</pre></div>
-</div>
-<p>Various parameters of libSps are set during compile time as they affect the underlying memory layout and as this improves runtime performance.
-Hence, With CMake, you can configure libSps in various ways:</p>
-<p>add <code class="docutils literal notranslate"><span class="pre">-DWITH_PYTHON=ON</span></code> to create a shared object file that can be imported as a python module. If this parameter is set:</p>
-<ul class="simple">
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DNUM_DIMENSIONS_A=X</span> <span class="pre">-DNUM_DIMENSIONS_B=Y</span> <span class="pre">...</span> <span class="pre">-DNUM_DIMENSIONS_D=Z</span></code> to create indices with X, Y, …, Z dimensions.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_DEPENDENT_DIM=ON</span></code> to create indices where the overlay grids’ dimension 1 is dependent on its dimension 0.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DWO_DEPENDENT_DIM=ON</span></code> to create indices where the overlay grids’ dimensions are independent of each other.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_CUBES=ON</span></code> to create indices where entries are not point-like but interval-like on the first 3 dimensions.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_RECTANGLES=ON</span></code> to create indices where entries are not point-like but interval-like on the first 2 dimensions.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_INTERVALS=ON</span></code> to create indices where entries are not point-like but interval-like on the first dimension.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DW_POINTS=ON</span></code> to create indices where entries are fully point-like.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DDISK=ON</span></code> to create indices that load all data from a file on startup and store it back to the file on shutdown. Expect them to consume as much RAM as the filesize.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DCACHED=ON</span></code> to create indices that use a cache to load data from and store data to a file dynamically as needed during runtime. Expect this storage type to be slightly slower than the other two options. For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data stored.</p></li>
-<li><p>set <code class="docutils literal notranslate"><span class="pre">-DRAM=ON</span></code> to create indices stores all information in RAM and never interacts with the filesystem.</p></li>
-</ul>
-<p>If multiple contradicting options are turned on as e.g. <code class="docutils literal notranslate"><span class="pre">-DNUM_DIMENSIONS_A=7</span> <span class="pre">-DNUM_DIMENSIONS_B=3</span></code> and <code class="docutils literal notranslate"><span class="pre">-DRAM=ON</span> <span class="pre">-DDISK=ON</span></code> indices with all valid combinations will be compiled and made available via the <code class="docutils literal notranslate"><span class="pre">make_sps_index()</span></code> factory function.
-Hence, you may want to consider turning options off to save compiletime: E.g. <code class="docutils literal notranslate"><span class="pre">-DCACHED=OFF</span> <span class="pre">-DNUM_DIMENSIONS_A=0</span></code>.</p>
-<p>If you plan using libSps from C++ you can set all these options via template parameters (see “Creating indices” below).</p>
-</section>
-</section>
-<section id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline"></a></h2>
-<p>The libSps workflow is seperated in two phases: Creating an index and querying the index.</p>
-<section id="python">
-<h3>Python<a class="headerlink" href="#python" title="Permalink to this headline"></a></h3>
-<p>This section contains the Documentation for using libSps from python3.</p>
-<section id="creating-indices">
-<h4>Creating indices<a class="headerlink" href="#creating-indices" title="Permalink to this headline"></a></h4>
-<p>First you need to pick the correct implementation of the sparse prefix sum index for your use-case.
-For this, it is easiest to call the <code class="docutils literal notranslate"><span class="pre">make_sps_index</span></code> factory function with the appropriate parameters.</p>
-<p>For example creating an Index for 4-dimensional points, that can deal with a large amount of points saving all data in files and using a cache, use the following parameters:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span> <span class="o">=</span> <span class="n">make_sps_index</span><span class="p">(</span><span class="s2">&quot;example_index_prefix&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">storage_type</span><span class="o">=</span><span class="s2">&quot;Cached&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>If instead of Points, you want to query Intervals, Rectangles, Cubes or Orthotopes of higher dimensionality, adjust the num_orthotope_dimensions parameter.
-Note that e.g. Rectangles can still be placed in more than 2-Dimensional space.
-For Example Rectangles that are placed in 3-Dimensional space will extend in the first two dimensions and be completely flat in the third.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Rectangles in 3-dimensional space</span>
-<span class="n">index_2</span> <span class="o">=</span> <span class="n">make_sps_index</span><span class="p">(</span><span class="s2">&quot;example_index_prefix_2&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">num_orthotope_dimensions</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Next you need to fill the index with points.
-At the moment a description for each point can be stored but not retrieved again (hence you can also just leave the description empty).
-The number of coordinates you provide for each point must match the dimensionality of the index you picked in step 1.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">.</span><span class="n">add_point</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="s2">&quot;description of point for index&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>If your index contains orthotope dimensions addind one datapoint requires its bottom-left-front-… point and its top-right-back-… point.
-Again the dimensionality of the given points must match the picked number of dimensions.
-For dimensions that are not part of the orthotope the coordinates of both given points must be equal.</p>
-<p>For example in index_2 the third dimension is not part of the rectangle and hence equal (=1) for both points.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index_2</span><span class="o">.</span><span class="n">add_point</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;description of point for index_2&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Once all points have been added you call <code class="docutils literal notranslate"><span class="pre">generate</span></code> to create the sparse prefix sum matrix.
-This may take a long time to compute.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dataset_id</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">generate</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Generate returns the id of the generated dataset.
-You will need this id for querying the index later.</p>
-<p>If you want to store multiple datsets in the same index you can provide the generate function with the index of the first point that shall be part of the dataset and the index of one past the last point that shall be part of the dataset.
-Note that if your index is orthotope a single datapoint may take up multiple indices.
-You should hence use <code class="docutils literal notranslate"><span class="pre">len(index)</span></code> for determining the start and end indices of your datasets.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span> <span class="o">=</span> <span class="n">make_sps_index</span><span class="p">()</span>
-
-<span class="c1"># create dataset a</span>
-<span class="n">start_a</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-<span class="n">index</span><span class="o">.</span><span class="n">add_point</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
-<span class="n">index</span><span class="o">.</span><span class="n">add_point</span><span class="p">((</span><span class="mi">20</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-<span class="n">end_a</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-<span class="n">dataset_a_id</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">start_a</span><span class="p">,</span> <span class="n">end_a</span><span class="p">)</span>
-
-<span class="c1"># create dataset b</span>
-<span class="n">start_b</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-<span class="n">index</span><span class="o">.</span><span class="n">add_point</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-<span class="n">index</span><span class="o">.</span><span class="n">add_point</span><span class="p">((</span><span class="mi">9</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-<span class="n">end_b</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-<span class="n">dataset_b_id</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">start_b</span><span class="p">,</span> <span class="n">end_b</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="querying-indices">
-<h4>Querying indices<a class="headerlink" href="#querying-indices" title="Permalink to this headline"></a></h4>
-<p>For querying indices you provide the bottom-left-front-…. position and the top-right-back-… position of the region you want tou count the number of points in. You also need the id of your dataset you get when generating.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">dataset_a_id</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
-</pre></div>
-</div>
-<p>The bottom-left-front-…. position is inclusive and the top-right-back-… position is exclusive.</p>
-</section>
-<section id="documentation">
-<h4>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline"></a></h4>
-<p><span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/docs/Python.html" title="Python Documentation">Technical Documentation for the python module can be found here.</a></span></p>
-</section>
-</section>
-<section id="c">
-<h3>C++<a class="headerlink" href="#c" title="Permalink to this headline"></a></h3>
-<p>This section contains the Documentation for using libSps from C++17.
-The C++ library is header-only, so you merely need to include the appropriate header files to get it working.</p>
-<section id="id1">
-<h4>Creating indices<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h4>
-<p>For creating an instance of the Index class you need to provide the <code class="docutils literal notranslate"><span class="pre">type_defs</span></code> template parameter.
-As this parameter you should provide and Instance of the <code class="docutils literal notranslate"><span class="pre">TypeDefs</span></code> class.
-You can either instantiate this class by itself or use the more convenient <code class="docutils literal notranslate"><span class="pre">InMemTypeDef</span></code>, <code class="docutils literal notranslate"><span class="pre">CachedTypeDef</span></code> or <code class="docutils literal notranslate"><span class="pre">DiskTypeDef</span></code>, which are defined in sps/default.h.</p>
-<p>Here is an example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &quot;sps/default.h&quot;</span>
-<span class="c1">#include &quot;sps/index.h&quot;</span>
-
-<span class="n">typename</span> <span class="n">sps</span><span class="p">::</span><span class="n">Index</span><span class="o">&lt;</span><span class="n">InMemTypeDef</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">true</span><span class="o">&gt;&gt;</span> <span class="n">xIndex</span><span class="p">(</span> <span class="p">);</span>
-</pre></div>
-</div>
-<p>Functionally, this does the same as the python <code class="docutils literal notranslate"><span class="pre">make_sps_index</span></code> factory function.</p>
-<p>Then cou can call <code class="docutils literal notranslate"><span class="pre">addPoint</span></code> and <code class="docutils literal notranslate"><span class="pre">generate</span></code> to set up your datasets as needed.</p>
-</section>
-<section id="id2">
-<h4>Querying indices<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h4>
-<p>Querying indices works the same as for the python Module.</p>
-</section>
-<section id="id3">
-<h4>Documentation<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h4>
-<p><span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/docs/Cpp.html" title="C++ Documentation">Technical Documentation for the c++ library can be found here.</a></span></p>
-</section>
-</section>
-<section id="dependent-dimensions">
-<h3>Dependent Dimensions<a class="headerlink" href="#dependent-dimensions" title="Permalink to this headline"></a></h3>
-<p>libSps can make that distribution of overlays in the 2nd dimension dependent on the first dimension.</p>
-<p><strong>What are overlays?:</strong>
-In sparse prefix sum datastructures overlays are used to reduce storage requirements.
-To achieve this, they span a grid across the entire dataset.
-For overlays to work best, points should be evenly distributed amongst the overlays.</p>
-<p><strong>What does making one dimension dependent on another do?:</strong>
-Usually the overlay grid is created, so that overlays are larger in regions where points are sparse and smaller in dense regions.
-This is done independently for each dimension, i.e. by sorting all points by their position in this dimension and then creating a grid division after a fixed number of points.
-If dimension 2 is dependent on dimension 1, these divisions for dimension 2 are not created globally, but locally for each slice of dimension 1.
-This breaks the grid in this dimension, i.e. divisions will be placed at different heights for each slice.</p>
-<p><strong>When is this usefull?:</strong>
-This is usefull if your dataset looks evenly distributed, when looking at every dimension individually, but is strongly clustered when considering the first two dimensions together.
-In this case the usual approach of stretching the grid will fail to separate points evenly among all overlays and therefore produce an extremely bloated datastructure.</p>
-<p>One example for such data is Hi-C data, where most points (~90%) lie close to the 45&amp;deg; diagonal.
-Looking seperatately at dimesion 1 or 2, all points look like they are evenly distribute, while actually they are not.</p>
-<p>For more details you should read Schmidt et al. [2].</p>
-</section>
-<section id="intervals-rectangles-cubes-orthotopes">
-<h3>Intervals / Rectangles / Cubes / Orthotopes<a class="headerlink" href="#intervals-rectangles-cubes-orthotopes" title="Permalink to this headline"></a></h3>
-<p>libSps can be used to store and count n-dimensional orthotopes.
-1, 2, 3, … dimensional orthotopes are intervals, rectangles, cubes, … .
-libSps is able to place an n-orthotope in a m-dimensional space (m&gt;=n), where the orthotope is simply a flat plane in the last m-n dimensions.</p>
-<p><code class="docutils literal notranslate"><span class="pre">count</span></code> will only return orthotopes that are fully contained in the given region.</p>
-</section>
-</section>
-<section id="limitations">
-<h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this headline"></a></h2>
-<ul class="simple">
-<li><p>libSps does not work with negative coordinates.</p></li>
-<li><p>dimension 2 is the only dimension that can be made dependent on another dimension and it can only be made dependent on dimension 1.</p></li>
-</ul>
-</section>
-<section id="thanks">
-<h2>Thanks<a class="headerlink" href="#thanks" title="Permalink to this headline"></a></h2>
-<p>libSps uses several other projects. These are:</p>
-<ul class="simple">
-<li><p><span class="raw-html-md"><a href="https://github.com/pybind/pybind11" title="GitHub">Pybind11</a></span>: Seamless operability between C++11 and Python</p></li>
-<li><p><span class="raw-html-md"><a href="https://github.com/stxxl/stxxl" title="GitHub">STXXL</a></span>: Standard Template Library for Extra Large Data Sets</p></li>
-</ul>
+<section id="manual">
+<h2>Manual<a class="headerlink" href="#manual" title="Permalink to this headline"></a></h2>
+<p>The full manual can be found <span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/Manual.md" title="Full Manual">here</a></span>.</p>
 </section>
 <section id="citing-libsps">
 <h2>Citing libSps<a class="headerlink" href="#citing-libsps" title="Permalink to this headline"></a></h2>
@@ -370,7 +158,7 @@ libSps is able to place an n-orthotope in a m-dimensional space (m&gt;=n), where
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Contents" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Python.html" class="btn btn-neutral float-right" title="Documentation for the Python Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Manual.html" class="btn btn-neutral float-right" title="libSps - Manual" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

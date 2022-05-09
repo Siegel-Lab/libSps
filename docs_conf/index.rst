@@ -6,5 +6,6 @@ Contents
    :includehidden:
 
    Readme
+   Manual
    Python
    Cpp

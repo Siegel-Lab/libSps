@@ -149,6 +149,9 @@ if(Sphinx_FOUND)
     # HTML output directory
     set(SPHINX_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs")
 
+    # pdftex output
+    set(SPHINX_TEX_DIR "${CMAKE_CURRENT_BINARY_DIR}/tex")
+
     add_custom_target(docs-py ALL
         ${SPHINX_EXECUTABLE}
             -E -a -q -b html
@@ -158,6 +161,16 @@ if(Sphinx_FOUND)
             "${SPHINX_HTML_DIR}"
         DEPENDS Sps docs-cpp copy_docs_conf
         COMMENT "Building HTML documentation with Sphinx")
+
+    add_custom_target(docs-py-latex ALL
+        ${SPHINX_EXECUTABLE}
+            -E -a -q -b latex
+            -d "${SPHINX_CACHE_DIR}"
+            -Dbreathe_projects.libSps="${CMAKE_CURRENT_BINARY_DIR}/doxygen/xml"
+            "${BINARY_BUILD_DIR}"
+            "${SPHINX_TEX_DIR}"
+        DEPENDS Sps docs-cpp copy_docs_conf
+        COMMENT "Building tex documentation with Sphinx") # tectonic *.tex
 
 else(Sphinx_FOUND)
     message(WARNING "No Sphinx found. Documentation target not available.")

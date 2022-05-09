@@ -1,19 +1,5 @@
 Documentation for the C++ Library
 *********************************
- 
-.. toctree::
-    :maxdepth: 2
-    :hidden:
-
-    AbstractIndex
-    CppIndex
-    TypeDefs
-    InMemTypeDef
-    CachedTypeDef
-    DiskTypeDef
-    DiskVecGenerator
-    RamVectorSorter
-    StdOutProgressStream
 
 .. list-table::
     :header-rows: 0
@@ -36,3 +22,17 @@ Documentation for the C++ Library
       - Sorter for a std::vector.
     * - :doc:`StdOutProgressStream<./StdOutProgressStream>`
       - Catches all print output.
+
+.. toctree::
+    :maxdepth: 2
+    :hidden:
+
+    AbstractIndex
+    CppIndex
+    TypeDefs
+    InMemTypeDef
+    CachedTypeDef
+    DiskTypeDef
+    DiskVecGenerator
+    RamVectorSorter
+    StdOutProgressStream
