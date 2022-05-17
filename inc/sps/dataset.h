@@ -273,8 +273,10 @@ template <typename type_defs> class Dataset
              points_t& vPoints, typename points_t::Entry xPoints, progress_stream_t xProg )
         : vSparseCoords( )
     {
+        if( xPoints.uiEndIndex == xPoints.uiStartIndex )
+            return;
         // generate the overall sparse coordinates
-        Profiler xProfiler("setting up overlay sparse coords");
+        Profiler xProfiler( "setting up overlay sparse coords" );
         ThreadPool xPool;
         xProg << Verbosity( 0 ) << "generating overlay grid.\n";
         for( size_t uiI = 0; uiI < D; uiI++ )

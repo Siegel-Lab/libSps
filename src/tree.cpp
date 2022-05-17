@@ -9,6 +9,22 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+
+template<size_t D>
+std::string exportStorageSimpleVec(pybind11::module& m, std::string sSuff)
+{
+#ifdef DISK
+    sRet += exportSimpleVector<DiskTypeDef<D, false, D>>( m, ("DiskSimpleVector" + sSuff).c_str(), sDesc );
+#endif
+#ifdef CACHED
+    sRet += exportSimpleVector<CachedTypeDef<D, false, D>>( m, ("CachedSimpleVector" + sSuff).c_str(), sDesc );
+#endif
+#ifdef RAM
+    sRet += exportSimpleVector<InMemTypeDef<D, false, D>>( m, ("RamSimpleVector" + sSuff).c_str(), sDesc );
+#endif
+    return sRet;
+}
+
 template<size_t D, bool dependant_dim, size_t orthope>
 std::string exportStorage(pybind11::module& m, std::string sPref, std::string sSuff)
 {
@@ -79,15 +95,19 @@ std::string exportDims(pybind11::module& m)
     std::string sRet = "";
 #if NUM_DIMENSIONS_A != 0
     sRet += exportDependant<NUM_DIMENSIONS_A>(m, "_" + std::to_string(NUM_DIMENSIONS_A) + "D");
+    sRet += exportStorageSimpleVec<NUM_DIMENSIONS_A>(m, "_" + std::to_string(NUM_DIMENSIONS_A) + "D");
 #endif
 #if NUM_DIMENSIONS_B != 0
     sRet += exportDependant<NUM_DIMENSIONS_B>(m, "_" + std::to_string(NUM_DIMENSIONS_B) + "D");
+    sRet += exportStorageSimpleVec<NUM_DIMENSIONS_B>(m, "_" + std::to_string(NUM_DIMENSIONS_B) + "D");
 #endif
 #if NUM_DIMENSIONS_C != 0
     sRet += exportDependant<NUM_DIMENSIONS_C>(m, "_" + std::to_string(NUM_DIMENSIONS_C) + "D");
+    sRet += exportStorageSimpleVec<NUM_DIMENSIONS_C>(m, "_" + std::to_string(NUM_DIMENSIONS_C) + "D");
 #endif
 #if NUM_DIMENSIONS_D != 0
     sRet += exportDependant<NUM_DIMENSIONS_D>(m, "_" + std::to_string(NUM_DIMENSIONS_D) + "D");
+    sRet += exportStorageSimpleVec<NUM_DIMENSIONS_D>(m, "_" + std::to_string(NUM_DIMENSIONS_D) + "D");
 #endif
     return sRet;
 }
@@ -106,7 +126,8 @@ size_t getTotalSystemMemory()
 }
 
 template<size_t D, bool dependant_dim, size_t orthope>
-std::unique_ptr<AbstractIndex> factoryHelper(std::string sStorageType, std::string sPrefix, bool bWrite )
+std::unique_ptr<AbstractIndex> factoryHelper(std::string sStorageType, std::string sPrefix, bool bWrite, 
+                                             bool bSimpleVec ) // @todo integrate this into the picker
 {
 #ifdef DISK 
 #ifdef CACHED
@@ -149,7 +170,7 @@ std::unique_ptr<AbstractIndex> factoryHelper(std::string sStorageType, std::stri
 
 template<size_t D, bool dependant_dim>
 std::unique_ptr<AbstractIndex> factoryHelper(size_t uiOrthtopeDims, std::string sStorageType, 
-                                            std::string sPrefix, bool bWrite )
+                                            std::string sPrefix, bool bWrite, bool bSimpleVec )
 {
 #ifdef W_CUBES
     if(uiOrthtopeDims == 3)
@@ -172,7 +193,7 @@ std::unique_ptr<AbstractIndex> factoryHelper(size_t uiOrthtopeDims, std::string 
 
 template<size_t D>
 std::unique_ptr<AbstractIndex> factoryHelper(bool bDependentDimension, size_t uiOrthtopeDims, 
-                                      std::string sStorageType, std::string sPrefix, bool bWrite )
+                                      std::string sStorageType, std::string sPrefix, bool bWrite, bool bSimpleVec )
 {
     #ifdef W_DEPENDANT_DIM
     if(bDependentDimension)
@@ -185,8 +206,9 @@ std::unique_ptr<AbstractIndex> factoryHelper(bool bDependentDimension, size_t ui
     throw std::invalid_argument("libSps has not been compiled with the requested dependent dimension configuration.");
 }
 
-std::unique_ptr<AbstractIndex> factory(std::string sPrefix, size_t uiD, bool bDependentDimension, size_t uiOrthtopeDims, 
-                                      std::string sStorageType, bool bWrite )
+std::unique_ptr<AbstractIndex> factory(std::string sPrefix, size_t uiD, bool bDependentDimension, 
+                                      size_t uiOrthtopeDims, 
+                                      std::string sStorageType, bool bWrite, bool bSimpleVec )
 {
 #if NUM_DIMENSIONS_A != 0
     if (NUM_DIMENSIONS_A == uiD)

@@ -210,23 +210,19 @@ template <typename type_defs> class Index: public AbstractIndex
     /**
      * @brief Count the number of points between from and to and in the given dataset.
      * 
-     * to_pos must be larger equal than from_pos in each dimension.
+     * As opposed to count, this function allows specifying the start and end positions for all dimensions in the
+     * Datastructure. 
+     * This is only relevant for indices with orthotope dimensions.
      *
      * @param xDatasetId The id of the dataset to query
-     * @param vFromR The bottom left position of the query region.
-     * @param vToR The top right position of the query region.
+     * @param vFrom The bottom left position of the query region.
+     * @param vTo The top right position of the query region.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
-    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, size_t uiVerbosity=0 ) const
+    val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, size_t uiVerbosity=0 ) const
     {
-        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
-            if(vFromR[uiI] > vToR[uiI])
-                throw std::invalid_argument("end must be larger-equal than start.");
         progress_stream_t xProg(uiVerbosity);
-        auto vP = addDims(vFromR, vToR, true);
-        pos_t& vFrom = vP[0];
-        pos_t& vTo = vP[1];
         val_t uiRet = 0;
 #pragma GCC diagnostic push
 // uiD unused if IS_ORTHOTOPE = false
@@ -252,6 +248,28 @@ template <typename type_defs> class Index: public AbstractIndex
             vFrom, vTo, []( coordinate_t uiPos ) { return uiPos > 0; } );
 #pragma GCC diagnostic pop
         return uiRet;
+    }
+
+    /**
+     * @brief Count the number of points between from and to and in the given dataset.
+     * 
+     * to_pos must be larger equal than from_pos in each dimension.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @param vFromR The bottom left position of the query region.
+     * @param vToR The top right position of the query region.
+     * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
+     * @return val_t The number of points in dataset_id between from_pos and to_pos.
+     */
+    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, size_t uiVerbosity=0 ) const
+    {
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            if(vFromR[uiI] > vToR[uiI])
+                throw std::invalid_argument("end must be larger-equal than start.");
+        auto vP = addDims(vFromR, vToR, true);
+        pos_t& vFrom = vP[0];
+        pos_t& vTo = vP[1];
+        return countSizeLimited(xDatasetId, vFrom, vTo, uiVerbosity);
     }
 
     /**
@@ -442,6 +460,32 @@ R"pbdoc(
     
     :param to_pos: The top right position of the query region.
     :type to_pos: list[int[)pbdoc" + std::to_string(type_defs::D - type_defs::ORTHOTOPE_DIMS) + R"pbdoc(]]
+    
+    :param verbosity: Degree of verbosity while counting, defaults to 0.
+    :type verbosity: int
+
+    :return: The number of points in dataset_id between from_pos and to_pos.
+    :rtype: int
+
+    to_pos must be larger equal than from_pos in each dimension.
+)pbdoc").c_str() )
+        .def( "count_size_limited", &sps::Index<type_defs>::countSizeLimited, pybind11::arg( "dataset_id" ), 
+                                pybind11::arg( "from_pos" ), pybind11::arg( "to_pos" ), //
+               pybind11::arg( "verbosity" ) = 0 ,
+               (R"pbdoc(
+    Count the number of points between from and to and in the given dataset.
+
+    As opposed to count, this function allows specifying the start and end positions for all dimensions in the Datastructure. 
+    This is only relevant for indices with orthotope dimensions.
+    
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+    
+    :param from_pos: The bottom left position of the query region.
+    :type from_pos: list[int[)pbdoc" + std::to_string(type_defs::D) + R"pbdoc(]]
+    
+    :param to_pos: The top right position of the query region.
+    :type to_pos: list[int[)pbdoc" + std::to_string(type_defs::D) + R"pbdoc(]]
     
     :param verbosity: Degree of verbosity while counting, defaults to 0.
     :type verbosity: int

@@ -65,3 +65,5 @@ master_doc = "index"
 breathe_default_project = "libSps"
 
 html_favicon="_static/favicon.ico"
+
+latex_engine="xelatex"
