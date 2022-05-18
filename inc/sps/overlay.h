@@ -428,7 +428,7 @@ template <typename type_defs> class Overlay
 
             coordinate_t uiNumTotal = prefix_sum_grid_t::sizeOf( xInternalEntires );
             coordinate_t uiNumDone = 0;
-            std::vector<sps_t> vTmp(rPrefixSums.THREADSAVE ? 0 : uiNumTotal);
+            std::vector<sps_t> vTmp(rPrefixSums.THREADSAVE ? 0 : uiNumTotal, sps_t{});
 
             {
                 auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
@@ -443,6 +443,7 @@ template <typename type_defs> class Overlay
                         else
                         {
                             uiIdx -= xInternalEntires.uiStartIndex;
+                            assert(uiIdx < vTmp.size());
                             xPoint.addTo(vTmp[uiIdx]);
                         }
                     },
@@ -497,7 +498,10 @@ template <typename type_defs> class Overlay
                                         vFullTo[ uiI ] = uiTo;
                                         size_t uiIdx = prefix_sum_grid_t::indexOf( vFullTo, xInternalEntires );
                                         if constexpr(!rPrefixSums.THREADSAVE)
+                                        {
                                             uiIdx -= xInternalEntires.uiStartIndex;
+                                            assert(uiIdx < vTmp.size());
+                                        }
                                         
                                         if constexpr(rPrefixSums.THREADSAVE)
                                             uiPrefixSum += rPrefixSums.vData[uiIdx];

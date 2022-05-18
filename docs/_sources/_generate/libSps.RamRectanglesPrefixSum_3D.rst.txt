@@ -1,0 +1,27 @@
+﻿libSps.RamRectanglesPrefixSum\_3D
+=================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: RamRectanglesPrefixSum_3D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RamRectanglesPrefixSum_3D.__init__
+      ~RamRectanglesPrefixSum_3D.add_point
+      ~RamRectanglesPrefixSum_3D.clear
+      ~RamRectanglesPrefixSum_3D.count
+      ~RamRectanglesPrefixSum_3D.count_size_limited
+      ~RamRectanglesPrefixSum_3D.generate
+   
+   
+
+   
+   
+   

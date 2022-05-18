@@ -44,12 +44,21 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Documentation for the Python Module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="_generate/libSps.make_sps_index.html">libSps.make_sps_index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_generate/libSps.AbstractIndex.html">libSps.AbstractIndex</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskRectanglesPrefixSum_2D.html">libSps.DiskRectanglesPrefixSum_2D</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskIntervalsPrefixSum_2D.html">libSps.DiskIntervalsPrefixSum_2D</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskPointsPrefixSum_2D.html">libSps.DiskPointsPrefixSum_2D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskDependantDimRectanglesPrefixSum_3D.html">libSps.DiskDependantDimRectanglesPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.CachedDependantDimRectanglesPrefixSum_3D.html">libSps.CachedDependantDimRectanglesPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.RamDependantDimRectanglesPrefixSum_3D.html">libSps.RamDependantDimRectanglesPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskDependantDimPointsPrefixSum_3D.html">libSps.DiskDependantDimPointsPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.CachedDependantDimPointsPrefixSum_3D.html">libSps.CachedDependantDimPointsPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.RamDependantDimPointsPrefixSum_3D.html">libSps.RamDependantDimPointsPrefixSum_3D</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskRectanglesPrefixSum_3D.html">libSps.DiskRectanglesPrefixSum_3D</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskIntervalsPrefixSum_3D.html">libSps.DiskIntervalsPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.CachedRectanglesPrefixSum_3D.html">libSps.CachedRectanglesPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.RamRectanglesPrefixSum_3D.html">libSps.RamRectanglesPrefixSum_3D</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskPointsPrefixSum_3D.html">libSps.DiskPointsPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.CachedPointsPrefixSum_3D.html">libSps.CachedPointsPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.RamPointsPrefixSum_3D.html">libSps.RamPointsPrefixSum_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.DiskSimpleVector_3D.html">libSps.DiskSimpleVector_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.CachedSimpleVector_3D.html">libSps.CachedSimpleVector_3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_generate/libSps.RamSimpleVector_3D.html">libSps.RamSimpleVector_3D</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Cpp.html">Documentation for the C++ Library</a></li>
@@ -93,23 +102,50 @@
 <tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.AbstractIndex.html#libSps.AbstractIndex" title="libSps.AbstractIndex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AbstractIndex</span></code></a></p></td>
 <td><p>Abstract Index class.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.DiskRectanglesPrefixSum_2D.html#libSps.DiskRectanglesPrefixSum_2D" title="libSps.DiskRectanglesPrefixSum_2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskRectanglesPrefixSum_2D</span></code></a></p></td>
-<td><p>Prefix sum index for rectangles in 2-dimensional space.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.DiskDependantDimRectanglesPrefixSum_3D.html#libSps.DiskDependantDimRectanglesPrefixSum_3D" title="libSps.DiskDependantDimRectanglesPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskDependantDimRectanglesPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for rectangles in 3-dimensional space, with a dependent dimension.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.DiskIntervalsPrefixSum_2D.html#libSps.DiskIntervalsPrefixSum_2D" title="libSps.DiskIntervalsPrefixSum_2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskIntervalsPrefixSum_2D</span></code></a></p></td>
-<td><p>Prefix sum index for intervals in 2-dimensional space.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.CachedDependantDimRectanglesPrefixSum_3D.html#libSps.CachedDependantDimRectanglesPrefixSum_3D" title="libSps.CachedDependantDimRectanglesPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CachedDependantDimRectanglesPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for rectangles in 3-dimensional space, with a dependent dimension.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.DiskPointsPrefixSum_2D.html#libSps.DiskPointsPrefixSum_2D" title="libSps.DiskPointsPrefixSum_2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskPointsPrefixSum_2D</span></code></a></p></td>
-<td><p>Prefix sum index for points in 2-dimensional space.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.RamDependantDimRectanglesPrefixSum_3D.html#libSps.RamDependantDimRectanglesPrefixSum_3D" title="libSps.RamDependantDimRectanglesPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamDependantDimRectanglesPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for rectangles in 3-dimensional space, with a dependent dimension.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.DiskRectanglesPrefixSum_3D.html#libSps.DiskRectanglesPrefixSum_3D" title="libSps.DiskRectanglesPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskRectanglesPrefixSum_3D</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.DiskDependantDimPointsPrefixSum_3D.html#libSps.DiskDependantDimPointsPrefixSum_3D" title="libSps.DiskDependantDimPointsPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskDependantDimPointsPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for points in 3-dimensional space, with a dependent dimension.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.CachedDependantDimPointsPrefixSum_3D.html#libSps.CachedDependantDimPointsPrefixSum_3D" title="libSps.CachedDependantDimPointsPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CachedDependantDimPointsPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for points in 3-dimensional space, with a dependent dimension.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.RamDependantDimPointsPrefixSum_3D.html#libSps.RamDependantDimPointsPrefixSum_3D" title="libSps.RamDependantDimPointsPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamDependantDimPointsPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for points in 3-dimensional space, with a dependent dimension.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.DiskRectanglesPrefixSum_3D.html#libSps.DiskRectanglesPrefixSum_3D" title="libSps.DiskRectanglesPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskRectanglesPrefixSum_3D</span></code></a></p></td>
 <td><p>Prefix sum index for rectangles in 3-dimensional space.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.DiskIntervalsPrefixSum_3D.html#libSps.DiskIntervalsPrefixSum_3D" title="libSps.DiskIntervalsPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskIntervalsPrefixSum_3D</span></code></a></p></td>
-<td><p>Prefix sum index for intervals in 3-dimensional space.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.CachedRectanglesPrefixSum_3D.html#libSps.CachedRectanglesPrefixSum_3D" title="libSps.CachedRectanglesPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CachedRectanglesPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for rectangles in 3-dimensional space.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.RamRectanglesPrefixSum_3D.html#libSps.RamRectanglesPrefixSum_3D" title="libSps.RamRectanglesPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamRectanglesPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for rectangles in 3-dimensional space.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.DiskPointsPrefixSum_3D.html#libSps.DiskPointsPrefixSum_3D" title="libSps.DiskPointsPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskPointsPrefixSum_3D</span></code></a></p></td>
 <td><p>Prefix sum index for points in 3-dimensional space.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.CachedPointsPrefixSum_3D.html#libSps.CachedPointsPrefixSum_3D" title="libSps.CachedPointsPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CachedPointsPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for points in 3-dimensional space.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.RamPointsPrefixSum_3D.html#libSps.RamPointsPrefixSum_3D" title="libSps.RamPointsPrefixSum_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamPointsPrefixSum_3D</span></code></a></p></td>
+<td><p>Prefix sum index for points in 3-dimensional space.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.DiskSimpleVector_3D.html#libSps.DiskSimpleVector_3D" title="libSps.DiskSimpleVector_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskSimpleVector_3D</span></code></a></p></td>
+<td><p>Simple Vector for 3-dimensional orthotopes.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_generate/libSps.CachedSimpleVector_3D.html#libSps.CachedSimpleVector_3D" title="libSps.CachedSimpleVector_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CachedSimpleVector_3D</span></code></a></p></td>
+<td><p>Simple Vector for 3-dimensional orthotopes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generate/libSps.RamSimpleVector_3D.html#libSps.RamSimpleVector_3D" title="libSps.RamSimpleVector_3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamSimpleVector_3D</span></code></a></p></td>
+<td><p>Simple Vector for 3-dimensional orthotopes.</p></td>
 </tr>
 </tbody>
 </table>

@@ -17,6 +17,7 @@
       ~DiskPointsPrefixSum_2D.add_point
       ~DiskPointsPrefixSum_2D.clear
       ~DiskPointsPrefixSum_2D.count
+      ~DiskPointsPrefixSum_2D.count_size_limited
       ~DiskPointsPrefixSum_2D.generate
    
    

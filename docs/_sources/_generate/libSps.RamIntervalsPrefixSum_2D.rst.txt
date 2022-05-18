@@ -1,0 +1,27 @@
+﻿libSps.RamIntervalsPrefixSum\_2D
+================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: RamIntervalsPrefixSum_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RamIntervalsPrefixSum_2D.__init__
+      ~RamIntervalsPrefixSum_2D.add_point
+      ~RamIntervalsPrefixSum_2D.clear
+      ~RamIntervalsPrefixSum_2D.count
+      ~RamIntervalsPrefixSum_2D.count_size_limited
+      ~RamIntervalsPrefixSum_2D.generate
+   
+   
+
+   
+   
+   

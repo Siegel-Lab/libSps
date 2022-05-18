@@ -1,0 +1,27 @@
+﻿libSps.RamPointsPrefixSum\_2D
+=============================
+
+.. currentmodule:: libSps
+
+.. autoclass:: RamPointsPrefixSum_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RamPointsPrefixSum_2D.__init__
+      ~RamPointsPrefixSum_2D.add_point
+      ~RamPointsPrefixSum_2D.clear
+      ~RamPointsPrefixSum_2D.count
+      ~RamPointsPrefixSum_2D.count_size_limited
+      ~RamPointsPrefixSum_2D.generate
+   
+   
+
+   
+   
+   

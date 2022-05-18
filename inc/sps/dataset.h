@@ -430,7 +430,7 @@ template <typename type_defs> class Dataset
         });
         size_t uiNumDone = 0;
         //for(size_t uiI = xOverlays.uiStartIndex; uiI < uiNumTotal + xOverlays.uiStartIndex; uiI++)
-        xIterator.process(rPrefixSums.THREADSAVE ? std::thread::hardware_concurrency() : 1, [&](size_t uiI)
+        xIterator.process(rPrefixSums.THREADSAVE ? std::thread::hardware_concurrency() : 0, [&](size_t uiI)
         {
             typename points_t::Entry& xCurrPoints = vSplitPoints[uiI - xOverlays.uiStartIndex];
 

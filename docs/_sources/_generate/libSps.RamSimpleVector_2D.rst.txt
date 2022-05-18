@@ -1,0 +1,24 @@
+﻿libSps.RamSimpleVector\_2D
+==========================
+
+.. currentmodule:: libSps
+
+.. autoclass:: RamSimpleVector_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RamSimpleVector_2D.__init__
+      ~RamSimpleVector_2D.add_point
+      ~RamSimpleVector_2D.count
+   
+   
+
+   
+   
+   

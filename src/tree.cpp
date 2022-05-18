@@ -1,4 +1,7 @@
+#include "sps/abstract_index.h"
+
 #include "sps/default.h"
+#include "sps/simple_vector.h"
 #include "sps/index.h"
 #include <stdlib.h>
 #include <fstream>
@@ -13,14 +16,15 @@
 template<size_t D>
 std::string exportStorageSimpleVec(pybind11::module& m, std::string sSuff)
 {
+    std::string sRet = "";
 #ifdef DISK
-    sRet += exportSimpleVector<DiskTypeDef<D, false, D>>( m, ("DiskSimpleVector" + sSuff).c_str(), sDesc );
+    sRet += exportSimpleVector<DiskTypeDef<D, false, D>>( m, ("DiskSimpleVector" + sSuff).c_str() );
 #endif
 #ifdef CACHED
-    sRet += exportSimpleVector<CachedTypeDef<D, false, D>>( m, ("CachedSimpleVector" + sSuff).c_str(), sDesc );
+    sRet += exportSimpleVector<CachedTypeDef<D, false, D>>( m, ("CachedSimpleVector" + sSuff).c_str() );
 #endif
 #ifdef RAM
-    sRet += exportSimpleVector<InMemTypeDef<D, false, D>>( m, ("RamSimpleVector" + sSuff).c_str(), sDesc );
+    sRet += exportSimpleVector<InMemTypeDef<D, false, D>>( m, ("RamSimpleVector" + sSuff).c_str() );
 #endif
     return sRet;
 }
@@ -125,16 +129,25 @@ size_t getTotalSystemMemory()
     return pages * page_size;
 }
 
+template<size_t D, bool dependant_dim, size_t orthope, template<size_t, bool, size_t> typename storage_t>
+std::unique_ptr<AbstractIndex> factoryHelperFinal(std::string sPrefix, bool bWrite, bool bSimpleVec )
+{
+    if(bSimpleVec)
+        return std::make_unique<sps::SimpleVector<storage_t<D, false, D>>>(sPrefix, bWrite);
+    else
+        return std::make_unique<sps::Index<storage_t<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+}
+
 template<size_t D, bool dependant_dim, size_t orthope>
 std::unique_ptr<AbstractIndex> factoryHelper(std::string sStorageType, std::string sPrefix, bool bWrite, 
-                                             bool bSimpleVec ) // @todo integrate this into the picker
+                                             bool bSimpleVec )
 {
 #ifdef DISK 
 #ifdef CACHED
     if(sStorageType == "PickByFileSize")
     {
         if(bWrite) // cached
-            return std::make_unique<sps::Index<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+            return factoryHelperFinal<D, dependant_dim, orthope, CachedTypeDef>(sPrefix, bWrite, bSimpleVec);
         
         std::ifstream::pos_type uiTotalSize = 0;
         uiTotalSize += filesize((sPrefix + ".coords").c_str());
@@ -146,24 +159,24 @@ std::unique_ptr<AbstractIndex> factoryHelper(std::string sStorageType, std::stri
         uiTotalSize += filesize((sPrefix + ".prefix_sums").c_str());
 
         if( (size_t)uiTotalSize * 2 < getTotalSystemMemory()) // Disk
-            return std::make_unique<sps::Index<DiskTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+            return factoryHelperFinal<D, dependant_dim, orthope, DiskTypeDef>(sPrefix, bWrite, bSimpleVec);
         else // CACHED
-            return std::make_unique<sps::Index<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+            return factoryHelperFinal<D, dependant_dim, orthope, CachedTypeDef>(sPrefix, bWrite, bSimpleVec);
     }
 #endif
 #endif
 
 #ifdef DISK
     if(sStorageType == "Disk")
-        return std::make_unique<sps::Index<DiskTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+        return factoryHelperFinal<D, dependant_dim, orthope, DiskTypeDef>(sPrefix, bWrite, bSimpleVec);
 #endif
 #ifdef CACHED
     if(sStorageType == "Cached")
-        return std::make_unique<sps::Index<CachedTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+        return factoryHelperFinal<D, dependant_dim, orthope, CachedTypeDef>(sPrefix, bWrite, bSimpleVec);
 #endif
 #ifdef RAM
     if(sStorageType == "Ram")
-        return std::make_unique<sps::Index<InMemTypeDef<D, dependant_dim, orthope>>>(sPrefix, bWrite);
+        return factoryHelperFinal<D, dependant_dim, orthope, InMemTypeDef>(sPrefix, bWrite, bSimpleVec);
 #endif
     throw std::invalid_argument("libSps has not been compiled with the requested storage type.");
 }
@@ -174,19 +187,19 @@ std::unique_ptr<AbstractIndex> factoryHelper(size_t uiOrthtopeDims, std::string 
 {
 #ifdef W_CUBES
     if(uiOrthtopeDims == 3)
-        return factoryHelper<D + 3, true, 3>(sStorageType, sPrefix, bWrite);
+        return factoryHelper<D + 3, true, 3>(sStorageType, sPrefix, bWrite, bSimpleVec);
 #endif
 #ifdef W_RECTANGLES
     if(uiOrthtopeDims == 2)
-        return factoryHelper<D + 2, true, 2>(sStorageType, sPrefix, bWrite);
+        return factoryHelper<D + 2, true, 2>(sStorageType, sPrefix, bWrite, bSimpleVec);
 #endif
 #ifdef W_INTERVALS
     if(uiOrthtopeDims == 1)
-        return factoryHelper<D + 1, true, 1>(sStorageType, sPrefix, bWrite);
+        return factoryHelper<D + 1, true, 1>(sStorageType, sPrefix, bWrite, bSimpleVec);
 #endif
 #ifdef W_POINTS
     if(uiOrthtopeDims == 0)
-        return factoryHelper<D, true, 0>(sStorageType, sPrefix, bWrite);
+        return factoryHelper<D, true, 0>(sStorageType, sPrefix, bWrite, bSimpleVec);
 #endif
     throw std::invalid_argument("libSps has not been compiled with the requested number of orthotope dimensions.");
 }
@@ -197,34 +210,39 @@ std::unique_ptr<AbstractIndex> factoryHelper(bool bDependentDimension, size_t ui
 {
     #ifdef W_DEPENDANT_DIM
     if(bDependentDimension)
-        return factoryHelper<D, true>(uiOrthtopeDims, sStorageType, sPrefix, bWrite);
+        return factoryHelper<D, true>(uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec);
 #endif
 #ifdef WO_DEPENDANT_DIM
     if(!bDependentDimension)
-        return factoryHelper<D, false>(uiOrthtopeDims, sStorageType, sPrefix, bWrite);
+        return factoryHelper<D, false>(uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec);
 #endif
     throw std::invalid_argument("libSps has not been compiled with the requested dependent dimension configuration.");
 }
 
 std::unique_ptr<AbstractIndex> factory(std::string sPrefix, size_t uiD, bool bDependentDimension, 
                                       size_t uiOrthtopeDims, 
-                                      std::string sStorageType, bool bWrite, bool bSimpleVec )
+                                      std::string sStorageType, bool bWrite )
 {
+    bool bSimpleVec = false;
 #if NUM_DIMENSIONS_A != 0
     if (NUM_DIMENSIONS_A == uiD)
-        return factoryHelper<NUM_DIMENSIONS_A>(bDependentDimension, uiOrthtopeDims, sStorageType, sPrefix, bWrite);
+        return factoryHelper<NUM_DIMENSIONS_A>(bDependentDimension, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                bSimpleVec);
 #endif
 #if NUM_DIMENSIONS_B != 0
     if (NUM_DIMENSIONS_B == uiD)
-        return factoryHelper<NUM_DIMENSIONS_B>(bDependentDimension, uiOrthtopeDims, sStorageType, sPrefix, bWrite);
+        return factoryHelper<NUM_DIMENSIONS_B>(bDependentDimension, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                bSimpleVec);
 #endif
 #if NUM_DIMENSIONS_C != 0
     if (NUM_DIMENSIONS_C == uiD)
-        return factoryHelper<NUM_DIMENSIONS_C>(bDependentDimension, uiOrthtopeDims, sStorageType, sPrefix, bWrite);
+        return factoryHelper<NUM_DIMENSIONS_C>(bDependentDimension, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                bSimpleVec);
 #endif
 #if NUM_DIMENSIONS_D != 0
     if (NUM_DIMENSIONS_D == uiD)
-        return factoryHelper<NUM_DIMENSIONS_D>(bDependentDimension, uiOrthtopeDims, sStorageType, sPrefix, bWrite);
+        return factoryHelper<NUM_DIMENSIONS_D>(bDependentDimension, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                bSimpleVec);
 #endif
     throw std::invalid_argument("libSps has not been compiled with the requested number of dimensions.");
 }

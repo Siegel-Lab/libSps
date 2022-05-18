@@ -22,6 +22,8 @@ Documentation for the C++ Library
       - Sorter for a std::vector.
     * - :doc:`StdOutProgressStream<./StdOutProgressStream>`
       - Catches all print output.
+    * - :doc:`SimpleVector<./SimpleVector>`
+      - A naive, iteration-based index implementation for benchmarking.
 
 .. toctree::
     :maxdepth: 2
@@ -36,3 +38,4 @@ Documentation for the C++ Library
     DiskVecGenerator
     RamVectorSorter
     StdOutProgressStream
+    SimpleVector

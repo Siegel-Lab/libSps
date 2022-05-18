@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "sps/abstract_index.h"
 #include "sps/dataset.h"
 #include "sps/desc.h"
 #include "sps/nd_grid.h"
@@ -26,21 +27,6 @@
 
 namespace sps
 {
-
-/**
- * @brief Abstract Superclass for all Indices.
- *
- * Not usefull on it's own.
- */
-class AbstractIndex
-{
-    public:
-    /**
-     * @brief Does nothing.
-     * required to make AbstractIndex downcastable to Index<type_defs> in python by making it abstract
-     */
-    virtual void dummy() {}
-};
 
 /**
  * @brief The main sparse prefix sum index class.
@@ -82,9 +68,9 @@ template <typename type_defs> class Index: public AbstractIndex
      * @brief Construct a new Index object
      * 
      * @param sPrefix Prefix path of the index on the filesystem (multiple files with different endings will be created), defaults to "".
-     * @param bWrite Open the index in write mode (if this is set to False no changes can be made to the index), defaults to true.
+     * @param bWrite Open the index in write mode (if this is set to False no changes can be made to the index), defaults to false.
      */
-    Index( std::string sPrefix, bool bWrite = true )
+    Index( std::string sPrefix = "", bool bWrite = false )
         : vPoints( sPrefix, bWrite ),
           vDesc( sPrefix, bWrite ),
           vSparseCoord( sPrefix, bWrite ),
@@ -417,7 +403,7 @@ R"pbdoc(
     :param path: Prefix path of the index on the filesystem (multiple files with different endings will be created), defaults to "".
     :type path: str
     
-    :param write_mode: Open the index in write mode (if this is set to False no changes can be made to the index), defaults to True.
+    :param write_mode: Open the index in write mode (if this is set to False no changes can be made to the index), defaults to False.
     :type write_mode: str
 )pbdoc" ) // constructor
         .def( "generate", 

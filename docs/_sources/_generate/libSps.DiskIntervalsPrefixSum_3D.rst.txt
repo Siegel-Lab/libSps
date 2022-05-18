@@ -17,6 +17,7 @@
       ~DiskIntervalsPrefixSum_3D.add_point
       ~DiskIntervalsPrefixSum_3D.clear
       ~DiskIntervalsPrefixSum_3D.count
+      ~DiskIntervalsPrefixSum_3D.count_size_limited
       ~DiskIntervalsPrefixSum_3D.generate
    
    

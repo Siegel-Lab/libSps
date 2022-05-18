@@ -17,6 +17,7 @@
       ~DiskRectanglesPrefixSum_3D.add_point
       ~DiskRectanglesPrefixSum_3D.clear
       ~DiskRectanglesPrefixSum_3D.count
+      ~DiskRectanglesPrefixSum_3D.count_size_limited
       ~DiskRectanglesPrefixSum_3D.generate
    
    

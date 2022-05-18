@@ -1,0 +1,27 @@
+﻿libSps.CachedRectanglesPrefixSum\_3D
+====================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: CachedRectanglesPrefixSum_3D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CachedRectanglesPrefixSum_3D.__init__
+      ~CachedRectanglesPrefixSum_3D.add_point
+      ~CachedRectanglesPrefixSum_3D.clear
+      ~CachedRectanglesPrefixSum_3D.count
+      ~CachedRectanglesPrefixSum_3D.count_size_limited
+      ~CachedRectanglesPrefixSum_3D.generate
+   
+   
+
+   
+   
+   

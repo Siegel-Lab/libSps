@@ -1,0 +1,27 @@
+﻿libSps.DiskDependantDimRectanglesPrefixSum\_3D
+==============================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: DiskDependantDimRectanglesPrefixSum_3D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DiskDependantDimRectanglesPrefixSum_3D.__init__
+      ~DiskDependantDimRectanglesPrefixSum_3D.add_point
+      ~DiskDependantDimRectanglesPrefixSum_3D.clear
+      ~DiskDependantDimRectanglesPrefixSum_3D.count
+      ~DiskDependantDimRectanglesPrefixSum_3D.count_size_limited
+      ~DiskDependantDimRectanglesPrefixSum_3D.generate
+   
+   
+
+   
+   
+   

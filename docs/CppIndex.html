@@ -52,6 +52,7 @@
 <li class="toctree-l2"><a class="reference internal" href="DiskVecGenerator.html">DiskVecGenerator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="RamVectorSorter.html">RamVectorSorter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="StdOutProgressStream.html">StdOutProgressStream</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SimpleVector.html">SimpleVector</a></li>
 </ul>
 </li>
 </ul>
@@ -181,6 +182,26 @@
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>class_key_t The id of the generated dataset. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t6size_t">
+<span id="_CPPv3NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t6size_t"></span><span id="_CPPv2NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t6size_t"></span><span id="sps::Index::countSizeLimited__class_key_t.pos_t.pos_t.sC"></span><span class="target" id="classsps_1_1Index_1a2917fba042ea9fce36b3f13189a480a5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">val_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">countSizeLimited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">class_key_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDatasetId</span></span>, <span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vFrom</span></span>, <span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vTo</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiVerbosity</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Count the number of points between from and to and in the given dataset. </p>
+<p>As opposed to count, this function allows specifying the start and end positions for all dimensions in the Datastructure. This is only relevant for indices with orthotope dimensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xDatasetId</strong> – The id of the dataset to query </p></li>
+<li><p><strong>vFrom</strong> – The bottom left position of the query region. </p></li>
+<li><p><strong>vTo</strong> – The top right position of the query region. </p></li>
+<li><p><strong>uiVerbosity</strong> – Degree of verbosity while counting, defaults to 0. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>val_t The number of points in dataset_id between from_pos and to_pos. </p>
 </dd>
 </dl>
 </dd></dl>

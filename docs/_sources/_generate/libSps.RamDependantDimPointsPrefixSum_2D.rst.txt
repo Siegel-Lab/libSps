@@ -1,0 +1,27 @@
+﻿libSps.RamDependantDimPointsPrefixSum\_2D
+=========================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: RamDependantDimPointsPrefixSum_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RamDependantDimPointsPrefixSum_2D.__init__
+      ~RamDependantDimPointsPrefixSum_2D.add_point
+      ~RamDependantDimPointsPrefixSum_2D.clear
+      ~RamDependantDimPointsPrefixSum_2D.count
+      ~RamDependantDimPointsPrefixSum_2D.count_size_limited
+      ~RamDependantDimPointsPrefixSum_2D.generate
+   
+   
+
+   
+   
+   

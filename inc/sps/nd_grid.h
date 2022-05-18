@@ -255,7 +255,7 @@ template <typename type_defs, typename data_t> class NDGrid
                         doneWith(uiIdx);
                     }
                 };
-                if(uiNumThreads == 1 || vNumPredComputed.size() == 1)
+                if(uiNumThreads == 0 || vNumPredComputed.size() == 0)
                     fTask(this, fDo);
                 else
                 {

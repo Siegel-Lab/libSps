@@ -1,0 +1,27 @@
+﻿libSps.CachedDependantDimPointsPrefixSum\_2D
+============================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: CachedDependantDimPointsPrefixSum_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CachedDependantDimPointsPrefixSum_2D.__init__
+      ~CachedDependantDimPointsPrefixSum_2D.add_point
+      ~CachedDependantDimPointsPrefixSum_2D.clear
+      ~CachedDependantDimPointsPrefixSum_2D.count
+      ~CachedDependantDimPointsPrefixSum_2D.count_size_limited
+      ~CachedDependantDimPointsPrefixSum_2D.generate
+   
+   
+
+   
+   
+   

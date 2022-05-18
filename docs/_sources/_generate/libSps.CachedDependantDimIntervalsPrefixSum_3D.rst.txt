@@ -1,0 +1,27 @@
+﻿libSps.CachedDependantDimIntervalsPrefixSum\_3D
+===============================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: CachedDependantDimIntervalsPrefixSum_3D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CachedDependantDimIntervalsPrefixSum_3D.__init__
+      ~CachedDependantDimIntervalsPrefixSum_3D.add_point
+      ~CachedDependantDimIntervalsPrefixSum_3D.clear
+      ~CachedDependantDimIntervalsPrefixSum_3D.count
+      ~CachedDependantDimIntervalsPrefixSum_3D.count_size_limited
+      ~CachedDependantDimIntervalsPrefixSum_3D.generate
+   
+   
+
+   
+   
+   
