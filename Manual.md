@@ -11,6 +11,8 @@ The bioconda installation is easier, but restricts you to using <=5 dimensions.
 
 ### Github/CMake
 
+#### Linux:
+
 To compile libSps from the githug source use the following commands:
 
     # clone repository
@@ -48,6 +50,10 @@ If multiple contradicting options are turned on as e.g. `-DNUM_DIMENSIONS_A=7 -D
 Hence, you may want to consider turning options off to save compiletime: E.g. `-DCACHED=OFF -DNUM_DIMENSIONS_A=0`.
 
 If you plan using libSps from C++ you can set all these options via template parameters (see "Creating indices" below).
+
+#### Windows:
+
+@todo
 
 ## Usage
 
