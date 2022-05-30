@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.9)
 
+# only adjust major version - other version is from git commit
 project("libSps" VERSION 0.0.1)
 
 # set building python library as default
@@ -59,6 +60,7 @@ add_subdirectory (contrib/stxxl EXCLUDE_FROM_ALL)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 
+
 # create python module if python has been found
 if(WITH_PYTHON)
     pybind11_add_module( Sps src/tree.cpp )
@@ -102,6 +104,15 @@ if(WITH_PYTHON)
         target_compile_definitions( Sps PRIVATE W_POINTS )
     endif()
     target_link_libraries( Sps PUBLIC stxxl )
+    add_custom_command(
+        TARGET Sps PRE_BUILD
+        COMMAND ${CMAKE_SOURCE_DIR}/src/conf_version.h.in.sh
+            "${CMAKE_SOURCE_DIR}/inc/sps/version.h.in"
+            "${PROJECT_VERSION_MAJOR}"
+            "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/__always_run_this
+        VERBATIM)
+    target_include_directories( Sps PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
     #target_link_libraries( Sps PUBLIC -lpthread )
 endif()
 
@@ -110,10 +121,18 @@ add_executable ( test src/main.cpp )
 target_include_directories( test PUBLIC inc )
 target_include_directories( test SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
 target_link_libraries(test PUBLIC stxxl )
+add_custom_command(
+    TARGET test PRE_BUILD
+    COMMAND ${CMAKE_SOURCE_DIR}/src/conf_version.h.in.sh
+            "${CMAKE_SOURCE_DIR}/inc/sps/version.h.in"
+            "${PROJECT_VERSION_MAJOR}"
+            "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/__always_run_this
+    VERBATIM)
+target_include_directories( test PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
 #target_link_libraries(test PUBLIC -lpthread )
 
 # Documentation setup
-
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake) 
 find_package(Doxygen)

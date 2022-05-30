@@ -3,6 +3,7 @@
 #include "sps/default.h"
 #include "sps/simple_vector.h"
 #include "sps/index.h"
+#include "sps/version.h"
 #include <stdlib.h>
 #include <fstream>
 #include <unistd.h>
@@ -256,6 +257,7 @@ PYBIND11_MODULE( libSps, m )
     if( getenv( (char*)"STXXLERRLOGFILE" ) == nullptr )
         putenv( (char*)"STXXLERRLOGFILE=/dev/null" );
 
+    m.attr("VERSION") = VERSION;
 
     // export various types
     pybind11::class_<sps::AbstractIndex>( m, "AbstractIndex",

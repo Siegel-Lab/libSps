@@ -1,0 +1,4 @@
+#pragma once
+
+
+#define VERSION "@CMAKE_VERSION@-@GIT_COUNT@-@GIT_COMMIT_HASH@@GIT_STATUS@"
