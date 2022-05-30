@@ -2,20 +2,20 @@
 
 ## Introduction
 
-libSps is a C++ Library that allows counting points in n-dimensional space in constant time O(1). 
+libSps is a C++ Library that allows counting points in *n*-dimensional space in constant time [O(1)].
 It was written to analyze [Hi-C and RADICL-seq data](https://en.wikipedia.org/wiki/Chromosome_conformation_capture "Wikipedia") 
 and is based on the algorithms in Shekelyan et al. [1] as well as Schmidt et al. [2].
 
-It can be loaded and used as a python3 module.
+libSps can be used as a Python3 module or as a header only library for C++-17.
 
-The basic principle is to compute and store the prefix sums of all datapoints.
+The basic algorithmic principle is to compute and store the prefix sums of all datapoints.
 For example: The points 1, 3, 3 & 5
 
             X       XX      X
         |   |   |   |   |   |
         0   1   2   3   4   5
 
-would have the following prefix sums (the prefix sum is incremented at each point): 0, 1, 1, 3, 3, 4
+would have the following prefix sums (e.g. there are 3 points before position 4): 0, 1, 1, 3, 3, 4
 
     4 -                     ----
     3 -             --------
@@ -25,8 +25,8 @@ would have the following prefix sums (the prefix sum is incremented at each poin
         |   |   |   |   |   |
         0   1   2   3   4   5
 
-If we now want to count the number of points in any given interval (a, b], 
-we merely have to subtract the prefix sum at position a from the prefix sum at position b.
+If we now want to count the number of points in any given interval (*a*, *b*], 
+we merely have to subtract the prefix sum at position *a* from the prefix sum at position *b*.
 E.g. count( (1, 4] ) = 3 - 1 = 2; i.e. the two points at postion 3 but no other point are within the interval (1, 4].
 No matter the number of points in our index nor the size of the queried interval, we need two lookups and one substraction operation to count the points.
 
@@ -36,7 +36,7 @@ The easiest way to install libSps is Bioconda
 
     conda -c bioconda install libSps
 
-First, we create an index and fill it with points.
+To use libSps, we first create an index and fill it with points.
 The following is example python code:
 
     from libSps import make_sps_index

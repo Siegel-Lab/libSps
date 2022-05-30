@@ -294,7 +294,7 @@ R"pbdoc(
     :param num_dimensions: Number of dimensions for datapoints in the index, defaults to 2.
     :type num_dimensions: int
 
-    :param with_dependent_dimension: Whether the overlay grid in the 2nd dimension is dependent on the grid in the 1st, defaults to False.
+    :param with_dependent_dimension: Whether the overlay grid in dimension 1 is dependent on the grid in dimension 0, defaults to False.
     :type with_dependent_dimension: bool
 
     :param num_orthotope_dimensions: Number of orthotope dimensions (set this to 1, 2, 3, ... to add intervals, rectangles, cubes, ... instead of points), defaults to 0.
@@ -314,7 +314,7 @@ R"pbdoc(
 
     * "Disk" to create indices that load all data from a file on startup and store it back to the file on shutdown. Expect them to consume as much RAM as the filesize.
     * "Cached" to create indices that use a cache to load data from and store data to a file dynamically as needed during runtime. Expect this storage type to be slightly slower than the other two options. For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data stored.
-    * "Ram" to create indices stores all information in RAM and never interacts with the filesystem.
+    * "Ram" to create indices that store all information in RAM and never interact with the filesystem.
     * "PickByFileSize" to use the Disk option if the index is opened with open_in_write_mode=False and the index file requires less than half of the available RAM, otherwise Cached is used.
 )pbdoc"
               );

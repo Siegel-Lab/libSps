@@ -491,10 +491,14 @@ template <typename type_defs> class Dataset
                   << " points now...\n";
 #endif
             // generate the overlay
-            rOverlays.vData[ uiI ].generate(
+            overlay_t xOverlay;
+            // generate, then copy over to array, so that we do not mess up any cache in the vector.
+            xOverlay.generate(
                 rOverlays, rSparseCoords, rPrefixSums, vPoints, xCurrPoints,
                 vPredecessors, vPosBottomLeftActual,
                 vPosTopRightActual, this, uiNumDone, uiNumTotal, xProg, xProfiler, xPool );
+            
+            rOverlays.vData[ uiI ] = xOverlay;
 #ifndef NDEBUG
             xProfiler.step("overlay gen loop");
 #endif

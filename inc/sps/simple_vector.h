@@ -64,7 +64,7 @@ template <typename type_defs> class SimpleVector: public AbstractIndex
     }
 
     /**
-     * @brief Count the number of orthotope within the given area.
+     * @brief Count the number of orthotopes within the given area.
      * 
      * @param vStart The bottom-left of the queried area.
      * @param vEnd The top-right of the queried area.

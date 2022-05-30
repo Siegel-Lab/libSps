@@ -100,10 +100,9 @@ template <typename type_defs> class Index: public AbstractIndex
      * 
      * The point will not be queryable until generate is called.
      *
-     * @tparam trigger 
+     * @tparam trigger This function is only active if IS_ORTHOTOPE = false
      * @param vPos The position of the point.
      * @param sDesc A description for the Point, defaults to "".
-     * @return std::enable_if_t<trigger> This function is only active if IS_ORTHOTOPE = false
      */
     template<bool trigger = !IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, std::string sDesc = "" )
@@ -135,11 +134,10 @@ template <typename type_defs> class Index: public AbstractIndex
      * 
      * The orthotope will not be queryable until generate is called.
      *
-     * @tparam trigger 
+     * @tparam trigger This function is only active if IS_ORTHOTOPE = true
      * @param vStart The bottom left position of the orthotope.
      * @param vEnd The top right position of the orthotope.
      * @param sDesc A description for the orthotope, defaults to "".
-     * @return std::enable_if_t<trigger> This function is only active if IS_ORTHOTOPE = true
      */
     template<bool trigger = IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, std::string sDesc = "" )
@@ -188,16 +186,19 @@ template <typename type_defs> class Index: public AbstractIndex
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
         class_key_t uiRet = vDataSets.size( );
-        vDataSets.push_back( dataset_t( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg ) );
+        // generate the dataset in ram then push it into the index to make sure that the cache of the vector
+        // does not unload the memory half way through the initialization.
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg );
+        vDataSets.push_back( xNew );
         return uiRet;
     }
 
 
     /**
-     * @brief Count the number of points between from and to and in the given dataset.
+     * @brief Count the number of points between from and to in the given dataset.
      * 
      * As opposed to count, this function allows specifying the start and end positions for all dimensions in the
-     * Datastructure. 
+     * datastructure. 
      * This is only relevant for indices with orthotope dimensions.
      *
      * @param xDatasetId The id of the dataset to query
@@ -260,6 +261,8 @@ template <typename type_defs> class Index: public AbstractIndex
 
     /**
      * @brief Return a string describing the index.
+     *
+     * Very slow for large datasets.
      */
     std::string str( ) const
     {
@@ -436,7 +439,7 @@ R"pbdoc(
                                                      pybind11::arg( "to_pos" ), //
                pybind11::arg( "verbosity" ) = 0 ,
                (R"pbdoc(
-    Count the number of points between from and to and in the given dataset.
+    Count the number of points between from and to in the given dataset.
     
     :param dataset_id: The id of the dataset to query
     :type dataset_id: int
@@ -482,7 +485,7 @@ R"pbdoc(
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc").c_str() )
         //.def( "get", &sps::Index<type_defs>::get, "" )
-        .def( "__str__", &sps::Index<type_defs>::str, "Return a string describing the index." )
+        .def( "__str__", &sps::Index<type_defs>::str, "Return a string describing the index. Very slow for large datasets." )
         .def( "__len__", &sps::Index<type_defs>::numPoints, "Total number of points (among all datasets)." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )

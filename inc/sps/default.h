@@ -139,7 +139,7 @@ static const bool EXPLAIN = false;
  * Index stores all information in RAM and never interacts with the filesystem.
  *
  * @tparam D number of dimensions
- * @tparam dependant_dim number of dependant dimensions
+ * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
  * @tparam orthope number of orthope dimensions 
  */
 template <size_t D, bool dependant_dim, size_t orthope>
@@ -185,12 +185,12 @@ template <typename it_t, typename cmp_t> struct CachedVectorSorter
 /**
  * @brief Type definitions for a Cached Index
  * 
- * Index that use a cache to load data from and store data to a file dynamically as needed during runtime. 
+ * Index that uses a cache to load data from and store data to a file dynamically as needed during runtime. 
  * Expect this storage type to be slightly slower than the other two options. 
  * For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data stored.
  *
  * @tparam D number of dimensions
- * @tparam dependant_dim number of dependant dimensions
+ * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
  * @tparam orthope number of orthope dimensions 
  */
 template <size_t D, bool dependant_dim, size_t orthope>
@@ -300,7 +300,7 @@ template <typename val_t> struct DiskVecGenerator
  * Expect it to consume as much RAM as the filesize.
  *
  * @tparam D number of dimensions
- * @tparam dependant_dim number of dependant dimensions
+ * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
  * @tparam orthope number of orthope dimensions 
  */
 template <size_t D, bool dependant_dim, size_t orthope>

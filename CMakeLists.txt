@@ -1,12 +1,12 @@
 cmake_minimum_required (VERSION 3.9)
 
-project("KdpsTree" VERSION 0.0.1)
+project("libSps" VERSION 0.0.1)
 
 # set building python library as default
 option(WITH_PYTHON "Build python library." ON)
 
 set(NUM_DIMENSIONS_A "2" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
-set(NUM_DIMENSIONS_B "0" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
+set(NUM_DIMENSIONS_B "3" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
 set(NUM_DIMENSIONS_C "0" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
 set(NUM_DIMENSIONS_D "0" CACHE STRING "Build datastructures with this amount of dimensions (put zero to disable).")
 
@@ -19,7 +19,7 @@ option(W_INTERVALS "" OFF)
 option(W_POINTS "" ON)
 
 option(DISK "Build disk based datastructures (IO on load & unload)." OFF)
-option(CACHED "Build cached datastructures (IO during runtime)." OFF)
+option(CACHED "Build cached datastructures (IO during runtime)." ON)
 option(RAM "Build ram datastructures (Non-persistent)." ON)
 
 # disallow in-source builds
@@ -41,14 +41,14 @@ IF(CMAKE_COMPILER_IS_GNUCC)
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
 # Enable Link time optimization
-## include(CheckIPOSupported)
-## check_ipo_supported(RESULT supported OUTPUT error)
-## if( supported )
-##     message(STATUS "IPO / LTO enabled")
-##     set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-## else()
-##     message(STATUS "IPO / LTO not supported: <${error}>")
-## endif()
+include(CheckIPOSupported)
+check_ipo_supported(RESULT supported OUTPUT error)
+if( supported )
+    message(STATUS "IPO / LTO enabled")
+    set(INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(STATUS "IPO / LTO not supported: <${error}>")
+endif()
 
 # include subprojects
 if(WITH_PYTHON)
@@ -63,7 +63,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 if(WITH_PYTHON)
     pybind11_add_module( Sps src/tree.cpp )
     target_include_directories( Sps PUBLIC inc )
-    target_include_directories( Sps SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
+    target_include_directories( Sps SYSTEM PRIVATE ${STXXL_INCLUDE_DIRS} )
 
     target_compile_definitions( Sps PRIVATE WITH_PYTHON )
 
