@@ -88,8 +88,9 @@ template <typename type_defs> class SparseCoord
     };
 
     SparseCoord( std::string sPrefix, bool bWrite )
-        : xLockable(THREADSAVE ? std::numeric_limits<size_t>::max() : 1),
-          xFile( coord_vec_generator.file( sPrefix + ".coords", bWrite ) ), vData( coord_vec_generator.vec( xFile ) )
+        : xLockable( THREADSAVE ? std::numeric_limits<size_t>::max( ) : 1 ),
+          xFile( coord_vec_generator.file( sPrefix + ".coords", bWrite ) ),
+          vData( coord_vec_generator.vec( xFile ) )
     {}
 
     static void append( EntryArray& rArr, const Entry& rE )
@@ -380,4 +381,3 @@ template <typename type_defs> class SparseCoord
 
 
 } // namespace sps
-

@@ -110,15 +110,15 @@ class ThreadPool
         return xFuture;
     } // method enqueue
 
-    size_t numThreads() const
+    size_t numThreads( ) const
     {
-        return workers.size();
+        return workers.size( );
     }
 };
 
 /* Constructor just launches some amount of workers
  */
-inline ThreadPool::ThreadPool( size_t threads = std::thread::hardware_concurrency() )
+inline ThreadPool::ThreadPool( size_t threads = std::thread::hardware_concurrency( ) )
     : bStop( false ), // stop must be false in the beginning
       threads( threads )
 {

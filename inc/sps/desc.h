@@ -1,8 +1,8 @@
 #pragma once
 
 #include "sps/type_defs.h"
-#include <string>
 #include <iostream>
+#include <string>
 
 namespace sps
 {
@@ -31,7 +31,7 @@ template <typename type_defs> class Desc
     desc_vec_t vData;
     char cEof;
 
-    friend std::ostream& std::operator<<<>( std::ostream& os, const Desc& rTree );
+    friend std::ostream& std::operator<< <>( std::ostream& os, const Desc& rTree );
 
   public:
     Desc( std::string sPrefix, bool bWrite, char cEof )

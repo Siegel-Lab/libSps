@@ -11,14 +11,14 @@ namespace sps
  */
 class AbstractIndex
 {
-    public:
+  public:
     /**
      * @brief Does nothing.
      * required to make AbstractIndex downcastable to Index<type_defs> in python by making it abstract
      */
-    virtual void dummy() {}
+    virtual void dummy( )
+    {}
 };
-
 
 
 } // namespace sps

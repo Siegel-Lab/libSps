@@ -2,13 +2,13 @@
 
 #include <array>
 #include <chrono>
+#include <condition_variable>
 #include <iostream>
+#include <mutex>
 #include <stxxl/vector>
+#include <thread>
 #include <utility>
 #include <vector>
-#include <mutex>
-#include <thread>
-#include <condition_variable>
 
 // https://stackoverflow.com/questions/24110928/overload-of-operator-not-found-when-called-from-stdostream-iterator
 
@@ -230,63 +230,65 @@ class Lockable
     std::mutex xLock;
     std::condition_variable xCv;
 
-public:
-    Lockable(size_t uiMaxPartialLocks) : uiMaxPartialLocks(uiMaxPartialLocks)
+  public:
+    Lockable( size_t uiMaxPartialLocks ) : uiMaxPartialLocks( uiMaxPartialLocks )
     {}
 
     class FullLock
     {
-            Lockable& rX;
-        public:
-            FullLock(Lockable& rX) : rX(rX)
-            {
-                std::unique_lock xGuard(rX.xLock);
-                ++rX.bFullLockWaiting;
-                while(rX.uiNumPartialLocks > 0 || rX.bFullLock)
-                    rX.xCv.wait(xGuard);
-                assert(rX.uiNumPartialLocks == 0 && !rX.bFullLock);
-                --rX.bFullLockWaiting;
-                rX.bFullLock = true;
-            }
+        Lockable& rX;
 
-            ~FullLock()
-            {
-                std::unique_lock xGuard(rX.xLock);
-                rX.bFullLock = false;
-                rX.xCv.notify_all();
-            }
+      public:
+        FullLock( Lockable& rX ) : rX( rX )
+        {
+            std::unique_lock xGuard( rX.xLock );
+            ++rX.bFullLockWaiting;
+            while( rX.uiNumPartialLocks > 0 || rX.bFullLock )
+                rX.xCv.wait( xGuard );
+            assert( rX.uiNumPartialLocks == 0 && !rX.bFullLock );
+            --rX.bFullLockWaiting;
+            rX.bFullLock = true;
+        }
+
+        ~FullLock( )
+        {
+            std::unique_lock xGuard( rX.xLock );
+            rX.bFullLock = false;
+            rX.xCv.notify_all( );
+        }
     };
     class PartialLock
     {
-            Lockable& rX;
-        public:
-            PartialLock(Lockable& rX) : rX(rX)
-            {
-                std::unique_lock xGuard(rX.xLock);
-                while(rX.bFullLock || rX.uiNumPartialLocks >= rX.uiMaxPartialLocks || rX.bFullLockWaiting > 0)
-                    rX.xCv.wait(xGuard);
-                assert(!rX.bFullLock && rX.uiNumPartialLocks < rX.uiMaxPartialLocks && rX.bFullLockWaiting == 0);
-                ++rX.uiNumPartialLocks;
-            }
+        Lockable& rX;
 
-            ~PartialLock()
-            {
-                std::unique_lock xGuard(rX.xLock);
-                assert(rX.uiNumPartialLocks > 0);
-                --rX.uiNumPartialLocks;
-                if(rX.uiNumPartialLocks == 0 || rX.uiNumPartialLocks + 1 == rX.uiMaxPartialLocks)
-                    rX.xCv.notify_all();
-            }
+      public:
+        PartialLock( Lockable& rX ) : rX( rX )
+        {
+            std::unique_lock xGuard( rX.xLock );
+            while( rX.bFullLock || rX.uiNumPartialLocks >= rX.uiMaxPartialLocks || rX.bFullLockWaiting > 0 )
+                rX.xCv.wait( xGuard );
+            assert( !rX.bFullLock && rX.uiNumPartialLocks < rX.uiMaxPartialLocks && rX.bFullLockWaiting == 0 );
+            ++rX.uiNumPartialLocks;
+        }
+
+        ~PartialLock( )
+        {
+            std::unique_lock xGuard( rX.xLock );
+            assert( rX.uiNumPartialLocks > 0 );
+            --rX.uiNumPartialLocks;
+            if( rX.uiNumPartialLocks == 0 || rX.uiNumPartialLocks + 1 == rX.uiMaxPartialLocks )
+                rX.xCv.notify_all( );
+        }
     };
 
-    FullLock fullLock()
+    FullLock fullLock( )
     {
-        return FullLock(*this);
+        return FullLock( *this );
     }
 
-    PartialLock partialLock()
+    PartialLock partialLock( )
     {
-        return PartialLock(*this);
+        return PartialLock( *this );
     }
 };
 

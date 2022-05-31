@@ -259,13 +259,13 @@ A **point** is composed of:
   In this case each of the added points also stores a value of type uint8_t that indicates which corner it refers to. \
   Corers are counted binary-like, i.e. in inverse order and from start to end position. \
   E.g. for 3 dimensions (left-right, down-up, front-back): left-down-front (000), left-down-back (001), left-up-front (010), left-up-back (011), right-down-front (100), ... \
-  See the [Intervals section](#intervals) for more details.
+  See the Intervals section for more details.
 
 
 A **prefix_sum_array** is composed of:
 - 2^td::ORTHOTOPE_DIMS many values of type td::val_t. \
   If there are orthotope dimensions, the prefix sums for all corners of the orthotopes are stored seperately. \
-  See the [Intervals section](#intervals) for more details.
+  See the Intervals section for more details.
 
 
 An **overlay** is composed of:

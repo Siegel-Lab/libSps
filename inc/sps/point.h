@@ -32,7 +32,7 @@ template <typename type_defs> class BasePoint
         return os;
     }
 
-    void addTo(val_t& uiTo) const
+    void addTo( val_t& uiTo ) const
     {
         ++uiTo;
     }
@@ -40,7 +40,7 @@ template <typename type_defs> class BasePoint
 
 
 // Orthotope == HyperRectangle
-template <typename type_defs> class OrthotopeCorner: public BasePoint<type_defs>
+template <typename type_defs> class OrthotopeCorner : public BasePoint<type_defs>
 {
     EXTRACT_TYPE_DEFS; // macro call
 
@@ -49,26 +49,25 @@ template <typename type_defs> class OrthotopeCorner: public BasePoint<type_defs>
     uint8_t uiIdx;
 
   public:
-    OrthotopeCorner( pos_t vPos, size_t uiDescOffset, uint8_t uiIdx ) : 
-        BasePoint<type_defs>(vPos, uiDescOffset), uiIdx(uiIdx)
+    OrthotopeCorner( pos_t vPos, size_t uiDescOffset, uint8_t uiIdx )
+        : BasePoint<type_defs>( vPos, uiDescOffset ), uiIdx( uiIdx )
     {}
 
-    OrthotopeCorner( pos_t vPos, size_t uiDescOffset ) : 
-        BasePoint<type_defs>(vPos, uiDescOffset), uiIdx(0)
+    OrthotopeCorner( pos_t vPos, size_t uiDescOffset ) : BasePoint<type_defs>( vPos, uiDescOffset ), uiIdx( 0 )
     {}
 
-    OrthotopeCorner( ) : BasePoint<type_defs>(), uiIdx(0)
+    OrthotopeCorner( ) : BasePoint<type_defs>( ), uiIdx( 0 )
     {}
 
     std::ostream& stream( std::ostream& os, const desc_t& vDesc ) const
     {
-        BasePoint<type_defs>::stream(os, vDesc) << " i" << (size_t)uiIdx;
+        BasePoint<type_defs>::stream( os, vDesc ) << " i" << (size_t)uiIdx;
         return os;
     }
 
-    void addTo(sps_t& uiTo) const
+    void addTo( sps_t& uiTo ) const
     {
-        BasePoint<type_defs>::addTo(uiTo[uiIdx]);
+        BasePoint<type_defs>::addTo( uiTo[ uiIdx ] );
     }
 };
 
@@ -79,8 +78,8 @@ template <typename type_defs> class Point : public USED_POINT
 {
     using X = typename USED_POINT;
 
-    public:
-        using X::X;
+  public:
+    using X::X;
 
 }; // class
 
@@ -90,7 +89,7 @@ template <typename type_defs> class Point : public USED_POINT
 
 template <typename pos_t, size_t N, size_t NE>
 inline void forAllCombinationsHelper( std::function<void( size_t, pos_t, size_t )> fDo, pos_t& vCurr, pos_t vFrom,
-                                      pos_t vTo, size_t uiDistTo, size_t uiNum, 
+                                      pos_t vTo, size_t uiDistTo, size_t uiNum,
                                       std::function<bool( typename pos_t::value_type )> fCond )
 {
     if constexpr /* <- required to prevent infinite unrolling loop in compiler */ ( N == NE )
@@ -102,8 +101,8 @@ inline void forAllCombinationsHelper( std::function<void( size_t, pos_t, size_t 
             forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo + 1, uiNum, fCond );
         vCurr[ N ] = vTo[ N ];
         if( fCond( vCurr[ N ] ) )
-            forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo, 
-                                                        uiNum + (1 << (NE - (N+1))), fCond );
+            forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo,
+                                                        uiNum + ( 1 << ( NE - ( N + 1 ) ) ), fCond );
     }
 }
 
@@ -116,14 +115,13 @@ inline void forAllCombinationsN(
     pos_t vTo,
     std::function<bool( typename pos_t::value_type )> fCond = []( typename pos_t::value_type ) { return true; } )
 {
-    pos_t vCurr {};
+    pos_t vCurr{ };
     forAllCombinationsHelper<pos_t, 0, N>( fDo, vCurr, vFrom, vTo, 0, 0, fCond );
 }
 
-template<typename>
-struct array_size;
-template<typename T, size_t N>
-struct array_size<std::array<T, N> > {
+template <typename> struct array_size;
+template <typename T, size_t N> struct array_size<std::array<T, N>>
+{
     static size_t const size = N;
 };
 template <typename pos_t>
@@ -133,7 +131,7 @@ inline void forAllCombinations(
     pos_t vTo,
     std::function<bool( typename pos_t::value_type )> fCond = []( typename pos_t::value_type ) { return true; } )
 {
-    forAllCombinationsN<pos_t, array_size<pos_t>::size>(fDo, vFrom, vTo, fCond);
+    forAllCombinationsN<pos_t, array_size<pos_t>::size>( fDo, vFrom, vTo, fCond );
 }
 
 } // namespace sps

@@ -1,5 +1,5 @@
-#include "sps/index.h"
 #include "sps/default.h"
+#include "sps/index.h"
 #include "sps/simple_vector.h"
 
 int main( )

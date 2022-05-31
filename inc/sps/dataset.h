@@ -4,13 +4,13 @@
 #include "sps/overlay.h"
 #include "sps/point.h"
 #include "sps/sparse_coordinate.h"
+#include "sps/thread_pool.h"
 #include "sps/type_defs.h"
 #include "sps/util.h"
 #include <cassert>
 #include <functional>
 #include <mutex>
 #include <string>
-#include "sps/thread_pool.h"
 
 
 namespace sps
@@ -36,21 +36,14 @@ template <typename type_defs> class Dataset
 
     class DimIterator
     {
-        const Dataset& rDataset;
-        sparse_coord_t& rSparseCoords;
         typename points_t::EntryIterator xIt, xItEnd;
         size_t uiDimension;
         size_t uiBlockSize;
 
       public:
-        DimIterator( const Dataset& rDataset, sparse_coord_t& rSparseCoords, typename points_t::EntryIterator xIt,
-                     typename points_t::EntryIterator xItEnd, size_t uiDimension, size_t uiBlockSize )
-            : rDataset( rDataset ),
-              rSparseCoords( rSparseCoords ),
-              xIt( xIt ),
-              xItEnd( xItEnd ),
-              uiDimension( uiDimension ),
-              uiBlockSize( uiBlockSize )
+        DimIterator( typename points_t::EntryIterator xIt, typename points_t::EntryIterator xItEnd, size_t uiDimension,
+                     size_t uiBlockSize )
+            : xIt( xIt ), xItEnd( xItEnd ), uiDimension( uiDimension ), uiBlockSize( uiBlockSize )
         {}
 
         void operator++( )
@@ -191,10 +184,8 @@ template <typename type_defs> class Dataset
         xProg << "generating " << uiNumPerDimension << " overlays in dimension " << uiDim << " for " << uiNumCoords
               << " different coordinates.\n";
         size_t uiBlockSize = std::max( 1ul, uiNumCoords / uiNumPerDimension );
-        auto xStart =
-            DimIterator( *this, rSparseCoords, vPoints.cbegin( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
-        auto xEnd =
-            DimIterator( *this, rSparseCoords, vPoints.cend( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
+        auto xStart = DimIterator( vPoints.cbegin( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
+        auto xEnd = DimIterator( vPoints.cend( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
         if( uiFixedStart == std::numeric_limits<coordinate_t>::max( ) )
             return rSparseCoords.add( xStart, xEnd );
         return rSparseCoords.addStartEnd( xStart, xEnd, uiFixedStart, uiFixedEnd );
@@ -347,106 +338,107 @@ template <typename type_defs> class Dataset
          * However, my PointsBinComperator accesses another stxxl::vector and therefore has to be guarded with a mutex.
          */
         std::mutex xLock;
-        xProfiler.step("sorting points into overlays");
+        xProfiler.step( "sorting points into overlays" );
         sort_points_bin( vPoints.vData.begin( ) + xPoints.uiStartIndex, vPoints.vData.begin( ) + xPoints.uiEndIndex,
                          PointsBinComperator( *this, rOverlays, rSparseCoords, xLock ) );
 
         // generate all overlays
         coordinate_t uiNumTotal = rOverlays.sizeOf( xOverlays ); // @todo count considering non existant entries
 
-        std::vector<typename points_t::Entry> vSplitPoints(uiNumTotal);
+        std::vector<typename points_t::Entry> vSplitPoints( uiNumTotal );
         for( coordinate_t uiI = 0; uiI < uiNumTotal; uiI++ )
         {
-            vSplitPoints[uiI].uiStartIndex = uiI > 0 ? vSplitPoints[uiI - 1].uiEndIndex : xPoints.uiStartIndex;
-            vSplitPoints[uiI].uiEndIndex = vSplitPoints[uiI].uiStartIndex;
+            vSplitPoints[ uiI ].uiStartIndex = uiI > 0 ? vSplitPoints[ uiI - 1 ].uiEndIndex : xPoints.uiStartIndex;
+            vSplitPoints[ uiI ].uiEndIndex = vSplitPoints[ uiI ].uiStartIndex;
             // collect points for overlay uiI
-            while( vSplitPoints[uiI].uiEndIndex < xPoints.uiEndIndex &&
-                   overlayIndex( rOverlays, rSparseCoords, vPoints.vData[ vSplitPoints[uiI].uiEndIndex ].vPos ) == 
-                    uiI + xOverlays.uiStartIndex )
-                ++vSplitPoints[uiI].uiEndIndex;
+            while( vSplitPoints[ uiI ].uiEndIndex < xPoints.uiEndIndex &&
+                   overlayIndex( rOverlays, rSparseCoords, vPoints.vData[ vSplitPoints[ uiI ].uiEndIndex ].vPos ) ==
+                       uiI + xOverlays.uiStartIndex )
+                ++vSplitPoints[ uiI ].uiEndIndex;
         }
-        assert(vSplitPoints[uiNumTotal-1].uiEndIndex == xPoints.uiEndIndex);
+        assert( vSplitPoints[ uiNumTotal - 1 ].uiEndIndex == xPoints.uiEndIndex );
 
         xProg << Verbosity( 0 ) << "generating overlays.\n";
-        xProfiler.step("overlay gen loop");
+        xProfiler.step( "overlay gen loop" );
 
-        auto xIterator = rOverlays.template genIterator<D>(xOverlays, [&](size_t uiIdx, size_t uiDim, 
-                                                              const typename overlay_grid_t::template Entry<D>& xEntry){
-            std::vector<size_t> vRet;
-            auto vPos = overlay_grid_t::posOf(uiIdx, xEntry);
+        auto xIterator = rOverlays.template genIterator<D>(
+            xOverlays, [ & ]( size_t uiIdx, size_t uiDim,
+                              // return vector of indices for successor overlays
+                              const typename overlay_grid_t::template Entry<D>& xEntry ) {
+                std::vector<size_t> vRet;
+                auto vPos = overlay_grid_t::posOf( uiIdx, xEntry );
 
-            bool bFits = true;
-            for(size_t uiI = 0; uiI < D && bFits; uiI++)
-            {
-                ++vPos[uiI];
-                auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
-                if(DEPENDANT_DIMENSION && uiI == 1)
+                bool bFits = true;
+                for( size_t uiI = 0; uiI < D && bFits; uiI++ )
                 {
-                    if(vPos[1] < xEntry.vAxisSizes[1] && exists( rSparseCoords, vPos ))
-                        bFits = false;
-                }
-                else if(vPos[uiI] < xEntry.vAxisSizes[uiI])
-                    bFits = false;
-                --vPos[uiI];
-            }
-            if(bFits)
-            {
-                vRet.push_back(std::numeric_limits<size_t>::max()); // poison
-                return vRet;
-            }
-
-            ++vPos[uiDim];
-            if(vPos[uiDim] < xEntry.vAxisSizes[uiDim])
-            {
-                auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
-                if(DEPENDANT_DIMENSION && uiDim == 0)
-                {
-                    --vPos[uiDim];
-
-                    pos_t vBottomLeft = actualFromGridPos(rSparseCoords, vPos);
-                    pos_t vTopRight = actualTopRightFromGridPos(rSparseCoords, vPos);
-
-                    pos_t vItrPos = vBottomLeft;
-                    vItrPos[0] = vTopRight[0];
-                    pos_t vItrTopRight;
-                    do
+                    ++vPos[ uiI ];
+                    auto xPartialLock1 = rSparseCoords.xLockable.partialLock( );
+                    if( DEPENDANT_DIMENSION && uiI == 1 )
                     {
-                        coordinate_t uiItrIndex = overlayIndex( rOverlays, rSparseCoords, vItrPos );
-                        pos_t vItrGridPos = rOverlays.posOf( uiItrIndex, xOverlays );
-                        vItrTopRight = actualTopRightFromGridPos( rSparseCoords, vItrGridPos );
-
-                        if(vItrTopRight[1] <= vTopRight[ 1 ] && exists( rSparseCoords, vItrGridPos ) )
-                            vRet.push_back(uiItrIndex);
-
-                        // move upwards
-                        vItrPos[ 1 ] = vItrTopRight[ 1 ];
-                    } while( vItrTopRight[ 1 ] < vTopRight[ 1 ] &&
-                                vItrTopRight[ 1 ] != std::numeric_limits<coordinate_t>::max( ) );
+                        if( vPos[ 1 ] < xEntry.vAxisSizes[ 1 ] && exists( rSparseCoords, vPos ) )
+                            bFits = false;
+                    }
+                    else if( vPos[ uiI ] < xEntry.vAxisSizes[ uiI ] )
+                        bFits = false;
+                    --vPos[ uiI ];
                 }
-                else if( exists( rSparseCoords, vPos ) )
-                    vRet.push_back(overlay_grid_t::indexOf(vPos, xEntry));
-            }
-            return vRet;
-        });
+                if( bFits )
+                {
+                    vRet.push_back( std::numeric_limits<size_t>::max( ) ); // poison
+                    return vRet;
+                }
+
+                ++vPos[ uiDim ];
+                if( vPos[ uiDim ] < xEntry.vAxisSizes[ uiDim ] )
+                {
+                    auto xPartialLock1 = rSparseCoords.xLockable.partialLock( );
+                    if( DEPENDANT_DIMENSION && uiDim == 0 )
+                    {
+                        --vPos[ uiDim ];
+
+                        pos_t vBottomLeft = actualFromGridPos( rSparseCoords, vPos );
+                        pos_t vTopRight = actualTopRightFromGridPos( rSparseCoords, vPos );
+
+                        pos_t vItrPos = vBottomLeft;
+                        vItrPos[ 0 ] = vTopRight[ 0 ];
+                        pos_t vItrTopRight;
+                        do
+                        {
+                            coordinate_t uiItrIndex = overlayIndex( rOverlays, rSparseCoords, vItrPos );
+                            pos_t vItrGridPos = rOverlays.posOf( uiItrIndex, xOverlays );
+                            vItrTopRight = actualTopRightFromGridPos( rSparseCoords, vItrGridPos );
+
+                            if( vItrTopRight[ 1 ] <= vTopRight[ 1 ] && exists( rSparseCoords, vItrGridPos ) )
+                                vRet.push_back( uiItrIndex );
+
+                            // move upwards
+                            vItrPos[ 1 ] = vItrTopRight[ 1 ];
+                        } while( vItrTopRight[ 1 ] < vTopRight[ 1 ] &&
+                                 vItrTopRight[ 1 ] != std::numeric_limits<coordinate_t>::max( ) );
+                    }
+                    else if( exists( rSparseCoords, vPos ) )
+                        vRet.push_back( overlay_grid_t::indexOf( vPos, xEntry ) );
+                }
+                return vRet;
+            } );
         size_t uiNumDone = 0;
-        //for(size_t uiI = xOverlays.uiStartIndex; uiI < uiNumTotal + xOverlays.uiStartIndex; uiI++)
-        xIterator.process(rPrefixSums.THREADSAVE ? std::thread::hardware_concurrency() : 0, [&](size_t uiI)
-        {
-            typename points_t::Entry& xCurrPoints = vSplitPoints[uiI - xOverlays.uiStartIndex];
+        // actually process the overlays
+        xIterator.process( rPrefixSums.THREADSAVE ? std::thread::hardware_concurrency( ) : 0, [ & ]( size_t uiI ) {
+            typename points_t::Entry& xCurrPoints = vSplitPoints[ uiI - xOverlays.uiStartIndex ];
 
             // get bottom left position (compressed)
             pos_t vGridPos = rOverlays.posOf( uiI, xOverlays );
             if constexpr( DEPENDANT_DIMENSION )
             {
-                auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
-                
+                auto xPartialLock1 = rSparseCoords.xLockable.partialLock( );
+
                 assert( exists( rSparseCoords, vGridPos ) );
                 if( !exists( rSparseCoords, vGridPos ) )
                 {
 #ifndef NDEBUG
                     xProg << Verbosity( 2 ) << "skipping nonexistant overlap\n";
 #endif
-                    //continue;
+                    // continue;
                     return;
                 }
             }
@@ -454,18 +446,18 @@ template <typename type_defs> class Dataset
             pos_t vPosBottomLeftActual, vPosTopRightActual;
             std::array<std::vector<coordinate_t>, D> vPredecessors;
             {
-                auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
+                auto xPartialLock1 = rSparseCoords.xLockable.partialLock( );
                 vPosBottomLeftActual = actualFromGridPos( rSparseCoords, vGridPos );
                 vPosTopRightActual = actualTopRightFromGridPos( rSparseCoords, vGridPos );
 
 #ifndef NDEBUG
                 xProg << Verbosity( 2 ) << "overlay anchor is " << vGridPos << " actual pos is " << vPosBottomLeftActual
-                    << "\n";
+                      << "\n";
 #endif
 
                 // collect direct predecessor overlays for each dimension
-                vPredecessors = getPredecessor( rOverlays, rSparseCoords, vGridPos, 
-                                                vPosBottomLeftActual, vPosTopRightActual, xProg );
+                vPredecessors = getPredecessor( rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual,
+                                                vPosTopRightActual, xProg );
 
 #ifndef NDEBUG
                 xProg << Verbosity( 2 );
@@ -473,54 +465,50 @@ template <typename type_defs> class Dataset
                     for( size_t uiD = 0; uiD < D; uiD++ )
                         for( size_t uiJ = 0; uiJ < vPredecessors[ uiD ].size( ); uiJ++ )
                         {
-                            auto xPartialLock2 = rPrefixSums.xLockable.partialLock();
-                            xProg << "predecessor " << uiJ << " dim " << uiD << " is "
-                                  << vPredecessors[ uiD ][ uiJ ] << "\n";
+                            auto xPartialLock2 = rPrefixSums.xLockable.partialLock( );
+                            xProg << "predecessor " << uiJ << " dim " << uiD << " is " << vPredecessors[ uiD ][ uiJ ]
+                                  << "\n";
                             assert( vPredecessors[ uiD ][ uiJ ] < uiI );
 
                             pos_t vGridPosPred = rOverlays.posOf( vPredecessors[ uiD ][ uiJ ], xOverlays );
-                            rOverlays.vData[ vPredecessors[ uiD ][ uiJ ] ].stream( 
+                            rOverlays.vData[ vPredecessors[ uiD ][ uiJ ] ].stream(
                                 std::cout, vGridPosPred, rSparseCoords, rPrefixSums, *this, vPoints )
                                 << std::endl;
                         }
 #endif
             }
 #ifndef NDEBUG
-            xProg << Verbosity( 1 ) << "generating overlay ouf of "
-                  << xCurrPoints.uiEndIndex - xCurrPoints.uiStartIndex
+            xProg << Verbosity( 1 ) << "generating overlay ouf of " << xCurrPoints.uiEndIndex - xCurrPoints.uiStartIndex
                   << " points now...\n";
 #endif
             // generate the overlay
             overlay_t xOverlay;
             // generate, then copy over to array, so that we do not mess up any cache in the vector.
-            xOverlay.generate(
-                rOverlays, rSparseCoords, rPrefixSums, vPoints, xCurrPoints,
-                vPredecessors, vPosBottomLeftActual,
-                vPosTopRightActual, this, uiNumDone, uiNumTotal, xProg, xProfiler, xPool );
-            
+            xOverlay.generate( rOverlays, rSparseCoords, rPrefixSums, vPoints, xCurrPoints, vPredecessors,
+                               vPosBottomLeftActual, vPosTopRightActual, this, uiNumDone, uiNumTotal, xProg, xProfiler,
+                               xPool );
+
             rOverlays.vData[ uiI ] = xOverlay;
 #ifndef NDEBUG
-            xProfiler.step("overlay gen loop");
+            xProfiler.step( "overlay gen loop" );
 #endif
 
             xProg << Verbosity( 2 );
             if( xProg.active( ) )
             {
-                auto xPartialLock1 = rSparseCoords.xLockable.partialLock();
-                auto xPartialLock2 = rPrefixSums.xLockable.partialLock();
+                auto xPartialLock1 = rSparseCoords.xLockable.partialLock( );
+                auto xPartialLock2 = rPrefixSums.xLockable.partialLock( );
                 std::cout << rOverlays.vData[ uiI ] << std::endl;
-                rOverlays.vData[ uiI ].stream( std::cout, vGridPos, rSparseCoords, rPrefixSums,
-                                                                        *this, vPoints )
+                rOverlays.vData[ uiI ].stream( std::cout, vGridPos, rSparseCoords, rPrefixSums, *this, vPoints )
                     << std::endl;
             }
 
-            std::unique_lock xGuard(xLock);
+            std::unique_lock xGuard( xLock );
             ++uiNumDone;
             if( xProg.printAgain( ) )
                 xProg << Verbosity( 0 ) << "computed " << uiNumDone << " out of " << uiNumTotal << " overlays, thats "
                       << 100 * uiNumDone / (double)uiNumTotal << "%.\n";
-
-        });
+        } );
         xProg << Verbosity( 0 ) << "done.\n";
     }
 
@@ -643,7 +631,7 @@ template <typename type_defs> class Dataset
                   << rOverlays.indexOf( vSparsePos, xOverlays ) << "\n";
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vSparsePos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
-                return sps_t{};
+                return sps_t{ };
         return rOverlays.get( vSparsePos, xOverlays )
             .get( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( rSparseCoords, vSparsePos ), xProg );
     }
