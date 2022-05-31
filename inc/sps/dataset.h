@@ -172,6 +172,7 @@ template <typename type_defs> class Dataset
                      PointsComperator( uiDim ) );
         vPoints.iterate(
             [ & ]( const point_t& xPoint ) {
+                // @todo consider all coordinates of point
                 coordinate_t uiCurr = xPoint.vPos[ uiDim ];
                 if( uiCurr != uiLast )
                 {
@@ -180,7 +181,8 @@ template <typename type_defs> class Dataset
                 }
             },
             xPoints );
-        size_t uiNumPerDimension = 2 * (size_t)std::pow( uiNumCoords, 1.0 / (float)( D ) ); //
+        //size_t uiNumPerDimension = (size_t)std::pow( uiNumCoords, 1.0 / (float)( D ) ); //
+        size_t uiNumPerDimension = (size_t)std::pow( uiNumCoords, 1.0 / 2.0 ); // @todo why is this better?
         xProg << "generating " << uiNumPerDimension << " overlays in dimension " << uiDim << " for " << uiNumCoords
               << " different coordinates.\n";
         size_t uiBlockSize = std::max( 1ul, uiNumCoords / uiNumPerDimension );
@@ -611,6 +613,22 @@ template <typename type_defs> class Dataset
                              rOverlays.vData[ uiI ].xPoints );
         }
 
+        return vRet;
+    }
+
+    std::vector<std::array<pos_t, 3>> getOverlayGrid(
+            const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords ) const
+    {
+        std::vector<std::array<pos_t, 3>> vRet;
+
+        for( coordinate_t uiI = 0; uiI < rOverlays.sizeOf( xOverlays ); uiI++ )
+        {
+            vRet.emplace_back( );
+            pos_t vGridPos = rOverlays.posOf( uiI, xOverlays );
+            vRet.back( )[0] = vGridPos;
+            vRet.back( )[1] = actualFromGridPos( rSparseCoords, vGridPos );
+            vRet.back( )[2] = actualTopRightFromGridPos( rSparseCoords, vGridPos );
+        }
         return vRet;
     }
 

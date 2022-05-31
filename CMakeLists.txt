@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.9)
 
-# only adjust major version - minor and patch are taken from git commit number
-project("libSps" VERSION 0.0.1)
+# only adjust major and minor version - patch is taken from git commit number
+project("libSps" VERSION 0.1.0)
 
 # set building python library as default
 option(WITH_PYTHON "Build python library." ON)
@@ -65,7 +65,7 @@ add_custom_target(
     config_version ALL
     COMMAND ${CMAKE_SOURCE_DIR}/src/conf_version.h.in.sh
         "${CMAKE_SOURCE_DIR}/inc/sps/version.h.in"
-        "${PROJECT_VERSION_MAJOR}"
+        "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
         "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
     VERBATIM)
 

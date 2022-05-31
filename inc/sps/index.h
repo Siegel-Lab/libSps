@@ -29,6 +29,25 @@ namespace sps
 {
 
 /**
+ * @brief Which orthotopes to count, depending on how they intersect the queried area
+ * 
+ */
+enum IntersectionType { 
+    /// @brief count orthotopes that are fully enclosed by the queried area
+    enclosed,
+    /// @brief count orthotopes that fully enclose by the queried area
+    encloses,
+    /// @brief count orthotopes that overlap the queried area
+    overlaps,
+    /// @brief count orthotopes that have their bottom-left-front-.. corner in the queried area
+    first,
+    /// @brief count orthotopes that have their top-right-back-.. corner in the queried area
+    last,
+    /// @brief count orthotopes that are point-like and in the queried area
+    points_only,
+};
+
+/**
  * @brief The main sparse prefix sum index class.
  *
  * @tparam type_defs An instance of TypeDefs, that defines all compiletime parameters
@@ -206,10 +225,12 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param xDatasetId The id of the dataset to query
      * @param vFrom The bottom left position of the query region.
      * @param vTo The top right position of the query region.
+     * @param xInterType The used intersection type, defaults to enclosed.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
-    val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, size_t uiVerbosity = 0 ) const
+    val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, 
+                            IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
     {
         progress_stream_t xProg( uiVerbosity );
         val_t uiRet = 0;
@@ -226,14 +247,42 @@ template <typename type_defs> class Index : public AbstractIndex
 
                 val_t uiCurr;
                 if constexpr( IS_ORTHOTOPE )
-                    uiCurr = vCurrArr[ uiD / ( 1 << ( D - ORTHOTOPE_DIMS ) ) ]; // uiD / 2 ^ (D - ORTHOTOPE_DIMS)
+                {
+                    size_t uiDLookup;
+                    switch(xInterType)
+                    {
+                        default:
+                        case IntersectionType::points_only:
+                        case IntersectionType::first:
+                            uiDLookup = 0;
+                            break;
+                        case IntersectionType::last:
+                            uiDLookup = ((1 << D) - 1);
+                            break;
+                        case IntersectionType::enclosed:
+                        case IntersectionType::encloses:
+                            uiDLookup = uiD;
+                            break;
+                        case IntersectionType::overlaps:
+                            // invert the last D bits of uiD
+                            // set all other bits to 0
+                            uiDLookup = (~uiD) & ((1 << D) - 1);
+                            break;
+                    }
+                    // uiDLookup / 2 ^ (D - ORTHOTOPE_DIMS)
+                    uiCurr = vCurrArr[ uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) ) ]; 
+                }
                 else
                     uiCurr = vCurrArr;
+                
+                val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
+                if(xInterType == IntersectionType::encloses)
+                    uiFac *= -1;
 
-                xProg << "is " << ( uiDistToTo % 2 == 0 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
+                xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
                       << ( 1 << ( D - ORTHOTOPE_DIMS ) ) << "]"
                       << "\n";
-                uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? 1 : -1 );
+                uiRet += uiCurr * uiFac;
             },
             vFrom, vTo, []( coordinate_t uiPos ) { return uiPos > 0; } );
 #pragma GCC diagnostic pop
@@ -248,18 +297,44 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param xDatasetId The id of the dataset to query
      * @param vFromR The bottom left position of the query region.
      * @param vToR The top right position of the query region.
+     * @param xInterType The used intersection type, defaults to enclosed.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
-    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, size_t uiVerbosity = 0 ) const
+    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, 
+                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
     {
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
                 throw std::invalid_argument( "end must be larger-equal than start." );
-        auto vP = addDims( vFromR, vToR, true );
-        pos_t& vFrom = vP[ 0 ];
-        pos_t& vTo = vP[ 1 ];
-        return countSizeLimited( xDatasetId, vFrom, vTo, uiVerbosity );
+        pos_t vFrom; 
+        pos_t vTo; 
+        if (xInterType == IntersectionType::enclosed)
+        {
+            auto vP = addDims( vFromR, vToR, true );
+            vFrom = vP[ 0 ];
+            vTo = vP[ 1 ];
+        }
+        else
+        {
+            for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            {
+                vFrom[uiI] = vFromR[uiI];
+                vTo[uiI] = vToR[uiI];
+            }
+            for( size_t uiI = D - ORTHOTOPE_DIMS; uiI < D; uiI++ )
+            {
+                if (xInterType == IntersectionType::encloses)
+                    vFrom[uiI] = vToR[ uiI - (D - ORTHOTOPE_DIMS) ] - vFromR[ uiI - (D - ORTHOTOPE_DIMS) ];
+                else
+                    vFrom[uiI] = 0;
+                if (xInterType == IntersectionType::points_only)
+                    vTo[uiI] = 1;
+                else
+                    vTo[uiI] = std::numeric_limits<coordinate_t>::max();
+            }
+        }
+        return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
     }
 
     /**
@@ -301,6 +376,16 @@ template <typename type_defs> class Index : public AbstractIndex
     std::vector<typename dataset_t::OverlayInfo> getOverlayInfo( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getOverlayInfo( vOverlayGrid, vSparseCoord, vPoints );
+    }
+    
+    /**
+     * @brief Returns the bottom-left-front-... and top-right-back-... position of all overlays.
+     */
+    std::vector<std::array<pos_t, 3>> getOverlayGrid( class_key_t xDatasetId ) const
+    {
+        if(vDataSets.size() <= xDatasetId)
+            return std::vector<std::array<pos_t, 3>>{};
+        return vDataSets[ xDatasetId ].getOverlayGrid( vOverlayGrid, vSparseCoord );
     }
 };
 
@@ -453,6 +538,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 )pbdoc" )
         .def( "count", &sps::Index<type_defs>::count, pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
               pybind11::arg( "to_pos" ), //
+              pybind11::arg( "intersection_type" ), //
               pybind11::arg( "verbosity" ) = 0,
               ( R"pbdoc(
     Count the number of points between from and to in the given dataset.
@@ -479,6 +565,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
                   .c_str( ) )
         .def( "count_size_limited", &sps::Index<type_defs>::countSizeLimited, pybind11::arg( "dataset_id" ),
               pybind11::arg( "from_pos" ), pybind11::arg( "to_pos" ), //
+              pybind11::arg( "intersection_type" ), //
               pybind11::arg( "verbosity" ) = 0,
               ( R"pbdoc(
     Count the number of points between from and to and in the given dataset.
@@ -512,6 +599,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "__len__", &sps::Index<type_defs>::numPoints, "Total number of points (among all datasets)." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )
+        .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ), 
+              "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
 
         ;
     return "    " + sName + "\n";
