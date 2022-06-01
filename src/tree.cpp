@@ -256,6 +256,8 @@ PYBIND11_MODULE( libSps, m )
 
     m.attr( "VERSION" ) = VERSION;
 
+    exportEnum( m );
+
     // export various types
     pybind11::class_<sps::AbstractIndex>( m, "AbstractIndex",
                                           R"pbdoc(

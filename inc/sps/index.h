@@ -29,8 +29,10 @@ namespace sps
 {
 
 /**
- * @brief Which orthotopes to count, depending on how they intersect the queried area
+ * @brief An Enum for Querying the index.
  * 
+ * Which orthotopes to count, depending on how they intersect the queried area.
+ * Only relevant for the Index.count() function.
  */
 enum IntersectionType { 
     /// @brief count orthotopes that are fully enclosed by the queried area
@@ -393,6 +395,18 @@ template <typename type_defs> class Index : public AbstractIndex
 
 
 #if WITH_PYTHON
+void exportEnum(pybind11::module& m)
+{
+    pybind11::enum_<IntersectionType>(m, "IntersectionType")
+        .value("enclosed", IntersectionType::enclosed)
+        .value("encloses", IntersectionType::encloses)
+        .value("overlaps", IntersectionType::overlaps)
+        .value("first", IntersectionType::first)
+        .value("last", IntersectionType::last)
+        .value("points_only", IntersectionType::points_only)
+        .export_values();
+}
+
 template <typename type_defs> std::string exportIndex( pybind11::module& m, std::string sName, std::string sDesc )
 {
     using OI = typename sps::Dataset<type_defs>::OverlayInfo;
@@ -538,7 +552,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 )pbdoc" )
         .def( "count", &sps::Index<type_defs>::count, pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
               pybind11::arg( "to_pos" ), //
-              pybind11::arg( "intersection_type" ), //
+              pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,
               ( R"pbdoc(
     Count the number of points between from and to in the given dataset.
@@ -565,7 +579,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
                   .c_str( ) )
         .def( "count_size_limited", &sps::Index<type_defs>::countSizeLimited, pybind11::arg( "dataset_id" ),
               pybind11::arg( "from_pos" ), pybind11::arg( "to_pos" ), //
-              pybind11::arg( "intersection_type" ), //
+              pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,
               ( R"pbdoc(
     Count the number of points between from and to and in the given dataset.
