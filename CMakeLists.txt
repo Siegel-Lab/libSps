@@ -142,7 +142,7 @@ if(Sphinx_FOUND)
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
 
     # note the option ALL which allows to build the docs together with the application
-    add_custom_target( docs-cpp ALL
+    add_custom_target( docs-doxygen
         COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen"
@@ -160,7 +160,7 @@ if(Sphinx_FOUND)
     # pdftex output
     set(SPHINX_TEX_DIR "${CMAKE_CURRENT_BINARY_DIR}/tex")
 
-    add_custom_target(docs-py ALL
+    add_custom_target(docs
         rm -rf ${SPHINX_CACHE_DIR} &&
         rm -rf ${BINARY_BUILD_DIR} &&
         cp -r ${CMAKE_CURRENT_SOURCE_DIR}/docs_conf ${BINARY_BUILD_DIR} &&
@@ -177,7 +177,7 @@ if(Sphinx_FOUND)
             "${BINARY_BUILD_DIR}"
             "${SPHINX_TEX_DIR}" &&
         tectonic "${SPHINX_TEX_DIR}/*.tex"
-        DEPENDS Sps docs-cpp
+        DEPENDS Sps docs-doxygen
         COMMENT "Building API documentation with Sphinx")
 
 else(Sphinx_FOUND)

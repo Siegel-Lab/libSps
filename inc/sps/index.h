@@ -47,6 +47,8 @@ enum IntersectionType {
     last,
     /// @brief count orthotopes that are point-like and in the queried area
     points_only,
+    /// @brief place the orthotope at a position accroding to the size in its orthotope dimensions (used for insert)
+    slice,
 };
 
 /**
@@ -133,7 +135,8 @@ template <typename type_defs> class Index : public AbstractIndex
         vPoints.add( vPos, vDesc.add( sDesc ) );
     }
 
-    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd, bool bStartZero ) const
+    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd, 
+                                  IntersectionType xIntersectionType = IntersectionType::slice ) const
     {
         std::array<pos_t, 2> vRet;
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
@@ -143,11 +146,17 @@ template <typename type_defs> class Index : public AbstractIndex
         }
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            if( bStartZero )
-                vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = 0;
-            else
+            if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::encloses )
                 vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = vEnd[ uiI ] - vStart[ uiI ];
-            vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = vEnd[ uiI ] - vStart[ uiI ];
+            else
+                vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = 0;
+
+            if ( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
+                vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = vEnd[ uiI ] - vStart[ uiI ];
+            else if (xIntersectionType == IntersectionType::points_only)
+                vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = 1;
+            else
+                vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = std::numeric_limits<coordinate_t>::max();
         }
         return vRet;
     }
@@ -171,7 +180,7 @@ template <typename type_defs> class Index : public AbstractIndex
         for( size_t uiI = ORTHOTOPE_DIMS; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vStart[ uiI ] != vEnd[ uiI ] )
                 throw std::invalid_argument( "end must equal start for non-orthotope dimensions." );
-        auto vP = addDims( vStart, vEnd, false );
+        auto vP = addDims( vStart, vEnd );
         vPoints.add( vP[ 0 ], vP[ 1 ], vDesc.add( sDesc ) );
     }
 
@@ -276,11 +285,7 @@ template <typename type_defs> class Index : public AbstractIndex
                 }
                 else
                     uiCurr = vCurrArr;
-                
                 val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
-                if(xInterType == IntersectionType::encloses)
-                    uiFac *= -1;
-
                 xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
                       << ( 1 << ( D - ORTHOTOPE_DIMS ) ) << "]"
                       << "\n";
@@ -299,7 +304,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param xDatasetId The id of the dataset to query
      * @param vFromR The bottom left position of the query region.
      * @param vToR The top right position of the query region.
-     * @param xInterType The used intersection type, defaults to enclosed.
+     * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
@@ -309,33 +314,9 @@ template <typename type_defs> class Index : public AbstractIndex
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
                 throw std::invalid_argument( "end must be larger-equal than start." );
-        pos_t vFrom; 
-        pos_t vTo; 
-        if (xInterType == IntersectionType::enclosed)
-        {
-            auto vP = addDims( vFromR, vToR, true );
-            vFrom = vP[ 0 ];
-            vTo = vP[ 1 ];
-        }
-        else
-        {
-            for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
-            {
-                vFrom[uiI] = vFromR[uiI];
-                vTo[uiI] = vToR[uiI];
-            }
-            for( size_t uiI = D - ORTHOTOPE_DIMS; uiI < D; uiI++ )
-            {
-                if (xInterType == IntersectionType::encloses)
-                    vFrom[uiI] = vToR[ uiI - (D - ORTHOTOPE_DIMS) ] - vFromR[ uiI - (D - ORTHOTOPE_DIMS) ];
-                else
-                    vFrom[uiI] = 0;
-                if (xInterType == IntersectionType::points_only)
-                    vTo[uiI] = 1;
-                else
-                    vTo[uiI] = std::numeric_limits<coordinate_t>::max();
-            }
-        }
+        auto vP = addDims( vFromR, vToR, xInterType );
+        pos_t vFrom = vP[ 0 ];
+        pos_t vTo = vP[ 1 ];
         return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
     }
 
@@ -397,13 +378,21 @@ template <typename type_defs> class Index : public AbstractIndex
 #if WITH_PYTHON
 void exportEnum(pybind11::module& m)
 {
-    pybind11::enum_<IntersectionType>(m, "IntersectionType")
-        .value("enclosed", IntersectionType::enclosed)
-        .value("encloses", IntersectionType::encloses)
-        .value("overlaps", IntersectionType::overlaps)
-        .value("first", IntersectionType::first)
-        .value("last", IntersectionType::last)
-        .value("points_only", IntersectionType::points_only)
+    pybind11::enum_<IntersectionType>(m, "IntersectionType", R"pbdoc(
+    An Enum for Querying the index.
+    
+    Which orthotopes to count, depending on how they intersect the queried area.
+    Only relevant for the Index.count() function.
+)pbdoc")
+        .value("enclosed", IntersectionType::enclosed, "count orthotopes that are fully enclosed by the queried area")
+        .value("encloses", IntersectionType::encloses, "count orthotopes that fully enclose by the queried area")
+        .value("overlaps", IntersectionType::overlaps, "count orthotopes that overlap the queried area")
+        .value("first", IntersectionType::first, 
+                "count orthotopes that have their bottom-left-front-.. corner in the queried area")
+        .value("last", IntersectionType::last, 
+                "count orthotopes that have their top-right-back-.. corner in the queried area")
+        .value("points_only", IntersectionType::points_only, 
+                "count orthotopes that are point-like and in the queried area")
         .export_values();
 }
 

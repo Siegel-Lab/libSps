@@ -49,10 +49,17 @@ template <typename _coordinate_t, //
 class TypeDefs
 {
   public:
+    /// @brief individual coordinate position
     using coordinate_t = _coordinate_t;
+
+    /// @brief prefix sum value
     using val_t = _val_t;
     static constexpr coordinate_t D = _D;
+
+    /// @brief position of a point (with dependent dimensions; used internally)
     using pos_t = std::array<coordinate_t, D>;
+
+    /// @brief key of a dataset
     using class_key_t = _class_key_t;
 
     template <typename val_type_t> using vec_generator_t = _vec_generator<val_type_t>;
@@ -65,6 +72,7 @@ class TypeDefs
 
     static constexpr coordinate_t ORTHOTOPE_DIMS = _orthotope_dims;
 
+    /// @brief position of a point
     using ret_pos_t = std::array<coordinate_t, D - ORTHOTOPE_DIMS>;
 
     static constexpr bool IS_ORTHOTOPE = ORTHOTOPE_DIMS > 0;
@@ -75,16 +83,21 @@ class TypeDefs
 };
 
 #define EXTRACT_TYPE_DEFS                                                                                              \
+    /** @brief individual coordinate position */ \
     using coordinate_t = typename type_defs::coordinate_t;                                                             \
                                                                                                                        \
+    /** @brief prefix sum value */ \
     using val_t = typename type_defs::val_t;                                                                           \
                                                                                                                        \
     static constexpr coordinate_t D = type_defs::D;                                                                    \
                                                                                                                        \
+    /** @brief position of a point */ \
     using ret_pos_t = typename type_defs::ret_pos_t;                                                                   \
                                                                                                                        \
+    /** @brief position of a point (with dependent dimensions; used internally) */ \
     using pos_t = typename type_defs::pos_t;                                                                           \
                                                                                                                        \
+    /** @brief key of a dataset */ \
     using class_key_t = typename type_defs::class_key_t;                                                               \
                                                                                                                        \
     template <typename val_type_t> using vec_generator_t = typename type_defs::template vec_generator_t<val_type_t>;   \

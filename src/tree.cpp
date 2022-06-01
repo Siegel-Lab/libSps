@@ -273,6 +273,7 @@ Documentation for the Python Module
     :toctree: _generate
 
     make_sps_index
+    IntersectionType
     AbstractIndex
 )pbdoc";
 
