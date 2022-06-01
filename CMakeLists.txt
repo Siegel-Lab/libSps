@@ -137,10 +137,6 @@ if(Sphinx_FOUND)
 
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/docs/")
 
-    add_custom_target(copy_docs_conf ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_directory 
-        "${CMAKE_CURRENT_SOURCE_DIR}/docs_conf" "${CMAKE_CURRENT_BINARY_DIR}/_docs_build")
-
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs_conf/doxygen.config)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doxygen.config.out)
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
@@ -149,7 +145,6 @@ if(Sphinx_FOUND)
     add_custom_target( docs-cpp ALL
         COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        DEPENDS copy_docs_conf
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM )
 
@@ -166,24 +161,24 @@ if(Sphinx_FOUND)
     set(SPHINX_TEX_DIR "${CMAKE_CURRENT_BINARY_DIR}/tex")
 
     add_custom_target(docs-py ALL
+        rm -rf ${SPHINX_CACHE_DIR} &&
+        rm -rf ${BINARY_BUILD_DIR} &&
+        cp -r ${CMAKE_CURRENT_SOURCE_DIR}/docs_conf ${BINARY_BUILD_DIR} &&
         ${SPHINX_EXECUTABLE}
             -E -a -q -b html
             -d "${SPHINX_CACHE_DIR}"
             -Dbreathe_projects.libSps="${CMAKE_CURRENT_BINARY_DIR}/doxygen/xml"
             "${BINARY_BUILD_DIR}"
-            "${SPHINX_HTML_DIR}"
-        DEPENDS Sps docs-cpp copy_docs_conf
-        COMMENT "Building HTML documentation with Sphinx")
-
-    add_custom_target(docs-py-latex ALL
+            "${SPHINX_HTML_DIR}" &&
         ${SPHINX_EXECUTABLE}
             -E -a -q -b latex
             -d "${SPHINX_CACHE_DIR}"
             -Dbreathe_projects.libSps="${CMAKE_CURRENT_BINARY_DIR}/doxygen/xml"
             "${BINARY_BUILD_DIR}"
-            "${SPHINX_TEX_DIR}"
-        DEPENDS Sps docs-cpp copy_docs_conf
-        COMMENT "Building tex documentation with Sphinx") # tectonic *.tex
+            "${SPHINX_TEX_DIR}" &&
+        tectonic "${SPHINX_TEX_DIR}/*.tex"
+        DEPENDS Sps docs-cpp
+        COMMENT "Building API documentation with Sphinx")
 
 else(Sphinx_FOUND)
     message(WARNING "No Sphinx found. Documentation target not available.")

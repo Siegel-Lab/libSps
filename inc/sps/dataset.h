@@ -158,7 +158,7 @@ template <typename type_defs> class Dataset
     sort_func_t<points_it_t, PointsComperator> sort_points = sort_func_t<points_it_t, PointsComperator>( );
 
   public:
-    Dataset( ) : xSparseCoordsDependantDimension( )
+    Dataset( ) : vSparseCoords(), xSparseCoordsDependantDimension( )
     {}
 
     typename sparse_coord_t::Entry
@@ -264,7 +264,7 @@ template <typename type_defs> class Dataset
 
     Dataset( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
              points_t& vPoints, typename points_t::Entry xPoints, progress_stream_t xProg )
-        : vSparseCoords( )
+        : vSparseCoords( ), xSparseCoordsDependantDimension( )
     {
         if( xPoints.uiEndIndex == xPoints.uiStartIndex )
             return;

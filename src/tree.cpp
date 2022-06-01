@@ -186,19 +186,19 @@ std::unique_ptr<AbstractIndex> factoryHelper( size_t uiOrthtopeDims, std::string
 {
 #ifdef W_CUBES
     if( uiOrthtopeDims == 3 )
-        return factoryHelper<D + 3, true, 3>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D + 3, dependant_dim, 3>( sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_RECTANGLES
     if( uiOrthtopeDims == 2 )
-        return factoryHelper<D + 2, true, 2>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D + 2, dependant_dim, 2>( sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_INTERVALS
     if( uiOrthtopeDims == 1 )
-        return factoryHelper<D + 1, true, 1>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D + 1, dependant_dim, 1>( sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_POINTS
     if( uiOrthtopeDims == 0 )
-        return factoryHelper<D, true, 0>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D, dependant_dim, 0>( sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
     throw std::invalid_argument( "libSps has not been compiled with the requested number of orthotope dimensions." );
 }
