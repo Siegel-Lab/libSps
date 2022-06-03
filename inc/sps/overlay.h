@@ -226,7 +226,7 @@ template <typename type_defs> class Overlay
     entry_arr_t vSparseCoordsInternal;
     std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D> vOverlayEntries;
     typename prefix_sum_grid_t::template Entry<D> xInternalEntires;
-    typename points_t::Entry xPoints;
+    typename points_t::Entry xPoints; // @todo remove this...
 
     Overlay( ) : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, xPoints{ }
     {}
