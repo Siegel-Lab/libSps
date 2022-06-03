@@ -70,8 +70,8 @@ template <typename type_defs> class Index : public AbstractIndex
 
     using overlay_t = AlignedPower2<Overlay<type_defs>>;
     using sparse_coord_t = SparseCoord<type_defs>;
-    using prefix_sum_grid_t = NDGrid<type_defs, sps_t>;
-    using overlay_grid_t = NDGrid<type_defs, overlay_t>;
+    using overlay_grid_t = typename Overlay<type_defs>::overlay_grid_t;
+    using prefix_sum_grid_t = typename Overlay<type_defs>::prefix_sum_grid_t;
     using dataset_t = AlignedPower2<Dataset<type_defs>>;
 
     EXTRACT_VEC_GENERATOR( dataset, dataset_t ); // macro call

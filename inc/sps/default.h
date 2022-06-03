@@ -149,6 +149,16 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               default_class_key_t, //
                               RamVecGenerator, //
                               RamVectorSorter, //
+                              RamVecGenerator, //
+                              RamVectorSorter, //
+                              RamVecGenerator, //
+                              RamVectorSorter, //
+                              RamVecGenerator, //
+                              RamVectorSorter, //
+                              RamVecGenerator, //
+                              RamVectorSorter, //
+                              RamVecGenerator, //
+                              RamVectorSorter, //
                               dependant_dim, //
                               orthope, //
                               EXPLAIN, //
@@ -182,29 +192,6 @@ template <typename it_t, typename cmp_t> struct CachedVectorSorter
     }
 };
 
-/**
- * @brief Type definitions for a Cached Index
- *
- * Index that uses a cache to load data from and store data to a file dynamically as needed during runtime.
- * Expect this storage type to be slightly slower than the other two options.
- * For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data
- * stored.
- *
- * @tparam D number of dimensions
- * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
- * @tparam orthope number of orthope dimensions
- */
-template <size_t D, bool dependant_dim, size_t orthope>
-using CachedTypeDef = TypeDefs<default_coordinate_t, //
-                               default_val_t, //
-                               D, //
-                               default_class_key_t, //
-                               CachedVecGenerator, //
-                               CachedVectorSorter, //
-                               dependant_dim, //
-                               orthope, //
-                               EXPLAIN, //
-                               StdOutProgressStream>;
 
 
 template <typename val_t> struct DiskVec : public std::vector<val_t>
@@ -311,7 +298,51 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              default_class_key_t, //
                              DiskVecGenerator, //
                              RamVectorSorter, //
+                             DiskVecGenerator, //
+                             RamVectorSorter, //
+                             DiskVecGenerator, //
+                             RamVectorSorter, //
+                             DiskVecGenerator, //
+                             RamVectorSorter, //
+                             DiskVecGenerator, //
+                             RamVectorSorter, //
+                             DiskVecGenerator, //
+                             RamVectorSorter, //
                              dependant_dim, //
                              orthope, //
                              EXPLAIN, //
                              StdOutProgressStream>;
+
+/**
+ * @brief Type definitions for a Cached Index
+ *
+ * Index that uses a cache to load data from and store data to a file dynamically as needed during runtime.
+ * Expect this storage type to be slightly slower than the other two options.
+ * For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data
+ * stored.
+ *
+ * @tparam D number of dimensions
+ * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
+ * @tparam orthope number of orthope dimensions
+ */
+template <size_t D, bool dependant_dim, size_t orthope>
+using CachedTypeDef = TypeDefs<default_coordinate_t, //
+                               default_val_t, //
+                               D, //
+                               default_class_key_t, //
+                                DiskVecGenerator, //
+                                RamVectorSorter, //
+                                DiskVecGenerator, //
+                                RamVectorSorter, //
+                                DiskVecGenerator, //
+                                RamVectorSorter, //
+                                DiskVecGenerator, //
+                                RamVectorSorter, //
+                                DiskVecGenerator, //
+                                RamVectorSorter, //
+                               CachedVecGenerator, //
+                               CachedVectorSorter, //
+                               dependant_dim, //
+                               orthope, //
+                               EXPLAIN, //
+                               StdOutProgressStream>;

@@ -19,8 +19,10 @@ template <typename type_defs> class Overlay
     EXTRACT_TYPE_DEFS; // macro call
 
     using sparse_coord_t = SparseCoord<type_defs>;
-    using prefix_sum_grid_t = NDGrid<type_defs, sps_t>;
-    using overlay_grid_t = NDGrid<type_defs, AlignedPower2<Overlay>>;
+  public:
+    using prefix_sum_grid_t = NDGrid<type_defs, sps_t, prefix_sums_tmpl_vec_generator_t>;
+    using overlay_grid_t = NDGrid<type_defs, AlignedPower2<Overlay>, overlays_tmpl_vec_generator_t>;
+  private:
 
 
     using point_t = Point<type_defs>;

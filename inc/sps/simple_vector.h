@@ -35,9 +35,9 @@ template <typename type_defs> class SimpleVector : public AbstractIndex
 
 
   public:
-    EXTRACT_VEC_GENERATOR( ortho, ortho_t ); // macro call
-    ortho_file_t xFile;
-    ortho_vec_t vData;
+    EXTRACT_VEC_GENERATOR( points, ortho_t ); // macro call
+    points_file_t xFile;
+    points_vec_t vData;
 
     /**
      * @brief Construct a new SimpleVector object
@@ -48,7 +48,7 @@ template <typename type_defs> class SimpleVector : public AbstractIndex
      * defaults to false.
      */
     SimpleVector( std::string sPrefix = "", bool bWrite = false )
-        : xFile( ortho_vec_generator.file( sPrefix + ".orthos", bWrite ) ), vData( ortho_vec_generator.vec( xFile ) )
+        : xFile( points_vec_generator.file( sPrefix + ".orthos", bWrite ) ), vData( points_vec_generator.vec( xFile ) )
     {}
 
     /**

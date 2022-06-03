@@ -14,7 +14,7 @@
 namespace sps
 {
 
-template <typename type_defs, typename data_t> class NDGrid
+template <typename type_defs, typename data_t, template <typename> typename data_tmpl_vec_generator_t> class NDGrid
 {
     EXTRACT_TYPE_DEFS; // macro call
 
@@ -287,7 +287,8 @@ template <typename type_defs, typename data_t> class NDGrid
     }
 };
 
-template <typename type_defs, typename data_t> const data_t NDGrid<type_defs, data_t>::uiZero{ };
+template <typename type_defs, typename data_t, template <typename> typename data_tmpl_vec_generator_t> 
+const data_t NDGrid<type_defs, data_t, data_tmpl_vec_generator_t>::uiZero{ };
 
 
 } // namespace sps

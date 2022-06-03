@@ -27,6 +27,7 @@ template <typename type_defs> class Points
 
   public:
     EXTRACT_VEC_GENERATOR( points, point_t ); // macro call
+    static constexpr bool THREADSAVE = points_THREADSAVE;
   private:
     using points_it_t = typename points_vec_t::iterator;
     using const_points_it_t = typename points_vec_t::const_iterator;
@@ -55,7 +56,7 @@ template <typename type_defs> class Points
             return xRet;
         };
     };
-    sort_func_t<points_it_t, PointsComperator> sort_points = sort_func_t<points_it_t, PointsComperator>( );
+    typename type_defs::template points_sort_func_t<points_it_t, PointsComperator> sort_points = typename type_defs::template points_sort_func_t<points_it_t, PointsComperator>( );
 
   public:
     points_file_t xFile;

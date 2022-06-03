@@ -20,6 +20,21 @@ class Verbosity
     }
 };
 
+#define NAMED_VEC_GEN_AND_SORTER_TEMPLATE( name ) \
+    template <typename> typename _##name##_vec_generator, \
+    template <typename, typename> typename _##name##_sort_func_t
+
+#define NAMED_VEC_GEN_AND_SORTER( name ) \
+    template <typename val_type_t> using name##_vec_generator_t = _##name##_vec_generator<val_type_t>; \
+    template <typename it_t, typename cmp_t> using name##_sort_func_t = _##name##_sort_func_t<it_t, cmp_t>;
+
+    
+#define NAMED_VEC_GEN_AND_SORTER_EXTRACT( name ) \
+    template <typename val_type_t> using name##_tmpl_vec_generator_t = \
+        typename type_defs::template name##_vec_generator_t<val_type_t>;   \
+    template <typename it_t, typename cmp_t>                                                                           \
+    using name##_sort_func_t = typename type_defs::template name##_sort_func_t<it_t, cmp_t>;
+
 /**
  * @brief Definition of all compiletime parameters for Index.
  *
@@ -40,8 +55,12 @@ template <typename _coordinate_t, //
           typename _val_t, //
           size_t _D, //
           typename _class_key_t, //
-          template <typename> typename _vec_generator, //
-          template <typename, typename> typename _sort_func_t, //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(dataset), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(coord), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(overlays), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(desc), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(points), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(prefix_sums), //
           bool _dependant_dim, //
           size_t _orthotope_dims, //
           bool _explain, //
@@ -62,9 +81,12 @@ class TypeDefs
     /// @brief key of a dataset
     using class_key_t = _class_key_t;
 
-    template <typename val_type_t> using vec_generator_t = _vec_generator<val_type_t>;
-
-    template <typename it_t, typename cmp_t> using sort_func_t = _sort_func_t<it_t, cmp_t>;
+    NAMED_VEC_GEN_AND_SORTER(dataset)
+    NAMED_VEC_GEN_AND_SORTER(coord)
+    NAMED_VEC_GEN_AND_SORTER(overlays)
+    NAMED_VEC_GEN_AND_SORTER(desc)
+    NAMED_VEC_GEN_AND_SORTER(points)
+    NAMED_VEC_GEN_AND_SORTER(prefix_sums)
 
     static constexpr bool EXPLAIN = _explain;
 
@@ -100,10 +122,12 @@ class TypeDefs
     /** @brief key of a dataset */ \
     using class_key_t = typename type_defs::class_key_t;                                                               \
                                                                                                                        \
-    template <typename val_type_t> using vec_generator_t = typename type_defs::template vec_generator_t<val_type_t>;   \
-                                                                                                                       \
-    template <typename it_t, typename cmp_t>                                                                           \
-    using sort_func_t = typename type_defs::template sort_func_t<it_t, cmp_t>;                                         \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT(dataset) \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT(coord) \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT(overlays) \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT(desc) \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT(points) \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT(prefix_sums) \
                                                                                                                        \
     static constexpr bool EXPLAIN = type_defs::EXPLAIN;                                                                \
                                                                                                                        \
@@ -118,10 +142,10 @@ class TypeDefs
     using progress_stream_t = typename type_defs::progress_stream_t;
 
 
-#define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
+#define EXTRACT_VEC_GENERATOR( name, content_t )                                                         \
     static_assert( 4096 % sizeof( content_t ) == 0 );                                                                  \
                                                                                                                        \
-    using name##_vec_generator_t = vec_generator_t<content_t>;                                                         \
+    using name##_vec_generator_t = name##_tmpl_vec_generator_t<content_t>;                                             \
                                                                                                                        \
     name##_vec_generator_t name##_vec_generator = name##_vec_generator_t( );                                           \
                                                                                                                        \

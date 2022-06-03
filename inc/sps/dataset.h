@@ -22,8 +22,8 @@ template <typename type_defs> class Dataset
 
     using sparse_coord_t = SparseCoord<type_defs>;
     using overlay_t = AlignedPower2<Overlay<type_defs>>;
-    using overlay_grid_t = NDGrid<type_defs, overlay_t>;
-    using prefix_sum_grid_t = NDGrid<type_defs, sps_t>;
+    using overlay_grid_t = typename Overlay<type_defs>::overlay_grid_t;
+    using prefix_sum_grid_t = typename Overlay<type_defs>::prefix_sum_grid_t;
     using point_t = AlignedPower2<Point<type_defs>>;
     using points_t = Points<type_defs>;
     using desc_t = Desc<type_defs>;
@@ -128,7 +128,7 @@ template <typename type_defs> class Dataset
             return point_t( vActPos, std::numeric_limits<size_t>::max( ) );
         };
     };
-    sort_func_t<points_it_t, PointsBinComperator> sort_points_bin = sort_func_t<points_it_t, PointsBinComperator>( );
+    points_sort_func_t<points_it_t, PointsBinComperator> sort_points_bin = points_sort_func_t<points_it_t, PointsBinComperator>( );
 
     struct PointsComperator
     {
@@ -155,7 +155,7 @@ template <typename type_defs> class Dataset
             return xRet;
         };
     };
-    sort_func_t<points_it_t, PointsComperator> sort_points = sort_func_t<points_it_t, PointsComperator>( );
+    points_sort_func_t<points_it_t, PointsComperator> sort_points = points_sort_func_t<points_it_t, PointsComperator>( );
 
   public:
     Dataset( ) : vSparseCoords(), xSparseCoordsDependantDimension( )
@@ -425,7 +425,8 @@ template <typename type_defs> class Dataset
             } );
         size_t uiNumDone = 0;
         // actually process the overlays
-        xIterator.process( rPrefixSums.THREADSAVE ? std::thread::hardware_concurrency( ) : 0, [ & ]( size_t uiI ) {
+        xIterator.process( rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vPoints.THREADSAVE ?
+                            std::thread::hardware_concurrency( ) : 0, [ & ]( size_t uiI ) {
             typename points_t::Entry& xCurrPoints = vSplitPoints[ uiI - xOverlays.uiStartIndex ];
 
             // get bottom left position (compressed)
@@ -495,6 +496,7 @@ template <typename type_defs> class Dataset
             xProfiler.step( "overlay gen loop" );
 #endif
 
+            std::unique_lock xGuard( xLock );
             xProg << Verbosity( 2 );
             if( xProg.active( ) )
             {
@@ -505,7 +507,6 @@ template <typename type_defs> class Dataset
                     << std::endl;
             }
 
-            std::unique_lock xGuard( xLock );
             ++uiNumDone;
             if( xProg.printAgain( ) )
                 xProg << Verbosity( 0 ) << "computed " << uiNumDone << " out of " << uiNumTotal << " overlays, thats "
