@@ -43,6 +43,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Python.html">Documentation for the Python Module</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Cpp.html">Documentation for the C++ Library</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="AbstractIndex.html">AbstractIndex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="IntersectionType.html">IntersectionType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CppIndex.html">Index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="TypeDefs.html">TypeDefs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InMemTypeDef.html">InMemTypeDef</a></li>
@@ -87,6 +88,7 @@
 <dt class="sig sig-object cpp" id="_CPPv4I0EN3sps12SimpleVectorE">
 <span id="_CPPv3I0EN3sps12SimpleVectorE"></span><span id="_CPPv2I0EN3sps12SimpleVectorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_defs</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classsps_1_1SimpleVector"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">SimpleVector</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="AbstractIndex.html#_CPPv4N3sps13AbstractIndexE" title="sps::AbstractIndex"><span class="n"><span class="pre">AbstractIndex</span></span></a><a class="headerlink" href="#_CPPv4I0EN3sps12SimpleVectorE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>A naive, iteration-based index implementation for benchmarking. </p>
+<p>Ignores the number of orthotope dimensions ( always sets type_defs::ORTHOTOPE_DIMS = type_defs:D ).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters</dt>
 <dd class="field-odd"><p><strong>type_defs</strong> – An instance of <a class="reference internal" href="TypeDefs.html#classsps_1_1TypeDefs"><span class="std std-ref">TypeDefs</span></a>, that defines all compiletime parameters </p>
@@ -94,6 +96,20 @@
 </dl>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3sps12SimpleVector12SimpleVectorENSt6stringEb">
+<span id="_CPPv3N3sps12SimpleVector12SimpleVectorENSt6stringEb"></span><span id="_CPPv2N3sps12SimpleVector12SimpleVectorENSt6stringEb"></span><span id="sps::SimpleVector::SimpleVector__ss.b"></span><span class="target" id="classsps_1_1SimpleVector_1a100033b3a1dc60ad668ddd735d5c4dd1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SimpleVector</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sPrefix</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bWrite</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3sps12SimpleVector12SimpleVectorENSt6stringEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classsps_1_1SimpleVector"><span class="std std-ref">SimpleVector</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sPrefix</strong> – Prefix path of the vector on the filesystem (a file with the ending .orthos will be created), defaults to “”. </p></li>
+<li><p><strong>bWrite</strong> – Open the vector in write mode (if this is set to False no changes can be made to the vector), defaults to false. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N3sps12SimpleVector8addPointE5pos_t5pos_t">
 <span id="_CPPv3N3sps12SimpleVector8addPointE5pos_t5pos_t"></span><span id="_CPPv2N3sps12SimpleVector8addPointE5pos_t5pos_t"></span><span id="sps::SimpleVector::addPoint__pos_t.pos_t"></span><span class="target" id="classsps_1_1SimpleVector_1abf324e0a9f8a14fd70ba172948fff738"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addPoint</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vStart</span></span>, <span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vEnd</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3sps12SimpleVector8addPointE5pos_t5pos_t" title="Permalink to this definition"></a><br /></dt>
@@ -111,7 +127,7 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK3sps12SimpleVector5countE5pos_t5pos_t">
 <span id="_CPPv3NK3sps12SimpleVector5countE5pos_t5pos_t"></span><span id="_CPPv2NK3sps12SimpleVector5countE5pos_t5pos_t"></span><span id="sps::SimpleVector::count__pos_t.pos_tC"></span><span class="target" id="classsps_1_1SimpleVector_1a81bd051b46336b4915fbbc7f1e9ffb84"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">val_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">count</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vStart</span></span>, <span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vEnd</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3sps12SimpleVector5countE5pos_t5pos_t" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Count the number of orthotope within the given area. </p>
+<dd><p>Count the number of orthotopes within the given area. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">

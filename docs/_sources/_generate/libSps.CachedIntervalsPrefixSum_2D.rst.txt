@@ -19,6 +19,7 @@
       ~CachedIntervalsPrefixSum_2D.count
       ~CachedIntervalsPrefixSum_2D.count_size_limited
       ~CachedIntervalsPrefixSum_2D.generate
+      ~CachedIntervalsPrefixSum_2D.get_overlay_grid
    
    
 

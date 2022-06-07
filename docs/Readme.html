@@ -80,18 +80,18 @@
 <h1>libSps - The Sparse Prefix Sums Library<a class="headerlink" href="#libsps-the-sparse-prefix-sums-library" title="Permalink to this headline"></a></h1>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline"></a></h2>
-<p>libSps is a C++ Library that allows counting points in n-dimensional space in constant time O(1).
+<p>libSps is a C++ Library that allows counting points in <em>n</em>-dimensional space in constant time [O(1)].
 It was written to analyze <span class="raw-html-md"><a href="https://en.wikipedia.org/wiki/Chromosome_conformation_capture" title="Wikipedia">Hi-C and RADICL-seq data</a></span>
 and is based on the algorithms in Shekelyan et al. [1] as well as Schmidt et al. [2].</p>
-<p>It can be loaded and used as a python3 module.</p>
-<p>The basic principle is to compute and store the prefix sums of all datapoints.
+<p>libSps can be used as a Python3 module or as a header only library for C++-17.</p>
+<p>The basic algorithmic principle is to compute and store the prefix sums of all datapoints.
 For example: The points 1, 3, 3 &amp; 5</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">X</span>       <span class="n">XX</span>      <span class="n">X</span>
 <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>
 <span class="mi">0</span>   <span class="mi">1</span>   <span class="mi">2</span>   <span class="mi">3</span>   <span class="mi">4</span>   <span class="mi">5</span>
 </pre></div>
 </div>
-<p>would have the following prefix sums (the prefix sum is incremented at each point): 0, 1, 1, 3, 3, 4</p>
+<p>would have the following prefix sums (e.g. there are 3 points before position 4): 0, 1, 1, 3, 3, 4</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">4</span> <span class="o">-</span>                     <span class="o">----</span>
 <span class="mi">3</span> <span class="o">-</span>             <span class="o">--------</span>
 <span class="mi">2</span> <span class="o">-</span>
@@ -101,8 +101,8 @@ For example: The points 1, 3, 3 &amp; 5</p>
     <span class="mi">0</span>   <span class="mi">1</span>   <span class="mi">2</span>   <span class="mi">3</span>   <span class="mi">4</span>   <span class="mi">5</span>
 </pre></div>
 </div>
-<p>If we now want to count the number of points in any given interval (a, b],
-we merely have to subtract the prefix sum at position a from the prefix sum at position b.
+<p>If we now want to count the number of points in any given interval (<em>a</em>, <em>b</em>],
+we merely have to subtract the prefix sum at position <em>a</em> from the prefix sum at position <em>b</em>.
 E.g. count( (1, 4] ) = 3 - 1 = 2; i.e. the two points at postion 3 but no other point are within the interval (1, 4].
 No matter the number of points in our index nor the size of the queried interval, we need two lookups and one substraction operation to count the points.</p>
 </section>
@@ -112,7 +112,7 @@ No matter the number of points in our index nor the size of the queried interval
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="o">-</span><span class="n">c</span> <span class="n">bioconda</span> <span class="n">install</span> <span class="n">libSps</span>
 </pre></div>
 </div>
-<p>First, we create an index and fill it with points.
+<p>To use libSps, we first create an index and fill it with points.
 The following is example python code:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">libSps</span> <span class="kn">import</span> <span class="n">make_sps_index</span>
 

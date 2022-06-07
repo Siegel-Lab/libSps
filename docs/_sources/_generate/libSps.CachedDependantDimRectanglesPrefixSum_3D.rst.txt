@@ -19,6 +19,7 @@
       ~CachedDependantDimRectanglesPrefixSum_3D.count
       ~CachedDependantDimRectanglesPrefixSum_3D.count_size_limited
       ~CachedDependantDimRectanglesPrefixSum_3D.generate
+      ~CachedDependantDimRectanglesPrefixSum_3D.get_overlay_grid
    
    
 

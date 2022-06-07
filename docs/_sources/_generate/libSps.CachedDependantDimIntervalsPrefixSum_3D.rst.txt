@@ -19,6 +19,7 @@
       ~CachedDependantDimIntervalsPrefixSum_3D.count
       ~CachedDependantDimIntervalsPrefixSum_3D.count_size_limited
       ~CachedDependantDimIntervalsPrefixSum_3D.generate
+      ~CachedDependantDimIntervalsPrefixSum_3D.get_overlay_grid
    
    
 

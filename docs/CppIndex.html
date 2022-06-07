@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="TypeDefs" href="TypeDefs.html" />
-    <link rel="prev" title="AbstractIndex" href="AbstractIndex.html" /> 
+    <link rel="prev" title="IntersectionType" href="IntersectionType.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,6 +44,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Python.html">Documentation for the Python Module</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Cpp.html">Documentation for the C++ Library</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="AbstractIndex.html">AbstractIndex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="IntersectionType.html">IntersectionType</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="TypeDefs.html">TypeDefs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InMemTypeDef.html">InMemTypeDef</a></li>
@@ -97,13 +98,13 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N3sps5Index5IndexENSt6stringEb">
-<span id="_CPPv3N3sps5Index5IndexENSt6stringEb"></span><span id="_CPPv2N3sps5Index5IndexENSt6stringEb"></span><span id="sps::Index::Index__ss.b"></span><span class="target" id="classsps_1_1Index_1a0e85e8f541fee2724fddb3e5c0edc37d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Index</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sPrefix</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bWrite</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3sps5Index5IndexENSt6stringEb" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N3sps5Index5IndexENSt6stringEb"></span><span id="_CPPv2N3sps5Index5IndexENSt6stringEb"></span><span id="sps::Index::Index__ss.b"></span><span class="target" id="classsps_1_1Index_1af2612737e110294e22c39624623d2e0f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Index</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sPrefix</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bWrite</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3sps5Index5IndexENSt6stringEb" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Construct a new <a class="reference internal" href="#classsps_1_1Index"><span class="std std-ref">Index</span></a> object. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sPrefix</strong> – Prefix path of the index on the filesystem (multiple files with different endings will be created), defaults to “”. </p></li>
-<li><p><strong>bWrite</strong> – Open the index in write mode (if this is set to False no changes can be made to the index), defaults to true. </p></li>
+<li><p><strong>bWrite</strong> – Open the index in write mode (if this is set to False no changes can be made to the index), defaults to false. </p></li>
 </ul>
 </dd>
 </dl>
@@ -123,16 +124,13 @@
 <p>The point will not be queryable until generate is called.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><p><strong>trigger</strong> – </p>
+<dd class="field-odd"><p><strong>trigger</strong> – This function is only active if IS_ORTHOTOPE = false </p>
 </dd>
 <dt class="field-even">Parameters</dt>
 <dd class="field-even"><ul class="simple">
 <li><p><strong>vPos</strong> – The position of the point. </p></li>
 <li><p><strong>sDesc</strong> – A description for the Point, defaults to “”. </p></li>
 </ul>
-</dd>
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>std::enable_if_t&lt;trigger&gt; This function is only active if IS_ORTHOTOPE = false </p>
 </dd>
 </dl>
 </dd></dl>
@@ -144,7 +142,7 @@
 <p>The orthotope will not be queryable until generate is called.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><p><strong>trigger</strong> – </p>
+<dd class="field-odd"><p><strong>trigger</strong> – This function is only active if IS_ORTHOTOPE = true </p>
 </dd>
 <dt class="field-even">Parameters</dt>
 <dd class="field-even"><ul class="simple">
@@ -152,9 +150,6 @@
 <li><p><strong>vEnd</strong> – The top right position of the orthotope. </p></li>
 <li><p><strong>sDesc</strong> – A description for the orthotope, defaults to “”. </p></li>
 </ul>
-</dd>
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>std::enable_if_t&lt;trigger&gt; This function is only active if IS_ORTHOTOPE = true </p>
 </dd>
 </dl>
 </dd></dl>
@@ -175,8 +170,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>uiFrom</strong> – <a class="reference internal" href="#classsps_1_1Index"><span class="std std-ref">Index</span></a> of the first point that shall be part of this dataset, defaults to zero. </p></li>
-<li><p><strong>uiTo</strong> – <a class="reference internal" href="#classsps_1_1Index"><span class="std std-ref">Index</span></a> of the last point that shall be part of this dataset, defaults to the current size of the index. </p></li>
+<li><p><strong>uiFrom</strong> – Size of the index before adding the first point of this dataset, defaults to zero. </p></li>
+<li><p><strong>uiTo</strong> – Size of the index after adding all points of this dataset, defaults to the current size of the index. </p></li>
 <li><p><strong>uiVerbosity</strong> – Degree of verbosity while creating the dataset, defaults to 1. </p></li>
 </ul>
 </dd>
@@ -187,16 +182,17 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t6size_t">
-<span id="_CPPv3NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t6size_t"></span><span id="_CPPv2NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t6size_t"></span><span id="sps::Index::countSizeLimited__class_key_t.pos_t.pos_t.sC"></span><span class="target" id="classsps_1_1Index_1a2917fba042ea9fce36b3f13189a480a5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">val_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">countSizeLimited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">class_key_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDatasetId</span></span>, <span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vFrom</span></span>, <span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vTo</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiVerbosity</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t6size_t" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Count the number of points between from and to and in the given dataset. </p>
-<p>As opposed to count, this function allows specifying the start and end positions for all dimensions in the Datastructure. This is only relevant for indices with orthotope dimensions.</p>
+<dt class="sig sig-object cpp" id="_CPPv4NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t16IntersectionType6size_t">
+<span id="_CPPv3NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t16IntersectionType6size_t"></span><span id="_CPPv2NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t16IntersectionType6size_t"></span><span id="sps::Index::countSizeLimited__class_key_t.pos_t.pos_t.IntersectionType.sC"></span><span class="target" id="classsps_1_1Index_1a3d77dbcb103b48696aa1f09efef08e40"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">val_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">countSizeLimited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">class_key_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDatasetId</span></span>, <span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vFrom</span></span>, <span class="n"><span class="pre">pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vTo</span></span>, <a class="reference internal" href="IntersectionType.html#_CPPv4N3sps16IntersectionTypeE" title="sps::IntersectionType"><span class="n"><span class="pre">IntersectionType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">xInterType</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="IntersectionType.html#_CPPv4N3sps16IntersectionTypeE" title="sps::IntersectionType"><span class="n"><span class="pre">IntersectionType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="IntersectionType.html#_CPPv4N3sps16IntersectionType8enclosedE" title="sps::IntersectionType::enclosed"><span class="n"><span class="pre">enclosed</span></span></a>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiVerbosity</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3sps5Index16countSizeLimitedE11class_key_t5pos_t5pos_t16IntersectionType6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Count the number of points between from and to in the given dataset. </p>
+<p>As opposed to count, this function allows specifying the start and end positions for all dimensions in the datastructure. This is only relevant for indices with orthotope dimensions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xDatasetId</strong> – The id of the dataset to query </p></li>
 <li><p><strong>vFrom</strong> – The bottom left position of the query region. </p></li>
 <li><p><strong>vTo</strong> – The top right position of the query region. </p></li>
+<li><p><strong>xInterType</strong> – The used intersection type, defaults to enclosed. </p></li>
 <li><p><strong>uiVerbosity</strong> – Degree of verbosity while counting, defaults to 0. </p></li>
 </ul>
 </dd>
@@ -207,8 +203,8 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK3sps5Index5countE11class_key_t9ret_pos_t9ret_pos_t6size_t">
-<span id="_CPPv3NK3sps5Index5countE11class_key_t9ret_pos_t9ret_pos_t6size_t"></span><span id="_CPPv2NK3sps5Index5countE11class_key_t9ret_pos_t9ret_pos_t6size_t"></span><span id="sps::Index::count__class_key_t.ret_pos_t.ret_pos_t.sC"></span><span class="target" id="classsps_1_1Index_1a9cca2b75d5eee653c3eb39b68be71efe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">val_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">count</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">class_key_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDatasetId</span></span>, <span class="n"><span class="pre">ret_pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vFromR</span></span>, <span class="n"><span class="pre">ret_pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vToR</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiVerbosity</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3sps5Index5countE11class_key_t9ret_pos_t9ret_pos_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK3sps5Index5countE11class_key_t9ret_pos_t9ret_pos_t16IntersectionType6size_t">
+<span id="_CPPv3NK3sps5Index5countE11class_key_t9ret_pos_t9ret_pos_t16IntersectionType6size_t"></span><span id="_CPPv2NK3sps5Index5countE11class_key_t9ret_pos_t9ret_pos_t16IntersectionType6size_t"></span><span id="sps::Index::count__class_key_t.ret_pos_t.ret_pos_t.IntersectionType.sC"></span><span class="target" id="classsps_1_1Index_1aa94918a87fb5dac1d33b0ba8ec60c74c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">val_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">count</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">class_key_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDatasetId</span></span>, <span class="n"><span class="pre">ret_pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vFromR</span></span>, <span class="n"><span class="pre">ret_pos_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vToR</span></span>, <a class="reference internal" href="IntersectionType.html#_CPPv4N3sps16IntersectionTypeE" title="sps::IntersectionType"><span class="n"><span class="pre">IntersectionType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">xInterType</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="IntersectionType.html#_CPPv4N3sps16IntersectionTypeE" title="sps::IntersectionType"><span class="n"><span class="pre">IntersectionType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="IntersectionType.html#_CPPv4N3sps16IntersectionType8enclosedE" title="sps::IntersectionType::enclosed"><span class="n"><span class="pre">enclosed</span></span></a>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uiVerbosity</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3sps5Index5countE11class_key_t9ret_pos_t9ret_pos_t16IntersectionType6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Count the number of points between from and to and in the given dataset. </p>
 <p>to_pos must be larger equal than from_pos in each dimension.</p>
 <dl class="field-list simple">
@@ -217,6 +213,7 @@
 <li><p><strong>xDatasetId</strong> – The id of the dataset to query </p></li>
 <li><p><strong>vFromR</strong> – The bottom left position of the query region. </p></li>
 <li><p><strong>vToR</strong> – The top right position of the query region. </p></li>
+<li><p><strong>xInterType</strong> – The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions. </p></li>
 <li><p><strong>uiVerbosity</strong> – Degree of verbosity while counting, defaults to 0. </p></li>
 </ul>
 </dd>
@@ -230,9 +227,46 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK3sps5Index3strEv">
 <span id="_CPPv3NK3sps5Index3strEv"></span><span id="_CPPv2NK3sps5Index3strEv"></span><span id="sps::Index::strC"></span><span class="target" id="classsps_1_1Index_1a6e506d73a2ef62934b7ca289c67bc816"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">str</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3sps5Index3strEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Return a string describing the index. </p>
+<p>Very slow for large datasets. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3sps5Index14getOverlayGridE11class_key_t">
+<span id="_CPPv3NK3sps5Index14getOverlayGridE11class_key_t"></span><span id="_CPPv2NK3sps5Index14getOverlayGridE11class_key_t"></span><span id="sps::Index::getOverlayGrid__class_key_tC"></span><span class="target" id="classsps_1_1Index_1af89f30da9e7b30a40106454025ef040a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">pos_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getOverlayGrid</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">class_key_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDatasetId</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3sps5Index14getOverlayGridE11class_key_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the bottom-left-front-… and top-right-back-… position of all overlays. </p>
 </dd></dl>
 
 </div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N3sps8TypeDefs12coordinate_tE">
+<span id="_CPPv3N3sps8TypeDefs12coordinate_tE"></span><span id="_CPPv2N3sps8TypeDefs12coordinate_tE"></span><span class="target" id="classsps_1_1TypeDefs_1a4e3d710c076f565e743750a5b2645ea3"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TypeDefs</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">coordinate_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">_coordinate_t</span></span><a class="headerlink" href="#_CPPv4N3sps8TypeDefs12coordinate_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>individual coordinate position </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N3sps8TypeDefs5val_tE">
+<span id="_CPPv3N3sps8TypeDefs5val_tE"></span><span id="_CPPv2N3sps8TypeDefs5val_tE"></span><span class="target" id="classsps_1_1TypeDefs_1a22a0425be76b536a2039cd05169b90d8"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TypeDefs</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">val_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">_val_t</span></span><a class="headerlink" href="#_CPPv4N3sps8TypeDefs5val_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>prefix sum value </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N3sps8TypeDefs5pos_tE">
+<span id="_CPPv3N3sps8TypeDefs5pos_tE"></span><span id="_CPPv2N3sps8TypeDefs5pos_tE"></span><span class="target" id="classsps_1_1TypeDefs_1a091368d7ee77ab200aeb961f089a8f11"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TypeDefs</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">pos_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N3sps8TypeDefs12coordinate_tE" title="sps::TypeDefs::coordinate_t"><span class="n"><span class="pre">coordinate_t</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">D</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N3sps8TypeDefs5pos_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>position of a point (with dependent dimensions; used internally) </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N3sps8TypeDefs11class_key_tE">
+<span id="_CPPv3N3sps8TypeDefs11class_key_tE"></span><span id="_CPPv2N3sps8TypeDefs11class_key_tE"></span><span class="target" id="classsps_1_1TypeDefs_1aeffbffec03dd760357223f9559b57067"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TypeDefs</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">class_key_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">_class_key_t</span></span><a class="headerlink" href="#_CPPv4N3sps8TypeDefs11class_key_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>key of a dataset </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N3sps8TypeDefs9ret_pos_tE">
+<span id="_CPPv3N3sps8TypeDefs9ret_pos_tE"></span><span id="_CPPv2N3sps8TypeDefs9ret_pos_tE"></span><span class="target" id="classsps_1_1TypeDefs_1a49b1a335442ee5827b1acbca4334e546"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TypeDefs</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ret_pos_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N3sps8TypeDefs12coordinate_tE" title="sps::TypeDefs::coordinate_t"><span class="n"><span class="pre">coordinate_t</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">D</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="w"> </span><span class="n"><span class="pre">ORTHOTOPE_DIMS</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N3sps8TypeDefs9ret_pos_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>position of a point </p>
 </dd></dl>
 
 </section>
@@ -241,7 +275,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="AbstractIndex.html" class="btn btn-neutral float-left" title="AbstractIndex" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="IntersectionType.html" class="btn btn-neutral float-left" title="IntersectionType" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="TypeDefs.html" class="btn btn-neutral float-right" title="TypeDefs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -19,6 +19,7 @@
       ~CachedRectanglesPrefixSum_2D.count
       ~CachedRectanglesPrefixSum_2D.count_size_limited
       ~CachedRectanglesPrefixSum_2D.generate
+      ~CachedRectanglesPrefixSum_2D.get_overlay_grid
    
    
 

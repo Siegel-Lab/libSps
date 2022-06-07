@@ -1,0 +1,4 @@
+IntersectionType
+----------------
+
+.. doxygenenum:: sps::IntersectionType

@@ -19,6 +19,7 @@
       ~DiskDependantDimIntervalsPrefixSum_2D.count
       ~DiskDependantDimIntervalsPrefixSum_2D.count_size_limited
       ~DiskDependantDimIntervalsPrefixSum_2D.generate
+      ~DiskDependantDimIntervalsPrefixSum_2D.get_overlay_grid
    
    
 

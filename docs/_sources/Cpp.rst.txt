@@ -6,6 +6,8 @@ Documentation for the C++ Library
 
     * - :doc:`AbstractIndex<./AbstractIndex>`
       - Abstract Superclass for all Indices.
+    * - :doc:`IntersectionType<./IntersectionType>`
+      - An enum for querying the index.
     * - :doc:`Index<./CppIndex>`
       - The main sparse prefix sum index class.
     * - :doc:`TypeDefs<./TypeDefs>`
@@ -30,6 +32,7 @@ Documentation for the C++ Library
     :hidden:
 
     AbstractIndex
+    IntersectionType
     CppIndex
     TypeDefs
     InMemTypeDef

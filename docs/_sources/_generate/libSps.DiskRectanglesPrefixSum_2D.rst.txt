@@ -19,6 +19,7 @@
       ~DiskRectanglesPrefixSum_2D.count
       ~DiskRectanglesPrefixSum_2D.count_size_limited
       ~DiskRectanglesPrefixSum_2D.generate
+      ~DiskRectanglesPrefixSum_2D.get_overlay_grid
    
    
 
