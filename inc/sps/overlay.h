@@ -253,8 +253,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );

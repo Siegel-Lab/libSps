@@ -367,7 +367,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param vRegions The bottom left and top right positions of the queried regions.
      * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
-     * @return val_t The number of points in dataset_id between from_pos and to_pos.
+     * @return std::vector<val_t> The number of points in dataset_id between from_pos and to_pos for each given region.
      */
     std::vector<val_t> countMultiple( class_key_t xDatasetId, std::vector<std::pair<ret_pos_t, ret_pos_t>> vRegions,
                                       IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
@@ -381,14 +381,30 @@ template <typename type_defs> class Index : public AbstractIndex
         pProfiler->step( "init" );
 #endif
 
-        std::vector<val_t> vRet;
-        for( auto& rRegion : vRegions )
-            vRet.push_back( count( xDatasetId, rRegion.first, rRegion.second, xInterType, uiVerbosity
+        std::vector<val_t> vRet( vRegions.size( ) );
+        {
+            ThreadPool xPool(
+#if PROFILE_GET
+                0
+#else
+                vSparseCoord.THREADSAVE && vOverlayGrid.THREADSAVE && vPrefixSumGrid.THREADSAVE
+                    ? std::thread::hardware_concurrency( )
+                    : 0
+#endif
+            );
+            for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
+                xPool.enqueue(
+                    [ & ]( size_t, size_t uiI ) {
+                        vRet[ uiI ] =
+                            count( xDatasetId, vRegions[ uiI ].first, vRegions[ uiI ].second, xInterType, uiVerbosity
 #if PROFILE_GET
                                    ,
                                    pProfiler
 #endif
-                                   ) );
+                            );
+                    },
+                    uiI );
+        } // scope for xPool
 #if PROFILE_GET
         pProfiler->print( "init" );
 #endif
