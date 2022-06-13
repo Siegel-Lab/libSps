@@ -605,6 +605,63 @@ template <typename type_defs> class Overlay
     //#endif
 
 
+    static inline __attribute__((always_inline)) void
+    getCombinationsInvariant( size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
+                              const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
+                              const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
+                              const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries
+#if PROFILE_GET
+                              ,
+                              std::shared_ptr<Profiler>& pProfiler
+#endif
+    )
+    {
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: pick overlay" );
+#endif
+        if( uiDistToTo == 0 )
+            return;
+        size_t uiI = 0;
+        while( uiI < D && ( vPos[ uiI ] != vMyBottomLeft[ uiI ] || vSparseCoordsOverlay[ uiI ][ 0 ].uiStartIndex ==
+                                                                       std::numeric_limits<coordinate_t>::max( ) ) )
+            ++uiI;
+
+        if( uiI == D )
+            return;
+
+#if GET_PROG_PRINTS
+        xProg << Verbosity( 3 ) << "\t\tquery: " << vPos << " in overlay " << uiI << "\n";
+#endif
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: sparse coords overlay" );
+#endif
+        red_pos_t vRelevant = relevant( vPos, uiI );
+        red_pos_t vSparse = rSparseCoords.template sparse<D - 1, false>( vRelevant, vSparseCoordsOverlay[ uiI ] );
+
+#if GET_PROG_PRINTS
+        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
+#endif
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: query overlay" );
+#endif
+        // in release mode query with sanity=false to avoid sanity checks
+        sps_t uiCurr = rPrefixSums.template get<D - 1, !NDEBUG>( vSparse, vOverlayEntries[ uiI ] );
+
+#if GET_PROG_PRINTS
+        xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
+#endif
+        uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? -1 : 1 );
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: forAllCombinations" );
+#endif
+    }
+
+    static inline __attribute__((always_inline)) bool getCombinationsCond( coordinate_t uiPos )
+    {
+        return uiPos != std::numeric_limits<coordinate_t>::max( );
+    }
+
+
     sps_t get( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
                pos_t vMyBottomLeft,
                progress_stream_t&
@@ -618,7 +675,7 @@ template <typename type_defs> class Overlay
     ) const
     {
 #if PROFILE_GET
-        pProfiler->step( "overlay_get" );
+        pProfiler->step( "overlay_get: prep" );
 #endif
         sps_t uiRet{ };
 
@@ -631,53 +688,21 @@ template <typename type_defs> class Overlay
 #if GET_PROG_PRINTS
         xProg << Verbosity( 3 ) << "\t\tvMyBottomLeft " << vMyBottomLeft << "\n";
 #endif
-
-        forAllCombinations<pos_t>(
-            [ & ]( size_t, pos_t vPos, size_t uiDistToTo ) {
 #if PROFILE_GET
-                pProfiler->step( "overlay_get: pick overlay" );
+        pProfiler->step( "overlay_get: forAllCombinations" );
 #endif
-                if( uiDistToTo == 0 )
-                    return;
-                size_t uiI = 0;
-                while( uiI < D &&
-                       ( vPos[ uiI ] != vMyBottomLeft[ uiI ] ||
-                         vSparseCoordsOverlay[ uiI ][ 0 ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) ) )
-                    ++uiI;
 
-                if( uiI == D )
-                    return;
-
-#if GET_PROG_PRINTS
-                xProg << Verbosity( 3 ) << "\t\tquery: " << vPos << " in overlay " << uiI << "\n";
-#endif
+        forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariant, getCombinationsCond, uiRet,
+                                       vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries
 #if PROFILE_GET
-                pProfiler->step( "overlay_get: sparse coords overlay" );
+                                       ,
+                                       pProfiler
 #endif
-                red_pos_t vRelevant = relevant( vPos, uiI );
-                red_pos_t vSparse =
-                    rSparseCoords.template sparse<D - 1, false>( vRelevant, vSparseCoordsOverlay[ uiI ] );
 
-#if GET_PROG_PRINTS
-                xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
-#endif
+        );
 #if PROFILE_GET
-                pProfiler->step( "overlay_get: query overlay" );
+        pProfiler->step( "overlay_get" );
 #endif
-                // in release mode query with sanity=false to avoid sanity checks
-                sps_t uiCurr = rPrefixSums.template get<D - 1, !NDEBUG>( vSparse, vOverlayEntries[ uiI ] );
-
-#if GET_PROG_PRINTS
-                xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
-#endif
-#if PROFILE_GET
-                pProfiler->step( "overlay_get" );
-#endif
-                uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? -1 : 1 );
-            },
-            vMyBottomLeft,
-            vCoords,
-            []( coordinate_t uiPos ) { return uiPos != std::numeric_limits<coordinate_t>::max( ); } );
 
         if( rPrefixSums.sizeOf( xInternalEntires ) > 0 )
         {
@@ -711,7 +736,7 @@ template <typename type_defs> class Overlay
         return uiRet;
     }
 
-    template <typename T> inline std::array<T, D - 1> relevant( const std::array<T, D>& vAllEntries, size_t uiI ) const
+    template <typename T> static inline __attribute__((always_inline)) std::array<T, D - 1> relevant( const std::array<T, D>& vAllEntries, size_t uiI )
     {
         std::array<T, D - 1> vRelevantEntries;
         for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
@@ -719,7 +744,7 @@ template <typename type_defs> class Overlay
         return vRelevantEntries;
     }
 
-    template <typename T> std::array<T, D> expand( const std::array<T, D - 1>& vCompressed, size_t uiI ) const
+    template <typename T> inline std::array<T, D> expand( const std::array<T, D - 1>& vCompressed, size_t uiI ) const
     {
         std::array<T, D> vAllEntries;
         for( size_t uiJ = 0; uiJ < uiI; uiJ++ )

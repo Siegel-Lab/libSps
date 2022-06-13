@@ -257,7 +257,7 @@ A **point** is composed of:
 - a pointer to it's descritpion of type size_t.
 - if td::IS_ORTHOTOPE, each add_point call adds all corners of the described orthotope. \
   In this case each of the added points also stores a value of type uint8_t that indicates which corner it refers to. \
-  Corers are counted binary-like, i.e. in inverse order and from start to end position. \
+  Corners are counted binary-like, i.e. in inverse order and from start to end position. \
   E.g. for 3 dimensions (left-right, down-up, front-back): left-down-front (000), left-down-back (001), left-up-front (010), left-up-back (011), right-down-front (100), ... \
   See the Intervals section for more details.
 

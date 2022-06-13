@@ -207,8 +207,7 @@ struct Profiler
         for( auto xEntry : xTimes )
             dTotal += xEntry.second;
         for( auto xEntry : xTimes )
-            std::cerr << xEntry.first << ": " << xEntry.second << " ms " << 100 * xEntry.second / dTotal << "%"
-                      << std::endl;
+            std::cerr << 100 * xEntry.second / dTotal << "%\t" << xEntry.second << " ms\t" << xEntry.first << std::endl;
         xTimes.clear( );
     }
 };

@@ -132,7 +132,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return vData[ uiIdx ];
     }
 
-    template <size_t N> data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
+    template <size_t N> inline __attribute__((always_inline)) data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
     {
         auto uiIdx = indexOf<N>( vX, rInfo );
         assert( uiIdx != std::numeric_limits<coordinate_t>::max( ) );

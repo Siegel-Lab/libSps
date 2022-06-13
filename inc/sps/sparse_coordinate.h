@@ -167,7 +167,7 @@ template <typename type_defs> class SparseCoord
 
 
     template <size_t N, bool SANITY = true>
-    inline std::array<coordinate_t, N> sparse( const std::array<coordinate_t, N>& vCoords,
+    inline __attribute__((always_inline)) std::array<coordinate_t, N> sparse( const std::array<coordinate_t, N>& vCoords,
                                                const std::array<Entry, N>& vAxes ) const
     {
         std::array<coordinate_t, N> vRet;

@@ -319,6 +319,9 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
             },
             vFrom, vTo, []( coordinate_t uiPos ) { return uiPos > 0; } );
+#if PROFILE_GET
+        pProfiler->step( "init" );
+#endif
 #pragma GCC diagnostic pop
         return uiRet;
     }
@@ -343,12 +346,18 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
     ) const
     {
+#if PROFILE_GET
+        pProfiler->step( "init: check and process coords" );
+#endif
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
                 throw std::invalid_argument( "end must be larger-equal than start." );
         auto vP = addDims( vFromR, vToR, xInterType );
         pos_t vFrom = vP[ 0 ];
         pos_t vTo = vP[ 1 ];
+#if PROFILE_GET
+        pProfiler->step( "init" );
+#endif
         return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity
 #if PROFILE_GET
                                  ,
@@ -378,10 +387,14 @@ template <typename type_defs> class Index : public AbstractIndex
     ) const
     {
 #if PROFILE_GET
-        pProfiler->step( "init" );
+        pProfiler->step( "init: alloc vRet" );
 #endif
 
         std::vector<val_t> vRet( vRegions.size( ) );
+
+#if PROFILE_GET
+        pProfiler->step( "init: pool" );
+#endif
         {
             ThreadPool xPool(
 #if PROFILE_GET
@@ -392,6 +405,9 @@ template <typename type_defs> class Index : public AbstractIndex
                     : 0
 #endif
             );
+#if PROFILE_GET
+            pProfiler->step( "init" );
+#endif
             for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
                 xPool.enqueue(
                     [ & ]( size_t, size_t uiI ) {
@@ -406,7 +422,7 @@ template <typename type_defs> class Index : public AbstractIndex
                     uiI );
         } // scope for xPool
 #if PROFILE_GET
-        pProfiler->print( "init" );
+        pProfiler->print( "shutdown and profile" );
 #endif
         return vRet;
     }
