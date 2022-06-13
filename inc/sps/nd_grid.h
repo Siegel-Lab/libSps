@@ -79,10 +79,12 @@ template <typename type_defs, typename data_t, template <typename> typename data
           vData( data_vec_generator.vec( xFile ) )
     {}
 
-    template <size_t N> static coordinate_t indexOf( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
+    template <size_t N, bool SANITY = true>
+    static coordinate_t indexOf( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
     {
-        if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
-            return std::numeric_limits<coordinate_t>::max( );
+        if constexpr( SANITY )
+            if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
+                return std::numeric_limits<coordinate_t>::max( );
         coordinate_t uiRet = 0;
         for( size_t uiI = 0; uiI < N; uiI++ )
         {
@@ -94,6 +96,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
         assert( uiRet < sizeOf( rInfo ) );
         return uiRet + rInfo.uiStartIndex;
     }
+
 
     template <size_t N> static std::array<coordinate_t, N> posOf( coordinate_t uiIndexIn, const Entry<N>& rInfo )
     {
@@ -120,9 +123,10 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return uiRet;
     }
 
-    template <size_t N> const data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo ) const
+    template <size_t N, bool SANITY = true>
+    const data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo ) const
     {
-        auto uiIdx = indexOf<N>( vX, rInfo );
+        auto uiIdx = indexOf<N, SANITY>( vX, rInfo );
         if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
             return uiZero;
         return vData[ uiIdx ];
@@ -287,7 +291,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
     }
 };
 
-template <typename type_defs, typename data_t, template <typename> typename data_tmpl_vec_generator_t> 
+template <typename type_defs, typename data_t, template <typename> typename data_tmpl_vec_generator_t>
 const data_t NDGrid<type_defs, data_t, data_tmpl_vec_generator_t>::uiZero{ };
 
 

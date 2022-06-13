@@ -193,7 +193,6 @@ template <typename it_t, typename cmp_t> struct CachedVectorSorter
 };
 
 
-
 template <typename val_t> struct DiskVec : public std::vector<val_t>
 {
     std::pair<std::string, bool>* fileInfo;
@@ -330,16 +329,16 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                default_val_t, //
                                D, //
                                default_class_key_t, //
-                                DiskVecGenerator, //
-                                RamVectorSorter, //
-                                DiskVecGenerator, //
-                                RamVectorSorter, //
-                                DiskVecGenerator, //
-                                RamVectorSorter, //
-                                DiskVecGenerator, //
-                                RamVectorSorter, //
-                                DiskVecGenerator, //
-                                RamVectorSorter, //
+                               DiskVecGenerator, //
+                               RamVectorSorter, //
+                               DiskVecGenerator, //
+                               RamVectorSorter, //
+                               DiskVecGenerator, //
+                               RamVectorSorter, //
+                               DiskVecGenerator, //
+                               RamVectorSorter, //
+                               DiskVecGenerator, //
+                               RamVectorSorter, //
                                CachedVecGenerator, //
                                CachedVectorSorter, //
                                dependant_dim, //

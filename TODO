@@ -1,5 +1,5 @@
 - git submodules https://git-scm.com/book/en/v2/Git-Tools-Submodules
-- look for the but with storage modes
+- look for the bug with storage modes
 - better parallel implementation:
     - separate construction stages
-    - abuse threadsavety of std::vector
+    - abuse thread-savety of std::vector

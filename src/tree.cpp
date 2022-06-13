@@ -67,11 +67,11 @@ std::string exportOrthope( pybind11::module& m, std::string sPref, std::string s
 {
     std::string sRet = "";
 #ifdef W_CUBES
-    if constexpr(D >= 3)
+    if constexpr( D >= 3 )
         sRet += exportStorage<D + 3, dependant_dim, 3>( m, sPref + "Cubes", sSuff );
 #endif
 #ifdef W_RECTANGLES
-    if constexpr(D >= 2)
+    if constexpr( D >= 2 )
         sRet += exportStorage<D + 2, dependant_dim, 2>( m, sPref + "Rectangles", sSuff );
 #endif
 #ifdef W_INTERVALS

@@ -172,7 +172,7 @@ template <typename C_T> class AlignedPower2 : public POWER_2_COND( C_T )
 
 const std::string CLRLN = "\r\033[K";
 
-#define DO_PROFILE 0
+#define DO_PROFILE 1
 
 #if DO_PROFILE == 1
 struct Profiler
@@ -181,6 +181,9 @@ struct Profiler
     std::string sLastLabel;
     std::map<std::string, double> xTimes;
     Profiler( std::string sLabel ) : xLastTimePoint( std::chrono::high_resolution_clock::now( ) ), sLastLabel( sLabel )
+    {}
+
+    Profiler( ) : Profiler( "init" )
     {}
     ~Profiler( )
     {
@@ -200,8 +203,12 @@ struct Profiler
     {
         step( sLabel );
         std::cerr << std::endl;
+        double dTotal = 0;
         for( auto xEntry : xTimes )
-            std::cerr << xEntry.first << ": " << xEntry.second << "ms" << std::endl;
+            dTotal += xEntry.second;
+        for( auto xEntry : xTimes )
+            std::cerr << xEntry.first << ": " << xEntry.second << " ms " << 100 * xEntry.second / dTotal << "%"
+                      << std::endl;
         xTimes.clear( );
     }
 };
@@ -209,6 +216,9 @@ struct Profiler
 struct Profiler
 {
     Profiler( std::string )
+    {}
+
+    Profiler( )
     {}
     ~Profiler( )
     {

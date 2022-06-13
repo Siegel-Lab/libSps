@@ -7,6 +7,11 @@
 namespace sps
 {
 
+// compile time switch for the profiling in the counting code (to properly optimize speed)
+#define PROFILE_GET 0
+// compile time switch for the progress prints in the counting code (to properly optimize speed)
+#define GET_PROG_PRINTS 0
+
 class Verbosity
 {
   public:
@@ -20,18 +25,17 @@ class Verbosity
     }
 };
 
-#define NAMED_VEC_GEN_AND_SORTER_TEMPLATE( name ) \
-    template <typename> typename _##name##_vec_generator, \
-    template <typename, typename> typename _##name##_sort_func_t
+#define NAMED_VEC_GEN_AND_SORTER_TEMPLATE( name )                                                                      \
+    template <typename> typename _##name##_vec_generator, template <typename, typename> typename _##name##_sort_func_t
 
-#define NAMED_VEC_GEN_AND_SORTER( name ) \
-    template <typename val_type_t> using name##_vec_generator_t = _##name##_vec_generator<val_type_t>; \
+#define NAMED_VEC_GEN_AND_SORTER( name )                                                                               \
+    template <typename val_type_t> using name##_vec_generator_t = _##name##_vec_generator<val_type_t>;                 \
     template <typename it_t, typename cmp_t> using name##_sort_func_t = _##name##_sort_func_t<it_t, cmp_t>;
 
-    
-#define NAMED_VEC_GEN_AND_SORTER_EXTRACT( name ) \
-    template <typename val_type_t> using name##_tmpl_vec_generator_t = \
-        typename type_defs::template name##_vec_generator_t<val_type_t>;   \
+
+#define NAMED_VEC_GEN_AND_SORTER_EXTRACT( name )                                                                       \
+    template <typename val_type_t>                                                                                     \
+    using name##_tmpl_vec_generator_t = typename type_defs::template name##_vec_generator_t<val_type_t>;               \
     template <typename it_t, typename cmp_t>                                                                           \
     using name##_sort_func_t = typename type_defs::template name##_sort_func_t<it_t, cmp_t>;
 
@@ -55,12 +59,12 @@ template <typename _coordinate_t, //
           typename _val_t, //
           size_t _D, //
           typename _class_key_t, //
-          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(dataset), //
-          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(coord), //
-          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(overlays), //
-          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(desc), //
-          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(points), //
-          NAMED_VEC_GEN_AND_SORTER_TEMPLATE(prefix_sums), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE( dataset ), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE( coord ), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE( overlays ), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE( desc ), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE( points ), //
+          NAMED_VEC_GEN_AND_SORTER_TEMPLATE( prefix_sums ), //
           bool _dependant_dim, //
           size_t _orthotope_dims, //
           bool _explain, //
@@ -81,12 +85,12 @@ class TypeDefs
     /// @brief key of a dataset
     using class_key_t = _class_key_t;
 
-    NAMED_VEC_GEN_AND_SORTER(dataset)
-    NAMED_VEC_GEN_AND_SORTER(coord)
-    NAMED_VEC_GEN_AND_SORTER(overlays)
-    NAMED_VEC_GEN_AND_SORTER(desc)
-    NAMED_VEC_GEN_AND_SORTER(points)
-    NAMED_VEC_GEN_AND_SORTER(prefix_sums)
+    NAMED_VEC_GEN_AND_SORTER( dataset )
+    NAMED_VEC_GEN_AND_SORTER( coord )
+    NAMED_VEC_GEN_AND_SORTER( overlays )
+    NAMED_VEC_GEN_AND_SORTER( desc )
+    NAMED_VEC_GEN_AND_SORTER( points )
+    NAMED_VEC_GEN_AND_SORTER( prefix_sums )
 
     static constexpr bool EXPLAIN = _explain;
 
@@ -105,29 +109,29 @@ class TypeDefs
 };
 
 #define EXTRACT_TYPE_DEFS                                                                                              \
-    /** @brief individual coordinate position */ \
+    /** @brief individual coordinate position */                                                                       \
     using coordinate_t = typename type_defs::coordinate_t;                                                             \
                                                                                                                        \
-    /** @brief prefix sum value */ \
+    /** @brief prefix sum value */                                                                                     \
     using val_t = typename type_defs::val_t;                                                                           \
                                                                                                                        \
     static constexpr coordinate_t D = type_defs::D;                                                                    \
                                                                                                                        \
-    /** @brief position of a point */ \
+    /** @brief position of a point */                                                                                  \
     using ret_pos_t = typename type_defs::ret_pos_t;                                                                   \
                                                                                                                        \
-    /** @brief position of a point (with dependent dimensions; used internally) */ \
+    /** @brief position of a point (with dependent dimensions; used internally) */                                     \
     using pos_t = typename type_defs::pos_t;                                                                           \
                                                                                                                        \
-    /** @brief key of a dataset */ \
+    /** @brief key of a dataset */                                                                                     \
     using class_key_t = typename type_defs::class_key_t;                                                               \
                                                                                                                        \
-    NAMED_VEC_GEN_AND_SORTER_EXTRACT(dataset) \
-    NAMED_VEC_GEN_AND_SORTER_EXTRACT(coord) \
-    NAMED_VEC_GEN_AND_SORTER_EXTRACT(overlays) \
-    NAMED_VEC_GEN_AND_SORTER_EXTRACT(desc) \
-    NAMED_VEC_GEN_AND_SORTER_EXTRACT(points) \
-    NAMED_VEC_GEN_AND_SORTER_EXTRACT(prefix_sums) \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT( dataset )                                                                        \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT( coord )                                                                          \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT( overlays )                                                                       \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT( desc )                                                                           \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT( points )                                                                         \
+    NAMED_VEC_GEN_AND_SORTER_EXTRACT( prefix_sums )                                                                    \
                                                                                                                        \
     static constexpr bool EXPLAIN = type_defs::EXPLAIN;                                                                \
                                                                                                                        \
@@ -142,7 +146,7 @@ class TypeDefs
     using progress_stream_t = typename type_defs::progress_stream_t;
 
 
-#define EXTRACT_VEC_GENERATOR( name, content_t )                                                         \
+#define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
     static_assert( 4096 % sizeof( content_t ) == 0 );                                                                  \
                                                                                                                        \
     using name##_vec_generator_t = name##_tmpl_vec_generator_t<content_t>;                                             \

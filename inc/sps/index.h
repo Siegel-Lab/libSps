@@ -30,11 +30,12 @@ namespace sps
 
 /**
  * @brief An Enum for Querying the index.
- * 
+ *
  * Which orthotopes to count, depending on how they intersect the queried area.
  * Only relevant for the Index.count() function.
  */
-enum IntersectionType { 
+enum IntersectionType
+{
     /// @brief count orthotopes that are fully enclosed by the queried area
     enclosed,
     /// @brief count orthotopes that fully enclose by the queried area
@@ -135,7 +136,7 @@ template <typename type_defs> class Index : public AbstractIndex
         vPoints.add( vPos, vDesc.add( sDesc ) );
     }
 
-    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd, 
+    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
                                   IntersectionType xIntersectionType = IntersectionType::slice ) const
     {
         std::array<pos_t, 2> vRet;
@@ -151,12 +152,12 @@ template <typename type_defs> class Index : public AbstractIndex
             else
                 vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = 0;
 
-            if ( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
+            if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
                 vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = vEnd[ uiI ] - vStart[ uiI ];
-            else if (xIntersectionType == IntersectionType::points_only)
+            else if( xIntersectionType == IntersectionType::points_only )
                 vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = 1;
             else
-                vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = std::numeric_limits<coordinate_t>::max();
+                vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = std::numeric_limits<coordinate_t>::max( );
         }
         return vRet;
     }
@@ -240,27 +241,48 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
-    val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, 
-                            IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
+    val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo,
+                            IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
+#if PROFILE_GET
+                            ,
+                            std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
+#endif
+    ) const
     {
         progress_stream_t xProg( uiVerbosity );
         val_t uiRet = 0;
 #pragma GCC diagnostic push
 // uiD unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
+#if PROFILE_GET
+        pProfiler->step( "loop" );
+#endif
         forAllCombinations<pos_t>(
             [ & ]( size_t uiD, pos_t vPos, size_t uiDistToTo ) {
                 for( size_t uiI = 0; uiI < D; uiI++ )
                     --vPos[ uiI ];
 
+#if GET_PROG_PRINTS
                 xProg << "query: " << xDatasetId << " " << vPos << "\n";
-                sps_t vCurrArr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, xProg );
+#endif
+#if PROFILE_GET
+                pProfiler->step( "query_" + std::to_string( uiD ) );
+#endif
+                sps_t vCurrArr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, xProg
+#if PROFILE_GET
+                                                              ,
+                                                              pProfiler
+#endif
+                );
+#if PROFILE_GET
+                pProfiler->step( "process" );
+#endif
 
                 val_t uiCurr;
                 if constexpr( IS_ORTHOTOPE )
                 {
                     size_t uiDLookup;
-                    switch(xInterType)
+                    switch( xInterType )
                     {
                         default:
                         case IntersectionType::points_only:
@@ -268,7 +290,7 @@ template <typename type_defs> class Index : public AbstractIndex
                             uiDLookup = 0;
                             break;
                         case IntersectionType::last:
-                            uiDLookup = ((1 << D) - 1);
+                            uiDLookup = ( ( 1 << D ) - 1 );
                             break;
                         case IntersectionType::enclosed:
                         case IntersectionType::encloses:
@@ -277,19 +299,24 @@ template <typename type_defs> class Index : public AbstractIndex
                         case IntersectionType::overlaps:
                             // invert the last D bits of uiD
                             // set all other bits to 0
-                            uiDLookup = (~uiD) & ((1 << D) - 1);
+                            uiDLookup = ( ~uiD ) & ( ( 1 << D ) - 1 );
                             break;
                     }
                     // uiDLookup / 2 ^ (D - ORTHOTOPE_DIMS)
-                    uiCurr = vCurrArr[ uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) ) ]; 
+                    uiCurr = vCurrArr[ uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) ) ];
                 }
                 else
                     uiCurr = vCurrArr;
                 val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
+#if GET_PROG_PRINTS
                 xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
                       << ( 1 << ( D - ORTHOTOPE_DIMS ) ) << "]"
                       << "\n";
+#endif
                 uiRet += uiCurr * uiFac;
+#if PROFILE_GET
+                pProfiler->step( "loop" );
+#endif
             },
             vFrom, vTo, []( coordinate_t uiPos ) { return uiPos > 0; } );
 #pragma GCC diagnostic pop
@@ -308,8 +335,13 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
-    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, 
-                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
+    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR,
+                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
+#if PROFILE_GET
+                 ,
+                 std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
+#endif
+    ) const
     {
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
@@ -317,7 +349,50 @@ template <typename type_defs> class Index : public AbstractIndex
         auto vP = addDims( vFromR, vToR, xInterType );
         pos_t vFrom = vP[ 0 ];
         pos_t vTo = vP[ 1 ];
-        return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
+        return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity
+#if PROFILE_GET
+                                 ,
+                                 pProfiler
+#endif
+        );
+    }
+
+    /**
+     * @brief Count the number of points between from and to and in the given dataset.
+     *
+     * Counts for multiple regions.
+     * to_pos must be larger equal than from_pos in each dimension.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @param vRegions The bottom left and top right positions of the queried regions.
+     * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
+     * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
+     * @return val_t The number of points in dataset_id between from_pos and to_pos.
+     */
+    std::vector<val_t> countMultiple( class_key_t xDatasetId, std::vector<std::pair<ret_pos_t, ret_pos_t>> vRegions,
+                                      IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
+#if PROFILE_GET
+                                      ,
+                                      std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
+#endif
+    ) const
+    {
+#if PROFILE_GET
+        pProfiler->step( "init" );
+#endif
+
+        std::vector<val_t> vRet;
+        for( auto& rRegion : vRegions )
+            vRet.push_back( count( xDatasetId, rRegion.first, rRegion.second, xInterType, uiVerbosity
+#if PROFILE_GET
+                                   ,
+                                   pProfiler
+#endif
+                                   ) );
+#if PROFILE_GET
+        pProfiler->print( "init" );
+#endif
+        return vRet;
     }
 
     /**
@@ -360,14 +435,14 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         return vDataSets[ xDatasetId ].getOverlayInfo( vOverlayGrid, vSparseCoord, vPoints );
     }
-    
+
     /**
      * @brief Returns the bottom-left-front-... and top-right-back-... position of all overlays.
      */
     std::vector<std::array<pos_t, 3>> getOverlayGrid( class_key_t xDatasetId ) const
     {
-        if(vDataSets.size() <= xDatasetId)
-            return std::vector<std::array<pos_t, 3>>{};
+        if( vDataSets.size( ) <= xDatasetId )
+            return std::vector<std::array<pos_t, 3>>{ };
         return vDataSets[ xDatasetId ].getOverlayGrid( vOverlayGrid, vSparseCoord );
     }
 };
@@ -376,24 +451,26 @@ template <typename type_defs> class Index : public AbstractIndex
 
 
 #if WITH_PYTHON
-void exportEnum(pybind11::module& m)
+void exportEnum( pybind11::module& m )
 {
-    pybind11::enum_<IntersectionType>(m, "IntersectionType", R"pbdoc(
+    pybind11::enum_<IntersectionType>( m, "IntersectionType", R"pbdoc(
     An Enum for Querying the index.
     
     Which orthotopes to count, depending on how they intersect the queried area.
     Only relevant for the Index.count() function.
-)pbdoc")
-        .value("enclosed", IntersectionType::enclosed, "count orthotopes that are fully enclosed by the queried area")
-        .value("encloses", IntersectionType::encloses, "count orthotopes that fully enclose by the queried area")
-        .value("overlaps", IntersectionType::overlaps, "count orthotopes that overlap the queried area")
-        .value("first", IntersectionType::first, 
-                "count orthotopes that have their bottom-left-front-.. corner in the queried area")
-        .value("last", IntersectionType::last, 
-                "count orthotopes that have their top-right-back-.. corner in the queried area")
-        .value("points_only", IntersectionType::points_only, 
-                "count orthotopes that are point-like and in the queried area")
-        .export_values();
+)pbdoc" )
+        .value( "enclosed", IntersectionType::enclosed, "count orthotopes that are fully enclosed by the queried area" )
+        .value( "encloses", IntersectionType::encloses, "count orthotopes that fully enclose by the queried area" )
+        .value( "overlaps", IntersectionType::overlaps, "count orthotopes that overlap the queried area" )
+        .value( "first", IntersectionType::first,
+                "count orthotopes that have their bottom-left-front-.. corner in the queried area" )
+        .value( "last", IntersectionType::last,
+                "count orthotopes that have their top-right-back-.. corner in the queried area" )
+        .value( "points_only", IntersectionType::points_only,
+                "count orthotopes that are point-like and in the queried area" )
+        .export_values( );
+
+    pybind11::class_<Profiler, std::shared_ptr<Profiler>>( m, "Profiler" ).def( pybind11::init( ) );
 }
 
 template <typename type_defs> std::string exportIndex( pybind11::module& m, std::string sName, std::string sDesc )
@@ -418,6 +495,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     .. automethod:: add_point
     .. automethod:: generate
     .. automethod:: count
+    .. automethod:: count_multiple
     .. automethod:: __str__
     .. automethod:: __len__
     .. automethod:: clear
@@ -543,6 +621,9 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               pybind11::arg( "to_pos" ), //
               pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,
+#if PROFILE_GET
+              pybind11::arg( "profiler" ) = std::make_shared<Profiler>( ),
+#endif
               ( R"pbdoc(
     Count the number of points between from and to in the given dataset.
     
@@ -566,10 +647,42 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                   .c_str( ) )
+        .def( "count_multiple", &sps::Index<type_defs>::countMultiple, pybind11::arg( "dataset_id" ),
+              pybind11::arg( "regions" ), //
+              pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
+              pybind11::arg( "verbosity" ) = 0,
+#if PROFILE_GET
+              pybind11::arg( "profiler" ) = std::make_shared<Profiler>( ),
+#endif
+              ( R"pbdoc(
+    Count the number of points between from and to in the given dataset.
+
+    Counts for multiple regions.
+    
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+    
+    :param regions: The bottom left and top right positions of the queried regions. Given as a list (individual regions) of tuples (bottom-left, top-right) of lists (individual coordinates). The top right of each region must be larger equal the bottom left.
+    :type regions: list[tuple[list[int[)pbdoc" +
+                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]], list[int[)pbdoc" +
+                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]]]
+    
+    :param verbosity: Degree of verbosity while counting, defaults to 0.
+    :type verbosity: int
+
+    :return: The number of points in dataset_id between from_pos and to_pos.
+    :rtype: int
+
+    to_pos must be larger equal than from_pos in each dimension.
+)pbdoc" )
+                  .c_str( ) )
         .def( "count_size_limited", &sps::Index<type_defs>::countSizeLimited, pybind11::arg( "dataset_id" ),
               pybind11::arg( "from_pos" ), pybind11::arg( "to_pos" ), //
               pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,
+#if PROFILE_GET
+              pybind11::arg( "profiler" ) = std::make_shared<Profiler>( ),
+#endif
               ( R"pbdoc(
     Count the number of points between from and to and in the given dataset.
 
@@ -602,7 +715,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "__len__", &sps::Index<type_defs>::numPoints, "Total number of points (among all datasets)." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )
-        .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ), 
+        .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
 
         ;

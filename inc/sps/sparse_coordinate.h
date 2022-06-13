@@ -119,10 +119,11 @@ template <typename type_defs> class SparseCoord
         return rE;
     }
 
-    coordinate_t replace( coordinate_t uiX, const Entry& rInfo ) const
+    template <bool SANITY = true> inline coordinate_t replace( coordinate_t uiX, const Entry& rInfo ) const
     {
-        if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
-            return std::numeric_limits<coordinate_t>::max( );
+        if constexpr( SANITY )
+            if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
+                return std::numeric_limits<coordinate_t>::max( );
         assert( vData.size( ) > rInfo.uiStartIndex + rInfo.uiEndCord - rInfo.uiStartCord );
         if( uiX < rInfo.uiStartCord )
             return std::numeric_limits<coordinate_t>::max( );
@@ -165,13 +166,13 @@ template <typename type_defs> class SparseCoord
     }
 
 
-    template <size_t N>
-    std::array<coordinate_t, N> sparse( const std::array<coordinate_t, N>& vCoords,
-                                        const std::array<Entry, N>& vAxes ) const
+    template <size_t N, bool SANITY = true>
+    inline std::array<coordinate_t, N> sparse( const std::array<coordinate_t, N>& vCoords,
+                                               const std::array<Entry, N>& vAxes ) const
     {
         std::array<coordinate_t, N> vRet;
         for( size_t uiI = 0; uiI < N; uiI++ )
-            vRet[ uiI ] = replace( vCoords[ uiI ], vAxes[ uiI ] );
+            vRet[ uiI ] = replace<SANITY>( vCoords[ uiI ], vAxes[ uiI ] );
         return vRet;
     }
 
