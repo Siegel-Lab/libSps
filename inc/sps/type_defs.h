@@ -26,7 +26,8 @@ class Verbosity
 };
 
 #define NAMED_VEC_GEN_AND_SORTER_TEMPLATE( name )                                                                      \
-    template <typename> typename _##name##_vec_generator, template <typename, typename> typename _##name##_sort_func_t
+    template <typename> typename _##name##_vec_generator,                                                              \
+    template <typename, typename> typename _##name##_sort_func_t
 
 #define NAMED_VEC_GEN_AND_SORTER( name )                                                                               \
     template <typename val_type_t> using name##_vec_generator_t = _##name##_vec_generator<val_type_t>;                 \

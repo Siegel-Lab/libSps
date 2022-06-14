@@ -604,6 +604,7 @@ template <typename type_defs> class Overlay
 #pragma GCC diagnostic pop
     //#endif
 
+#define SANITY 1 //!NDEBUG
 
     static inline __attribute__((always_inline)) void
     getCombinationsInvariant( size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
@@ -636,7 +637,7 @@ template <typename type_defs> class Overlay
         pProfiler->step( "overlay_get: sparse coords overlay" );
 #endif
         red_pos_t vRelevant = relevant( vPos, uiI );
-        red_pos_t vSparse = rSparseCoords.template sparse<D - 1, false>( vRelevant, vSparseCoordsOverlay[ uiI ] );
+        red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiI ] );
 
 #if GET_PROG_PRINTS
         xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
@@ -645,7 +646,7 @@ template <typename type_defs> class Overlay
         pProfiler->step( "overlay_get: query overlay" );
 #endif
         // in release mode query with sanity=false to avoid sanity checks
-        sps_t uiCurr = rPrefixSums.template get<D - 1, !NDEBUG>( vSparse, vOverlayEntries[ uiI ] );
+        sps_t uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
 
 #if GET_PROG_PRINTS
         xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
@@ -709,12 +710,12 @@ template <typename type_defs> class Overlay
 #if PROFILE_GET
             pProfiler->step( "overlay_get: sparse coords internal" );
 #endif
-            auto vSparseCoords = rSparseCoords.template sparse<D, false>( vCoords, vSparseCoordsInternal );
+            auto vSparseCoords = rSparseCoords.template sparse<D, SANITY>( vCoords, vSparseCoordsInternal );
 #if PROFILE_GET
             pProfiler->step( "overlay_get: query internal" );
 #endif
             // in release mode query with sanity=false to avoid sanity checks
-            auto uiCurr = rPrefixSums.template get<D, !NDEBUG>( vSparseCoords, xInternalEntires );
+            auto uiCurr = rPrefixSums.template get<D, SANITY>( vSparseCoords, xInternalEntires );
 #if PROFILE_GET
             pProfiler->step( "overlay_get" );
 #endif
