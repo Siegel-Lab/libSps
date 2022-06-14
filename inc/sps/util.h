@@ -172,7 +172,7 @@ template <typename C_T> class AlignedPower2 : public POWER_2_COND( C_T )
 
 const std::string CLRLN = "\r\033[K";
 
-#define DO_PROFILE 1
+#define DO_PROFILE 0
 
 #if DO_PROFILE == 1
 struct Profiler

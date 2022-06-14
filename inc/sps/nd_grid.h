@@ -140,15 +140,16 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return vData[ uiIdx ];
     }
 
-    template <size_t N, bool ZERO_INIT = true> Entry<N> add( const std::array<coordinate_t, N>& vAxisSizes )
+    template <size_t N, bool ZERO_INIT = true, bool CAPACITY_INC_ALLOWED = false> Entry<N> add( const std::array<coordinate_t, N>& vAxisSizes )
     {
         Entry<N> xRet{ };
         for( size_t uiI = 0; uiI < N; uiI++ )
             xRet.vAxisSizes[ uiI ] = vAxisSizes[ uiI ];
 
+        xRet.uiStartIndex = 0; // required to get result out of sizeOf function
         size_t uiToAdd = sizeOf( xRet );
         // make sure no reallocation occurs on the vector
-        assert( vData.capacity( ) >= uiToAdd + vData.size( ) );
+        assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= uiToAdd + vData.size( ) );
         {
             // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
             // hence it is threadsave to query and or write the vector at the same time

@@ -10,7 +10,11 @@ namespace sps
 // compile time switch for the profiling in the counting code (to properly optimize speed)
 #define PROFILE_GET 0
 // compile time switch for the progress prints in the counting code (to properly optimize speed)
-#define GET_PROG_PRINTS 0
+#ifdef NDEBUG
+    #define GET_PROG_PRINTS 0
+#else
+    #define GET_PROG_PRINTS 1
+#endif
 
 class Verbosity
 {

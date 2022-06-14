@@ -195,8 +195,8 @@ template <typename type_defs> class Dataset
         auto xStart = DimIterator( vPoints.cbegin( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
         auto xEnd = DimIterator( vPoints.cend( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
         if( uiFixedStart == std::numeric_limits<coordinate_t>::max( ) )
-            return rSparseCoords.add( xStart, xEnd );
-        return rSparseCoords.addStartEnd( xStart, xEnd, uiFixedStart, uiFixedEnd );
+            return rSparseCoords.template add<true>( xStart, xEnd );
+        return rSparseCoords.template addStartEnd<true>( xStart, xEnd, uiFixedStart, uiFixedEnd );
     }
 
 #pragma GCC diagnostic push
@@ -273,7 +273,7 @@ template <typename type_defs> class Dataset
         coordinate_t uiMaxTotalSpaceRequired = 0;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            size_t uiToAdd = uiNumCoordsPerDim[ uiI ];
+            size_t uiToAdd = uiNumCoordsPerDim[ uiI ] + 1;
             for( size_t uiJ = 0; uiJ < D; uiJ++ )
                 if( uiJ != uiI )
                     uiToAdd *= uiNumOverlaysPerDim[ uiJ ];
@@ -358,6 +358,8 @@ template <typename type_defs> class Dataset
     }
 
 
+    // @todo @fixme continue here by iterating overlays in the correct order
+    // find way to avoid duplicate code with generating the overlay's prefix sums
     coordinate_t generateOverlaySparseCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                               points_t& vPoints, pos_t uiNumCoordsPerDim, pos_t uiNumOverlaysPerDim,
                                               progress_stream_t xProg, Profiler& xProfiler )
@@ -517,9 +519,14 @@ template <typename type_defs> class Dataset
                     assert( exists( rSparseCoords, vGridPos ) );
 
                 pos_t vPosBottomLeftActual = actualFromGridPos( rSparseCoords, vGridPos );
+                pos_t vPosTopRightActual = actualTopRightFromGridPos( rSparseCoords, vGridPos );
+                
+                // collect direct predecessor overlays for each dimension
+                std::array<std::vector<coordinate_t>, D> vPredecessors = getPredecessor(
+                    rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual, vPosTopRightActual, xProg );
 
                 rOverlays.vData[ uiOverlayId ].generateOverlayPrefixSums(
-                    rOverlays, rSparseCoords, rPrefixSums, vPoints, vPosBottomLeftActual, this, xProg, xProfiler );
+                    rOverlays, rSparseCoords, rPrefixSums, vPoints, vPredecessors, vPosBottomLeftActual, this, xProg, xProfiler );
             } );
     }
 
@@ -589,7 +596,7 @@ template <typename type_defs> class Dataset
 
 
         // generate overlay grid
-        xOverlays = rOverlays.add( rSparseCoords.axisSizes( vSparseCoords ) );
+        xOverlays = rOverlays.template add<D, true, true>( rSparseCoords.axisSizes( vSparseCoords ) );
 
         // sort points so that they match the overlay grid order
         xProg << Verbosity( 0 ) << "sorting points into overlays.\n";
@@ -605,7 +612,7 @@ template <typename type_defs> class Dataset
         // generate all overlays
         coordinate_t uiNumTotal = rOverlays.sizeOf( xOverlays ); // @todo count considering non existant entries
 
-        // @todo vector does not need to be stored here, sunning variable is enough
+        // @todo vector does not need to be stored here, running variable is enough
         std::vector<typename points_t::Entry> vSplitPoints( uiNumTotal );
         for( coordinate_t uiI = 0; uiI < uiNumTotal; uiI++ )
         {

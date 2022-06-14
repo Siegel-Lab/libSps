@@ -395,7 +395,7 @@ template <typename type_defs> class Overlay
 
                 if( vPredecessors[ uiJAct ].size( ) > 0 )
                     vSparseCoordsOverlay[ uiI ][ uiJ ] =
-                        rSparseCoords.addStart( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
+                        rSparseCoords.addStartEnd( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
                 else
                     vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
 
@@ -519,6 +519,7 @@ template <typename type_defs> class Overlay
                                         vPoints
 #endif
                                     ,
+                                    std::array<std::vector<coordinate_t>, D> vPredecessors,
                                     pos_t vMyBottomLeft, dataset_t* pDataset, progress_stream_t& xProg,
                                     Profiler& xProfiler )
     {
@@ -528,8 +529,7 @@ template <typename type_defs> class Overlay
         xProfiler.step( "filling overlay" );
 #endif
         for( size_t uiI = 0; uiI < D; uiI++ )
-            // if( vPredecessors[ uiI ].size( ) > 0 ) @todo equal to if below?
-            if( prefix_sum_grid_t::sizeOf( vOverlayEntries[ uiI ] ) > 0 )
+            if( vPredecessors[ uiI ].size( ) > 0 )
             {
 #ifndef NDEBUG
                 xProg << Verbosity( 2 ) << "dim " << uiI << "\n";
@@ -569,10 +569,11 @@ template <typename type_defs> class Overlay
     getCombinationsInvariant( size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
                               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
                               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
-                              const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries
+                              const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+                              progress_stream_t& xProg
 #if PROFILE_GET
                               ,
-                              std::shared_ptr<Profiler>& pProfiler
+                               std::shared_ptr<Profiler>& pProfiler
 #endif
     )
     {
@@ -653,7 +654,8 @@ template <typename type_defs> class Overlay
 #endif
 
         forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariant, getCombinationsCond, uiRet,
-                                       vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries
+                                       vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
+                                       xProg
 #if PROFILE_GET
                                        ,
                                        pProfiler

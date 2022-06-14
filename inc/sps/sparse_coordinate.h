@@ -184,7 +184,7 @@ template <typename type_defs> class SparseCoord
         return vRet;
     }
 
-    template <typename Iterator_t> Entry addStart( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiStartWith )
+    template <bool CAPACITY_INC_ALLOWED=false, typename Iterator_t> Entry addStartEnd( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiStartWith, coordinate_t uiEndWith = std::numeric_limits<coordinate_t>::max() )
     {
         Entry xRet{ };
         std::vector<coordinate_t> vTmp;
@@ -201,13 +201,19 @@ template <typename type_defs> class SparseCoord
             ++xBegin;
         }
         vTmp.push_back( uiI );
+        if(uiEndWith != std::numeric_limits<coordinate_t>::max())
+            while( uiLast < uiEndWith )
+            {
+                vTmp.push_back( uiI );
+                uiLast++;
+            }
 
 
-        assert( vTmp.size( ) == 1 + xRet.uiEndCord - xRet.uiStartCord );
+        assert( vTmp.size( ) == 1 + uiLast - uiStartWith );
 
 
         // make sure no reallocation occurs on the vector
-        assert( vData.capacity( ) >= vTmp.size( ) + vData.size( ) );
+        assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= vTmp.size( ) + vData.size( ) );
         {
             // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
             // hence it is threadsave to query and or write the vector at the same time
@@ -227,33 +233,12 @@ template <typename type_defs> class SparseCoord
         return xRet;
     }
 
-    template <typename Iterator_t>
-    Entry addStartEnd( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiStartWith, coordinate_t uiEndWith )
-    {
-        size_t uiStartIndex = vData.size( );
-        coordinate_t uiInc = uiStartWith;
-        while( uiInc < *xBegin )
-        {
-            vData.push_back( 0 );
-            ++uiInc;
-        }
-        Entry xRet = add( xBegin, xEnd );
-        xRet.uiStartIndex = uiStartIndex;
-        xRet.uiStartCord = uiStartWith;
-        assert( xRet.uiEndCord <= uiEndWith );
-        while( xRet.uiEndCord < uiEndWith )
-        {
-            vData.push_back( vData.back( ) );
-            xRet.uiEndCord++;
-        }
-        assert( vData.size( ) - xRet.uiStartIndex == 1 + xRet.uiEndCord - xRet.uiStartCord );
 
-        return xRet;
-    }
-
+    template <bool CAPACITY_INC_ALLOWED=false>
     Entry addStart( coordinate_t uiStartWith )
     {
         Entry xRet{ };
+        assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= 1 + vData.size( ) );
         {
             std::lock_guard<std::mutex> xGuard( xResizeLock );
             xRet.uiStartIndex = vData.size( );
@@ -265,16 +250,17 @@ template <typename type_defs> class SparseCoord
         return xRet;
     }
 
-    template <typename Iterator_t> Entry add( Iterator_t xBegin, const Iterator_t& xEnd )
+    template <bool CAPACITY_INC_ALLOWED=false, typename Iterator_t> Entry add( Iterator_t xBegin, const Iterator_t& xEnd )
     {
         if( !( xBegin != xEnd ) )
             return Entry{ };
-        return addStart( xBegin, xEnd, *xBegin );
+        return addStartEnd<CAPACITY_INC_ALLOWED>( xBegin, xEnd, *xBegin );
     }
 
+    template <bool CAPACITY_INC_ALLOWED=false>
     Entry add_vec( std::vector<size_t> vVec )
     {
-        return add( vVec.begin( ), vVec.end( ) );
+        return add<CAPACITY_INC_ALLOWED>( vVec.begin( ), vVec.end( ) );
     }
 
     class EntryIterator

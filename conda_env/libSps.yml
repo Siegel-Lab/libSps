@@ -8,6 +8,7 @@ dependencies:
   - gxx=9.4.0
   - git=2.23.0
   - make=4.3
+  - gdb
   - sphinx
   - sphinx_rtd_theme
   - expect
