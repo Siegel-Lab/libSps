@@ -139,8 +139,9 @@ inline void forAllCombinations(
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter" // do not warn about vFrom and vTo
 
 template <typename pos_t, size_t N, size_t NE, typename fDo_t, typename fCond_t, typename... extra_t>
-inline __attribute__((always_inline)) void forAllCombinationsHelperTmpl( pos_t& vCurr, pos_t& vFrom, pos_t& vTo, size_t uiDistTo, size_t uiNum,
-                                          fDo_t&& fDo, fCond_t&& fCond, extra_t&&... rExtra )
+inline __attribute__( ( always_inline ) ) void forAllCombinationsHelperTmpl( pos_t& vCurr, pos_t& vFrom, pos_t& vTo,
+                                                                             size_t uiDistTo, size_t uiNum, fDo_t&& fDo,
+                                                                             fCond_t&& fCond, extra_t&&... rExtra )
 {
     if constexpr /* <- required to prevent infinite unrolling of loop in compiler */ ( N == NE )
         fDo( uiNum, vCurr, uiDistTo, rExtra... );
@@ -159,14 +160,16 @@ inline __attribute__((always_inline)) void forAllCombinationsHelperTmpl( pos_t& 
 #pragma GCC diagnostic pop
 
 template <typename pos_t, size_t N, typename fDo_t, typename fCond_t, typename... extra_t>
-inline __attribute__((always_inline)) void forAllCombinationsNTmpl( pos_t& vFrom, pos_t& vTo, fDo_t&& fDo, fCond_t&& fCond, extra_t&&... rExtra )
+inline __attribute__( ( always_inline ) ) void forAllCombinationsNTmpl( pos_t& vFrom, pos_t& vTo, fDo_t&& fDo,
+                                                                        fCond_t&& fCond, extra_t&&... rExtra )
 {
     pos_t vCurr{ };
     forAllCombinationsHelperTmpl<pos_t, 0, N>( vCurr, vFrom, vTo, 0, 0, fDo, fCond, rExtra... );
 }
 
 template <typename pos_t, typename fDo_t, typename fCond_t, typename... extra_t>
-inline __attribute__((always_inline)) void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fDo_t&& fDo, fCond_t&& fCond, extra_t&&... rExtra )
+inline __attribute__( ( always_inline ) ) void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fDo_t&& fDo,
+                                                                       fCond_t&& fCond, extra_t&&... rExtra )
 {
     forAllCombinationsNTmpl<pos_t, array_size<pos_t>::size>( vFrom, vTo, fDo, fCond, rExtra... );
 }

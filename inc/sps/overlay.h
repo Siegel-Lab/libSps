@@ -226,7 +226,7 @@ template <typename type_defs> class Overlay
     entry_arr_t vSparseCoordsInternal;
     std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D> vOverlayEntries;
     typename prefix_sum_grid_t::template Entry<D> xInternalEntires;
-    typename points_t::Entry xPoints; // @todo remove this...
+    typename points_t::Entry xPoints;
 
     Overlay( ) : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, xPoints{ }
     {}
@@ -253,25 +253,59 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
     }
 
-//#ifndef NDEBUG
-#pragma GCC diagnostic push
-// multiple unused variabels in release mode
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-    //#endif
-    void generate( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
-                   points_t& vPoints, typename points_t::Entry xPoints,
-                   std::array<std::vector<coordinate_t>, D> vPredecessors, pos_t vMyBottomLeft, pos_t vPosTopRight,
-                   dataset_t* pDataset, size_t uiOverlaysNow, size_t uiOverlaysTotal, progress_stream_t& xProg,
-                   Profiler& xProfiler, ThreadPool& rPool )
+    coordinate_t generateInternalSparseCoords( sparse_coord_t& rSparseCoords, points_t& vPoints,
+                                               progress_stream_t& xProg, Profiler& xProfiler )
     {
-        this->xPoints = xPoints;
+        if( xPoints.size( ) > 0 )
+        {
+#ifndef NDEBUG
+            xProfiler.step( "internal coord construction" );
+            xProg << Verbosity( 1 ) << "constructing sparse coordinates for points\n";
+#endif
+            for( size_t uiI = 0; uiI < D; uiI++ )
+            {
+#ifndef NDEBUG
+                xProg << Verbosity( 2 ) << "dim " << uiI << "\n";
+#endif
+                vPoints.sortByDim( uiI, xPoints );
+
+#ifndef NDEBUG
+                if( xProg.active( ) )
+                    xPoints.stream( std::cout << "from points: ", vPoints ) << std::endl;
+#endif
+
+                vSparseCoordsInternal[ uiI ] = rSparseCoords.add( PointIterator( vPoints.cbegin( xPoints ), uiI ),
+                                                                  PointIterator( vPoints.cend( xPoints ), uiI ) );
+#ifndef NDEBUG
+                if( xProg.active( ) )
+                    vSparseCoordsInternal[ uiI ].stream( std::cout << "result: ", rSparseCoords ) << std::endl;
+#endif
+                // end of scope xFullLock
+            }
+
+            pos_t vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
+            coordinate_t uiNumInternalPrefixSums = 1;
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                uiNumInternalPrefixSums *= vInternalAxisSizes[ uiI ];
+
+            return uiNumInternalPrefixSums;
+        }
+        return 0;
+    }
+
+    coordinate_t generateOverlaySparseCoords( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
+                                              points_t& vPoints, std::array<std::vector<coordinate_t>, D> vPredecessors,
+                                              pos_t vMyBottomLeft, pos_t vPosTopRight, progress_stream_t& xProg,
+                                              Profiler& xProfiler )
+    {
+        coordinate_t uiTotalOverlayPrefixSumSize = 0;
 #ifndef NDEBUG
         xProfiler.step( "overlay coord construction" );
         // construct sparse coordinates for each dimension
@@ -355,258 +389,183 @@ template <typename type_defs> class Overlay
                 MergeIterator xBegin( vBegin, vEnd, vPosTopRight[ uiJAct ] );
                 MergeIterator xEnd( vEnd, vEnd, vPosTopRight[ uiJAct ] );
 
-                {
-                    auto xPartialLock = rSparseCoords.xLockable.partialLock( );
-                    // skip over positions that are before and after this overlay
-                    while( xBegin != xEnd && *xBegin < vMyBottomLeft[ uiJAct ] )
-                        ++xBegin;
-                } // end of scope xPartialLock
+                // skip over positions that are before and after this overlay
+                while( xBegin != xEnd && *xBegin < vMyBottomLeft[ uiJAct ] )
+                    ++xBegin;
 
-                {
-                    auto xFullLock = rSparseCoords.xLockable.fullLock( );
-
-                    if( vPredecessors[ uiJAct ].size( ) > 0 )
-                        vSparseCoordsOverlay[ uiI ][ uiJ ] =
-                            rSparseCoords.addStart( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
-                    else
-                        vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
+                if( vPredecessors[ uiJAct ].size( ) > 0 )
+                    vSparseCoordsOverlay[ uiI ][ uiJ ] =
+                        rSparseCoords.addStart( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
+                else
+                    vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
 
 #ifndef NDEBUG
-                    xProg << Verbosity( 2 );
-                    if( xProg.active( ) )
-                        vSparseCoordsOverlay[ uiI ][ uiJ ].stream( std::cout << "result: ", rSparseCoords )
-                            << std::endl;
+                xProg << Verbosity( 2 );
+                if( xProg.active( ) )
+                    vSparseCoordsOverlay[ uiI ][ uiJ ].stream( std::cout << "result: ", rSparseCoords ) << std::endl;
 #endif
-                } // end of scope xFullLock
             }
-        }
 
-        if( xPoints.size( ) > 0 )
+            // compute size of this overlay
+            red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
+            coordinate_t uiCurr = 1;
+            for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+                uiCurr *= vAxisSizes[ uiI ];
+            uiTotalOverlayPrefixSumSize += uiCurr;
+        }
+        return uiTotalOverlayPrefixSumSize;
+    }
+
+    void generateInternalPrefixSums( const overlay_grid_t&
+#ifdef NDEBUG
+                                         rOverlays
+#endif
+                                     ,
+                                     sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
+                                     progress_stream_t& xProg, Profiler& xProfiler )
+    {
+#ifndef NDEBUG
+        xProfiler.step( "internal prefix sum setup" );
+#endif
+        pos_t vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
+        {
+            std::unique_ptr<std::lock_guard<std::mutex>> pGuard;
+            if constexpr( !rPrefixSums.THREADSAVE )
+                pGuard = std::make_unique<std::lock_guard<std::mutex>>( rPrefixSums.xRWLock );
+
+            // no zero initialization is needed, since vTmp is zero initialized
+            xInternalEntires = rPrefixSums.template add<D, false>( vInternalAxisSizes );
+        } // scope for pGuard
+
+        coordinate_t uiNumTotal = prefix_sum_grid_t::sizeOf( xInternalEntires );
+        coordinate_t uiNumDone = 0;
+        std::vector<sps_t> vTmp( uiNumTotal, sps_t{ } );
+
+        vPoints.iterate(
+            [ & ]( const point_t& xPoint ) {
+                size_t uiIdx = prefix_sum_grid_t::indexOf( rSparseCoords.sparse( xPoint.vPos, vSparseCoordsInternal ),
+                                                           xInternalEntires );
+                uiIdx -= xInternalEntires.uiStartIndex;
+                assert( uiIdx < vTmp.size( ) );
+                xPoint.addTo( vTmp[ uiIdx ] );
+            },
+            xPoints );
+
+#ifndef NDEBUG
+        xProfiler.step( "internal prefix sum computation" );
+#endif
+        // compute internal prefix sum
+        for( size_t uiI = 0; uiI < D; uiI++ )
         {
 #ifndef NDEBUG
-            xProfiler.step( "internal coord construction" );
-            xProg << Verbosity( 1 ) << "constructing sparse coordinates for points\n";
+            xProg << Verbosity( 3 ) << "computing prefix sums over dimension " << uiI << "\n";
 #endif
-            for( size_t uiI = 0; uiI < D; uiI++ )
-            {
-#ifndef NDEBUG
-                xProg << Verbosity( 2 ) << "dim " << uiI << "\n";
-#endif
-                vPoints.sortByDim( uiI, xPoints );
+            red_pos_t vRelevantInternalAxisSizes = relevant( vInternalAxisSizes, uiI );
 
-#ifndef NDEBUG
-                if( xProg.active( ) )
-                    xPoints.stream( std::cout << "from points: ", vPoints ) << std::endl;
-#endif
-
-                auto xFullLock = rSparseCoords.xLockable.fullLock( );
-                vSparseCoordsInternal[ uiI ] = rSparseCoords.add( PointIterator( vPoints.cbegin( xPoints ), uiI ),
-                                                                  PointIterator( vPoints.cend( xPoints ), uiI ) );
-#ifndef NDEBUG
-                if( xProg.active( ) )
-                    vSparseCoordsInternal[ uiI ].stream( std::cout << "result: ", rSparseCoords ) << std::endl;
-#endif
-                // end of scope xFullLock
-            }
-
-            // construct internal grid
-#ifndef NDEBUG
-            xProg << Verbosity( 1 ) << "constructing internal grid\n";
-#endif
-            pos_t vInternalAxisSizes;
-            {
-                auto xPartialLock = rSparseCoords.xLockable.partialLock( );
-                vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
-            }
-#ifndef NDEBUG
-            xProg << Verbosity( 2 ) << "axis sizes: " << vInternalAxisSizes << "\n";
-#endif
-            {
-                auto xFullLock = rPrefixSums.xLockable.fullLock( );
-                xInternalEntires = rPrefixSums.add( vInternalAxisSizes );
-            }
-
-            coordinate_t uiNumTotal = prefix_sum_grid_t::sizeOf( xInternalEntires );
-            coordinate_t uiNumDone = 0;
-            std::vector<sps_t> vTmp( rPrefixSums.THREADSAVE ? 0 : uiNumTotal, sps_t{ } );
-
-            {
-                auto xPartialLock1 = rSparseCoords.xLockable.partialLock( );
-                auto xPartialLock2 = rPrefixSums.xLockable.partialLock( );
-                vPoints.iterate(
-                    [ & ]( const point_t& xPoint ) {
-                        size_t uiIdx = prefix_sum_grid_t::indexOf(
-                            rSparseCoords.sparse( xPoint.vPos, vSparseCoordsInternal ), xInternalEntires );
-                        if constexpr( rPrefixSums.THREADSAVE )
-                            xPoint.addTo( rPrefixSums.vData[ uiIdx ] );
-                        else
-                        {
-                            uiIdx -= xInternalEntires.uiStartIndex;
-                            assert( uiIdx < vTmp.size( ) );
-                            xPoint.addTo( vTmp[ uiIdx ] );
-                        }
-                    },
-                    xPoints );
-            }
+            std::vector<red_pos_t> vvTos;
+            std::vector<coordinate_t> vuiTos;
+            iterate<D - 1>( vRelevantInternalAxisSizes, [ & ]( const red_pos_t& vTo ) {
+                pos_t vFullTo = expand( vTo, uiI );
+                sps_t uiPrefixSum = { };
 
 #ifndef NDEBUG
-            xProg << "vSparseCoordsOverlay " << vSparseCoordsOverlay << "\n";
-            xProg << "vSparseCoordsInternal " << vSparseCoordsInternal << "\n";
-            xProg << "rSparseCoords " << rSparseCoords << "\n";
-
-
-            xProfiler.step( "prefix sum computation" );
+                xProg << Verbosity( 3 ) << "starting...: " << vFullTo << ": " << uiPrefixSum << "\n";
 #endif
-            // compute internal prefix sum
-            for( size_t uiI = 0; uiI < D; uiI++ )
-            {
-#ifndef NDEBUG
-                xProg << Verbosity( 3 ) << "computing prefix sums over dimension " << uiI << "\n";
-#endif
-                red_pos_t vRelevantInternalAxisSizes = relevant( vInternalAxisSizes, uiI );
-                std::mutex xLock;
-                std::condition_variable xCv;
-                size_t uiEnqueuedTasks = 0;
 
-                auto xPartialLock2 = rPrefixSums.xLockable.partialLock( );
+                iterate( vInternalAxisSizes[ uiI ], [ & ]( coordinate_t uiTo ) {
+                    vFullTo[ uiI ] = uiTo;
+                    size_t uiIdx = prefix_sum_grid_t::indexOf( vFullTo, xInternalEntires );
+                    uiIdx -= xInternalEntires.uiStartIndex;
+                    assert( uiIdx < vTmp.size( ) );
 
-                std::vector<red_pos_t> vvTos;
-                std::vector<coordinate_t> vuiTos;
-                iterate<D - 1>( vRelevantInternalAxisSizes, [ & ]( const red_pos_t& vTo ) {
-                    {
-                        std::unique_lock xGuard( xLock );
-                        ++uiEnqueuedTasks;
-                    }
-                    rPool.enqueue(
-                        [ & ]( size_t uiTid, red_pos_t vTo, size_t uiI ) {
-                            pos_t vFullTo = expand( vTo, uiI );
-                            sps_t uiPrefixSum = { };
+                    uiPrefixSum += vTmp[ uiIdx ];
 
 #ifndef NDEBUG
-                            if( uiTid == 0 )
-                                xProg << Verbosity( 3 ) << "starting...: " << vFullTo << ": " << uiPrefixSum << "\n";
+                    xProg << Verbosity( 3 ) << vFullTo << ": " << uiPrefixSum << "\n";
 #endif
 
-                            coordinate_t uiNumDoneLocal = 0;
-                            iterate( vInternalAxisSizes[ uiI ], [ & ]( coordinate_t uiTo ) {
-                                vFullTo[ uiI ] = uiTo;
-                                size_t uiIdx = prefix_sum_grid_t::indexOf( vFullTo, xInternalEntires );
-                                if constexpr( !rPrefixSums.THREADSAVE )
-                                {
-                                    uiIdx -= xInternalEntires.uiStartIndex;
-                                    assert( uiIdx < vTmp.size( ) );
-                                }
+                    vTmp[ uiIdx ] = uiPrefixSum;
 
-                                if constexpr( rPrefixSums.THREADSAVE )
-                                    uiPrefixSum += rPrefixSums.vData[ uiIdx ];
-                                else
-                                    uiPrefixSum += vTmp[ uiIdx ];
-
-#ifndef NDEBUG
-                                if( uiTid == 0 )
-                                    xProg << Verbosity( 3 ) << vFullTo << ": " << uiPrefixSum << "\n";
-#endif
-
-                                if constexpr( rPrefixSums.THREADSAVE )
-                                    rPrefixSums.vData[ uiIdx ] = uiPrefixSum;
-                                else
-                                    vTmp[ uiIdx ] = uiPrefixSum;
-
-                                ++uiNumDoneLocal;
-                            } );
-
-                            std::unique_lock xGuard( xLock );
-                            uiNumDone += uiNumDoneLocal;
-                            --uiEnqueuedTasks;
-                            if( uiEnqueuedTasks == 0 )
-                                xCv.notify_one( );
-#ifndef NDEBUG
-                            if( uiTid == 0 && xProg.printAgain( ) )
-                                xProg << Verbosity( 0 ) << "computed " << uiOverlaysNow << " out of " << uiOverlaysTotal
-                                      << " overlays, thats "
-                                      << 100.0 * ( (double)uiOverlaysNow / (double)uiOverlaysTotal ) << "%. "
-                                      << uiNumDone << " out of " << uiNumTotal * D << " prefix sums, thats "
-                                      << 100.0 * ( (double)uiNumDone / (double)( uiNumTotal * D ) ) << "%.\n";
-#endif
-                        },
-                        vTo, uiI );
-                    xCv.notify_one( );
+                    ++uiNumDone;
                 } );
-                {
-                    std::unique_lock xGuard( xLock );
-                    if( uiEnqueuedTasks > 0 )
-                        xCv.wait( xGuard );
-                    assert( uiEnqueuedTasks == 0 );
-                }
-            }
-            if constexpr( !rPrefixSums.THREADSAVE )
-            {
+
 #ifndef NDEBUG
-                xProfiler.step( "copying prefix sums" );
+                if( xProg.printAgain( ) )
+                    xProg << Verbosity( 0 ) << "computed " << uiNumDone << " out of " << uiNumTotal * D
+                          << " prefix sums, thats " << 100.0 * ( (double)uiNumDone / (double)( uiNumTotal * D ) )
+                          << "%.\n";
 #endif
-                auto xPartialLock = rPrefixSums.xLockable.partialLock( );
-                for( size_t uiIdx = 0; uiIdx < uiNumTotal; uiIdx++ )
-                    rPrefixSums.vData[ uiIdx + xInternalEntires.uiStartIndex ] = vTmp[ uiIdx ];
-            }
+            } );
         }
 
+#ifndef NDEBUG
+        xProfiler.step( "copying prefix sums" );
+#endif
+
+        {
+            std::unique_ptr<std::lock_guard<std::mutex>> pGuard;
+            if constexpr( !rPrefixSums.THREADSAVE )
+                pGuard = std::make_unique<std::lock_guard<std::mutex>>( rPrefixSums.xRWLock );
+
+            for( size_t uiIdx = 0; uiIdx < uiNumTotal; uiIdx++ )
+                rPrefixSums.vData[ uiIdx + xInternalEntires.uiStartIndex ] = vTmp[ uiIdx ];
+        } // scope for pGuard
+    }
+
+    void generateOverlayPrefixSums( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
+                                    prefix_sum_grid_t& rPrefixSums,
+                                    points_t&
+#ifdef NDEBUG
+                                        vPoints
+#endif
+                                    ,
+                                    pos_t vMyBottomLeft, dataset_t* pDataset, progress_stream_t& xProg,
+                                    Profiler& xProfiler )
+    {
         // construct overlay sum grid
 #ifndef NDEBUG
         xProg << Verbosity( 1 ) << "constructing overlay sum grid\n";
         xProfiler.step( "filling overlay" );
 #endif
         for( size_t uiI = 0; uiI < D; uiI++ )
-            if( vPredecessors[ uiI ].size( ) > 0 )
+            // if( vPredecessors[ uiI ].size( ) > 0 ) @todo equal to if below?
+            if( prefix_sum_grid_t::sizeOf( vOverlayEntries[ uiI ] ) > 0 )
             {
 #ifndef NDEBUG
                 xProg << Verbosity( 2 ) << "dim " << uiI << "\n";
 #endif
 
-                red_pos_t vAxisSizes;
-                {
-                    auto xPartialLock1 = rSparseCoords.xLockable.partialLock( );
-                    vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
-                }
-                {
-                    auto xFullLock = rPrefixSums.xLockable.fullLock( );
-                    vOverlayEntries[ uiI ] = rPrefixSums.add( vAxisSizes );
-                }
+                red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
+                // no zero initialization needed -> every value will be overridden
+                vOverlayEntries[ uiI ] = rPrefixSums.template add<D - 1, false>( vAxisSizes );
 
                 assert( vMyBottomLeft[ uiI ] > 0 );
-                if( prefix_sum_grid_t::sizeOf( vOverlayEntries[ uiI ] ) > 0 )
-                {
-                    auto xPartialLock1 = rSparseCoords.xLockable.partialLock( );
-                    auto xPartialLock2 = rPrefixSums.xLockable.partialLock( );
+                // if( prefix_sum_grid_t::sizeOf( vOverlayEntries[ uiI ] ) > 0 )
+                //{
 
-                    rSparseCoords.template iterate<D - 1>(
-                        [ & ]( const red_pos_t& vFrom, const red_pos_t& vTo ) {
-                            pos_t vFullFrom = expand( vFrom, uiI );
-                            vFullFrom[ uiI ] = vMyBottomLeft[ uiI ] - 1;
+                rSparseCoords.template iterate<D - 1>(
+                    [ & ]( const red_pos_t& vFrom, const red_pos_t& vTo ) {
+                        pos_t vFullFrom = expand( vFrom, uiI );
+                        vFullFrom[ uiI ] = vMyBottomLeft[ uiI ] - 1;
 
 #ifndef NDEBUG
-                            xProg << Verbosity( 3 ) << "query " << vFullFrom << "\n";
+                        xProg << Verbosity( 3 ) << "query " << vFullFrom << "\n";
 #endif
-                            auto uiRet = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, xProg );
+                        auto uiRet = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, xProg );
 #ifndef NDEBUG
-                            xProg << Verbosity( 3 ) << "query " << vFullFrom << ": " << uiRet << "\n";
+                        xProg << Verbosity( 3 ) << "query " << vFullFrom << ": " << uiRet << "\n";
 #endif
 
-                            rPrefixSums.get( vTo, vOverlayEntries[ uiI ] ) = uiRet;
-                        },
-                        vSparseCoordsOverlay[ uiI ] );
-                }
+                        rPrefixSums.get( vTo, vOverlayEntries[ uiI ] ) = uiRet;
+                    },
+                    vSparseCoordsOverlay[ uiI ] );
+                //}
             }
-#ifndef NDEBUG
-        xProg << Verbosity( 1 ) << "done\n";
-#endif
     }
-//#ifndef NDEBUG
-#pragma GCC diagnostic pop
-    //#endif
 
-#define SANITY 1 //!NDEBUG
+#define SANITY 1 //! NDEBUG
 
-    static inline __attribute__((always_inline)) void
+    static inline __attribute__( ( always_inline ) ) void
     getCombinationsInvariant( size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
                               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
                               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
@@ -657,7 +616,7 @@ template <typename type_defs> class Overlay
 #endif
     }
 
-    static inline __attribute__((always_inline)) bool getCombinationsCond( coordinate_t uiPos )
+    static inline __attribute__( ( always_inline ) ) bool getCombinationsCond( coordinate_t uiPos )
     {
         return uiPos != std::numeric_limits<coordinate_t>::max( );
     }
@@ -737,7 +696,9 @@ template <typename type_defs> class Overlay
         return uiRet;
     }
 
-    template <typename T> static inline __attribute__((always_inline)) std::array<T, D - 1> relevant( const std::array<T, D>& vAllEntries, size_t uiI )
+    template <typename T>
+    static inline __attribute__( ( always_inline ) ) std::array<T, D - 1> relevant( const std::array<T, D>& vAllEntries,
+                                                                                    size_t uiI )
     {
         std::array<T, D - 1> vRelevantEntries;
         for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )

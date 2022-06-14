@@ -22,7 +22,8 @@ template <typename type_defs, typename data_t, template <typename> typename data
 
   public:
     static constexpr bool THREADSAVE = data_THREADSAVE;
-    Lockable xLockable;
+    std::mutex xResizeLock;
+    std::mutex xRWLock;
     data_file_t xFile;
     data_vec_t vData;
     static const data_t uiZero;
@@ -74,9 +75,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
     };
 
     NDGrid( std::string sFileName, bool bWrite )
-        : xLockable( THREADSAVE ? std::numeric_limits<size_t>::max( ) : 1 ),
-          xFile( data_vec_generator.file( sFileName, bWrite ) ),
-          vData( data_vec_generator.vec( xFile ) )
+        : xFile( data_vec_generator.file( sFileName, bWrite ) ), vData( data_vec_generator.vec( xFile ) )
     {}
 
     template <size_t N, bool SANITY = true>
@@ -132,25 +131,38 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return vData[ uiIdx ];
     }
 
-    template <size_t N> inline __attribute__((always_inline)) data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
+    template <size_t N>
+    inline __attribute__( ( always_inline ) ) data_t& get( const std::array<coordinate_t, N>& vX,
+                                                           const Entry<N>& rInfo )
     {
         auto uiIdx = indexOf<N>( vX, rInfo );
         assert( uiIdx != std::numeric_limits<coordinate_t>::max( ) );
         return vData[ uiIdx ];
     }
 
-    template <size_t N> Entry<N> add( const std::array<coordinate_t, N>& vAxisSizes )
+    template <size_t N, bool ZERO_INIT = true> Entry<N> add( const std::array<coordinate_t, N>& vAxisSizes )
     {
         Entry<N> xRet{ };
         for( size_t uiI = 0; uiI < N; uiI++ )
             xRet.vAxisSizes[ uiI ] = vAxisSizes[ uiI ];
-        xRet.uiStartIndex = vData.size( );
-        // make space for the new grid
 
-        // vData.resize(xRet.uiStartIndex + sizeOf(xRet));
+        size_t uiToAdd = sizeOf( xRet );
+        // make sure no reallocation occurs on the vector
+        assert( vData.capacity( ) >= uiToAdd + vData.size( ) );
+        {
+            // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
+            // hence it is threadsave to query and or write the vector at the same time
+            std::lock_guard<std::mutex> xGuard( xResizeLock );
+            xRet.uiStartIndex = vData.size( );
+            // make space for the new grid
+            vData.resize( uiToAdd + vData.size( ) );
+        } // scope for xGuard
+
         // stxxl does not zero initialize the resized elements :'(
-        for( size_t uiI = 0; uiI < sizeOf( xRet ); uiI++ )
-            vData.push_back( data_t{ } );
+        if constexpr( ZERO_INIT )
+            for( size_t uiI = 0; uiI < uiToAdd; uiI++ )
+                vData[ xRet.uiStartIndex + uiI ] = data_t{ };
+
         return xRet;
     }
 

@@ -18,3 +18,4 @@ dependencies:
     - sphinx-mdinclude
   - breathe
   - tectonic
+  - clang-format

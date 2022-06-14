@@ -17,7 +17,7 @@ template <typename type_defs> class SparseCoord
 
   public:
     static constexpr bool THREADSAVE = coord_THREADSAVE;
-    Lockable xLockable;
+    std::mutex xResizeLock;
     coord_file_t xFile;
     coord_vec_t vData;
 
@@ -88,9 +88,7 @@ template <typename type_defs> class SparseCoord
     };
 
     SparseCoord( std::string sPrefix, bool bWrite )
-        : xLockable( THREADSAVE ? std::numeric_limits<size_t>::max( ) : 1 ),
-          xFile( coord_vec_generator.file( sPrefix + ".coords", bWrite ) ),
-          vData( coord_vec_generator.vec( xFile ) )
+        : xFile( coord_vec_generator.file( sPrefix + ".coords", bWrite ) ), vData( coord_vec_generator.vec( xFile ) )
     {}
 
     static void append( EntryArray& rArr, const Entry& rE )
@@ -167,8 +165,8 @@ template <typename type_defs> class SparseCoord
 
 
     template <size_t N, bool SANITY = true>
-    inline __attribute__((always_inline)) std::array<coordinate_t, N> sparse( const std::array<coordinate_t, N>& vCoords,
-                                               const std::array<Entry, N>& vAxes ) const
+    inline __attribute__( ( always_inline ) ) std::array<coordinate_t, N>
+    sparse( const std::array<coordinate_t, N>& vCoords, const std::array<Entry, N>& vAxes ) const
     {
         std::array<coordinate_t, N> vRet;
         for( size_t uiI = 0; uiI < N; uiI++ )
@@ -189,23 +187,42 @@ template <typename type_defs> class SparseCoord
     template <typename Iterator_t> Entry addStart( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiStartWith )
     {
         Entry xRet{ };
-        xRet.uiStartIndex = vData.size( );
-        xRet.uiStartCord = uiStartWith;
+        std::vector<coordinate_t> vTmp;
         assert( !( xBegin != xEnd ) || uiStartWith <= *xBegin );
         auto uiLast = uiStartWith;
         size_t uiI = 0;
         while( xBegin != xEnd )
         {
             for( coordinate_t uiX = uiLast; uiX < *xBegin; uiX++ )
-                vData.push_back( uiI );
+                vTmp.push_back( uiI );
             if( uiLast < *xBegin )
                 uiI++;
             uiLast = *xBegin;
             ++xBegin;
         }
+        vTmp.push_back( uiI );
+
+
+        assert( vTmp.size( ) == 1 + xRet.uiEndCord - xRet.uiStartCord );
+
+
+        // make sure no reallocation occurs on the vector
+        assert( vData.capacity( ) >= vTmp.size( ) + vData.size( ) );
+        {
+            // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
+            // hence it is threadsave to query and or write the vector at the same time
+            std::lock_guard<std::mutex> xGuard( xResizeLock );
+            xRet.uiStartIndex = vData.size( );
+            vData.resize( vTmp.size( ) + vData.size( ) );
+        } // scope for xGuard
+
+        xRet.uiStartCord = uiStartWith;
         xRet.uiEndCord = uiLast;
-        vData.push_back( uiI );
         assert( vData.size( ) - xRet.uiStartIndex == 1 + xRet.uiEndCord - xRet.uiStartCord );
+
+        // copy over the tmp vector
+        for( size_t uiI = 0; uiI < vTmp.size( ); uiI++ )
+            vData[ uiI + xRet.uiStartIndex ] = vTmp[ uiI ];
 
         return xRet;
     }
@@ -237,10 +254,13 @@ template <typename type_defs> class SparseCoord
     Entry addStart( coordinate_t uiStartWith )
     {
         Entry xRet{ };
-        xRet.uiStartIndex = vData.size( );
+        {
+            std::lock_guard<std::mutex> xGuard( xResizeLock );
+            xRet.uiStartIndex = vData.size( );
+            vData.push_back( 0 );
+        } // scope for xGuard
         xRet.uiStartCord = uiStartWith;
         xRet.uiEndCord = uiStartWith;
-        vData.push_back( 0 );
 
         return xRet;
     }
