@@ -261,7 +261,15 @@ template <typename type_defs> class Overlay
     }
 
     coordinate_t generateInternalSparseCoords( sparse_coord_t& rSparseCoords, points_t& vPoints,
-                                               progress_stream_t& xProg, Profiler& xProfiler )
+                                               progress_stream_t& 
+#ifndef NDEBUG
+                                               xProg
+#endif
+                                               , Profiler& 
+#ifndef NDEBUG
+                                               xProfiler
+#endif
+                                                )
     {
         if( xPoints.size( ) > 0 )
         {
@@ -302,8 +310,15 @@ template <typename type_defs> class Overlay
 
     coordinate_t generateOverlaySparseCoords( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                               points_t& vPoints, std::array<std::vector<coordinate_t>, D> vPredecessors,
-                                              pos_t vMyBottomLeft, pos_t vPosTopRight, progress_stream_t& xProg,
-                                              Profiler& xProfiler )
+                                              pos_t vMyBottomLeft, pos_t vPosTopRight, progress_stream_t& 
+#ifndef NDEBUG
+                                              xProg
+#endif
+                                              , Profiler& 
+#ifndef NDEBUG
+                                              xProfiler 
+#endif
+                                              )
     {
         coordinate_t uiTotalOverlayPrefixSumSize = 0;
 #ifndef NDEBUG
@@ -417,12 +432,17 @@ template <typename type_defs> class Overlay
     }
 
     void generateInternalPrefixSums( const overlay_grid_t&
-#ifdef NDEBUG
-                                         rOverlays
-#endif
                                      ,
                                      sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
-                                     progress_stream_t& xProg, Profiler& xProfiler )
+                                     progress_stream_t& 
+#ifndef NDEBUG
+                                     xProg
+#endif
+                                     , Profiler& 
+#ifndef NDEBUG
+                                     xProfiler
+#endif
+                                      )
     {
 #ifndef NDEBUG
         xProfiler.step( "internal prefix sum setup" );
@@ -489,12 +509,6 @@ template <typename type_defs> class Overlay
                     ++uiNumDone;
                 } );
 
-#ifndef NDEBUG
-                if( xProg.printAgain( ) )
-                    xProg << Verbosity( 0 ) << "computed " << uiNumDone << " out of " << uiNumTotal * D
-                          << " prefix sums, thats " << 100.0 * ( (double)uiNumDone / (double)( uiNumTotal * D ) )
-                          << "%.\n";
-#endif
             } );
         }
 
@@ -515,12 +529,14 @@ template <typename type_defs> class Overlay
     void generateOverlayPrefixSums( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                     prefix_sum_grid_t& rPrefixSums,
                                     points_t&
-#ifdef NDEBUG
-                                        vPoints
-#endif
                                     ,
                                     std::array<std::vector<coordinate_t>, D> vPredecessors, pos_t vMyBottomLeft,
-                                    dataset_t* pDataset, progress_stream_t& xProg, Profiler& xProfiler )
+                                    dataset_t* pDataset, progress_stream_t& xProg, Profiler& 
+
+#ifndef NDEBUG
+                                    xProfiler
+#endif
+                                     )
     {
         // construct overlay sum grid
 #ifndef NDEBUG
@@ -569,7 +585,10 @@ template <typename type_defs> class Overlay
                               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
                               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
                               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
-                              progress_stream_t& xProg
+                              progress_stream_t& 
+#if GET_PROG_PRINTS
+                              xProg
+#endif
 #if PROFILE_GET
                               ,
                               std::shared_ptr<Profiler>& pProfiler
@@ -624,10 +643,7 @@ template <typename type_defs> class Overlay
 
     sps_t get( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
                pos_t vMyBottomLeft,
-               progress_stream_t&
-#if GET_PROG_PRINTS
-                   xProg
-#endif
+               progress_stream_t& xProg
 #if PROFILE_GET
                ,
                std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )

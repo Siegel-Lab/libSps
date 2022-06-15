@@ -184,6 +184,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
     {
         const Entry<N> xEntry;
         std::vector<int8_t> vNumPredComputed;
+        size_t uiNumDone = 0;
         std::queue<size_t> vNext;
         std::mutex xLock;
         std::condition_variable xVar;
@@ -257,9 +258,13 @@ template <typename type_defs, typename data_t, template <typename> typename data
                         xVar.notify_one( );
                 }
             }
+            {
+                std::unique_lock xGuard( xLock );
+                ++uiNumDone;
+            }
         }
 
-        void process( size_t uiNumThreads, std::function<void( size_t, size_t )> fDo )
+        void process( size_t uiNumThreads, progress_stream_t& xProg, std::function<void( size_t, size_t )> fDo )
         {
             auto fTask = [ & ]( ParallelIterator* xIt, size_t uiTid, std::function<void( size_t, size_t )> fDo ) {
                 while( true )
@@ -271,6 +276,13 @@ template <typename type_defs, typename data_t, template <typename> typename data
                     fDo( uiTid, uiIdx );
 
                     doneWith( uiIdx );
+
+                    if(uiTid == 0 && xProg.printAgain( ) )
+                        xProg << Verbosity( 0 ) << "processed " << uiNumDone 
+                            << " out of " << vNumPredComputed.size()
+                            << " overlays, thats " 
+                            << 100.0 * ( (double)uiNumDone / (double)vNumPredComputed.size() )
+                            << "%.\n";
                 }
             };
             if( uiNumThreads == 0 || vNumPredComputed.size( ) == 0 )
@@ -279,7 +291,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
             {
                 std::vector<std::thread> vThreads;
                 for( size_t uiI = 0; uiI < uiNumThreads && uiI < vNumPredComputed.size( ); uiI++ )
-                    vThreads.emplace_back( fTask, this, uiI, fDo );
+                    vThreads.emplace_back( std::bind(fTask, this, uiI, fDo) );
 
                 for( auto& xThread : vThreads )
                     xThread.join( );

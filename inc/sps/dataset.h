@@ -298,11 +298,15 @@ template <typename type_defs> class Dataset
                                            vPoints
 #endif
                                        ,
-                                       coordinate_t uiMaxTotalSpaceRequired, std::function<coordinate_t( size_t )> fDo )
+                                       coordinate_t uiMaxTotalSpaceRequired, 
+                                       progress_stream_t xProg,
+                                       std::function<coordinate_t( size_t )> fDo )
     {
         rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + uiMaxTotalSpaceRequired );
 
         std::vector<coordinate_t> vPrefixSumSize;
+        size_t uiFrom = xOverlays.uiStartIndex;
+        size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
             ThreadPool xPool(
 #ifndef NDEBUG
@@ -315,11 +319,18 @@ template <typename type_defs> class Dataset
             );
             vPrefixSumSize.resize( std::max( xPool.numThreads( ), (size_t)1 ) );
 
-            for( size_t uiOverlayId = xOverlays.uiStartIndex;
-                 uiOverlayId < xOverlays.uiStartIndex + overlay_grid_t::sizeOf( xOverlays );
-                 uiOverlayId++ )
+
+            for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
-                    [ & ]( size_t uiTid, size_t uiOverlayId ) { vPrefixSumSize[ uiTid ] += fDo( uiOverlayId ); },
+                    [ & ]( size_t uiTid, size_t uiOverlayId ) { 
+                        vPrefixSumSize[ uiTid ] += fDo( uiOverlayId ); 
+                        if(uiTid == 0 && xProg.printAgain( ) )
+                            xProg << Verbosity( 0 ) << "processed " << uiOverlayId - uiFrom 
+                                << " out of " << uiTo - uiFrom
+                                << " overlays, thats " 
+                                << 100.0 * ( (double)(uiOverlayId - uiFrom) / (double)( uiTo - uiFrom ) )
+                                << "%.\n";
+                    },
                     uiOverlayId );
 
         } // end of scope for xPool
@@ -339,7 +350,7 @@ template <typename type_defs> class Dataset
                                                progress_stream_t xProg, Profiler& xProfiler )
     {
         size_t uiMaxTotalSpaceRequired = maxSpaceForInternalCoords( uiNumCoordsPerDim, uiNumOverlaysPerDim );
-        return generateSparseCoords( rOverlays, rSparseCoords, vPoints, uiMaxTotalSpaceRequired,
+        return generateSparseCoords( rOverlays, rSparseCoords, vPoints, uiMaxTotalSpaceRequired, xProg,
                                      [ & ]( size_t uiOverlayId ) {
                                          // get bottom left position (compressed)
                                          if constexpr( DEPENDANT_DIMENSION )
@@ -382,6 +393,7 @@ template <typename type_defs> class Dataset
         // actually process the overlays
         xIterator.process(
             uiNumThreads,
+            xProg,
             [ & ]( size_t uiTid, size_t uiOverlayId ) {
                 // get bottom left position (compressed)
                 pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
@@ -407,24 +419,6 @@ template <typename type_defs> class Dataset
                 std::array<std::vector<coordinate_t>, D> vPredecessors = getPredecessor(
                     rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual, vPosTopRightActual, xProg );
 
-#ifndef NDEBUG
-#if 0
-                xProg << Verbosity( 2 );
-                if( xProg.active( ) )
-                    for( size_t uiD = 0; uiD < D; uiD++ )
-                        for( size_t uiJ = 0; uiJ < vPredecessors[ uiD ].size( ); uiJ++ )
-                        {
-                            xProg << "predecessor " << uiJ << " dim " << uiD << " is " << vPredecessors[ uiD ][ uiJ ]
-                                  << "\n";
-                            assert( vPredecessors[ uiD ][ uiJ ] < uiOverlayId );
-
-                            pos_t vGridPosPred = rOverlays.posOf( vPredecessors[ uiD ][ uiJ ], xOverlays );
-                            rOverlays.vData[ vPredecessors[ uiD ][ uiJ ] ].stream(
-                                std::cout, vGridPosPred, rSparseCoords, rPrefixSums, *this, vPoints )
-                                << std::endl;
-                        }
-#endif
-#endif
 
                 vPrefixSumSize[uiTid] += rOverlays.vData[ uiOverlayId ].generateOverlaySparseCoords(
                     rOverlays, rSparseCoords, vPoints, vPredecessors, vPosBottomLeftActual, vPosTopRightActual, xProg,
@@ -446,6 +440,8 @@ template <typename type_defs> class Dataset
     {
         rPrefixSums.vData.reserve( rPrefixSums.vData.size( ) + uiSizeInternalPrefixSums );
 
+        size_t uiFrom = xOverlays.uiStartIndex;
+        size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
             ThreadPool xPool(
 #ifndef NDEBUG
@@ -455,13 +451,18 @@ template <typename type_defs> class Dataset
 #endif
             );
 
-            for( size_t uiOverlayId = xOverlays.uiStartIndex;
-                 uiOverlayId < xOverlays.uiStartIndex + overlay_grid_t::sizeOf( xOverlays );
-                 uiOverlayId++ )
+            for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
-                    [ & ]( size_t, size_t uiOverlayId ) {
+                    [ & ]( size_t uiTid, size_t uiOverlayId ) {
                         rOverlays.vData[ uiOverlayId ].generateInternalPrefixSums(
                             rOverlays, rSparseCoords, rPrefixSums, vPoints, xProg, xProfiler );
+                            
+                        if(uiTid == 0 && xProg.printAgain( ) )
+                            xProg << Verbosity( 0 ) << "processed " << uiOverlayId - uiFrom 
+                                << " out of " << uiTo - uiFrom
+                                << " overlays, thats " 
+                                << 100.0 * ( (double)(uiOverlayId - uiFrom) / (double)( uiTo - uiFrom ) )
+                                << "%.\n";
                     },
                     uiOverlayId );
         } // end of scope for xPool
@@ -541,6 +542,7 @@ template <typename type_defs> class Dataset
             rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vPoints.THREADSAVE && rPrefixSums.THREADSAVE
                 ? std::thread::hardware_concurrency( )
                 : 0,
+                xProg,
             [ & ]( size_t /* uiTid */, size_t uiOverlayId ) {
                 pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
                 if constexpr( DEPENDANT_DIMENSION )
@@ -563,7 +565,6 @@ template <typename type_defs> class Dataset
                                 typename points_t::Entry xPoints, progress_stream_t xProg, Profiler& xProfiler,
                                 pos_t& uiNumCoordsPerDim, pos_t& uiNumOverlaysPerDim )
     {
-        xProg << Verbosity( 0 ) << "generating overlay grid.\n";
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
             xProg << Verbosity( 0 );
@@ -671,18 +672,23 @@ template <typename type_defs> class Dataset
         pos_t uiNumOverlaysPerDim;
         generateOverlayCoords( rOverlays, rSparseCoords, vPoints, xPoints, xProg, xProfiler, uiNumCoordsPerDim,
                                uiNumOverlaysPerDim );
+
         xProg << Verbosity( 0 ) << "generating internal sparse coords.\n";
         coordinate_t uiSizeInternalPrefixSums = generateInternalSparseCoords(
             rOverlays, rSparseCoords, vPoints, uiNumCoordsPerDim, uiNumOverlaysPerDim, xProg, xProfiler );
+
         xProg << Verbosity( 0 ) << "generating overlay sparse coords.\n";
         coordinate_t uiSizeOverlayPrefixSums = generateOverlaySparseCoords(
             rOverlays, rSparseCoords, vPoints, uiNumCoordsPerDim, uiNumOverlaysPerDim, xProg, xProfiler );
+
         xProg << Verbosity( 0 ) << "generating internal prefix sums.\n";
         generateInternalPrefixSums( rOverlays, rSparseCoords, rPrefixSums, vPoints, uiSizeInternalPrefixSums, xProg,
                                     xProfiler );
+
         xProg << Verbosity( 0 ) << "generating overlay prefix sums.\n";
         generateOverlayPrefixSums( rOverlays, rSparseCoords, rPrefixSums, vPoints, uiSizeOverlayPrefixSums, xProg,
                                    xProfiler );
+
         xProg << Verbosity( 0 ) << "done.\n";
     }
 
