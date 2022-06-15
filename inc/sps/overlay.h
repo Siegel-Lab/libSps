@@ -409,7 +409,7 @@ template <typename type_defs> class Overlay
             // compute size of this overlay
             red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
             coordinate_t uiCurr = 1;
-            for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            for( size_t uiI = 0; uiI < D - 1; uiI++ )
                 uiCurr *= vAxisSizes[ uiI ];
             uiTotalOverlayPrefixSumSize += uiCurr;
         }
@@ -519,9 +519,8 @@ template <typename type_defs> class Overlay
                                         vPoints
 #endif
                                     ,
-                                    std::array<std::vector<coordinate_t>, D> vPredecessors,
-                                    pos_t vMyBottomLeft, dataset_t* pDataset, progress_stream_t& xProg,
-                                    Profiler& xProfiler )
+                                    std::array<std::vector<coordinate_t>, D> vPredecessors, pos_t vMyBottomLeft,
+                                    dataset_t* pDataset, progress_stream_t& xProg, Profiler& xProfiler )
     {
         // construct overlay sum grid
 #ifndef NDEBUG
@@ -573,7 +572,7 @@ template <typename type_defs> class Overlay
                               progress_stream_t& xProg
 #if PROFILE_GET
                               ,
-                               std::shared_ptr<Profiler>& pProfiler
+                              std::shared_ptr<Profiler>& pProfiler
 #endif
     )
     {

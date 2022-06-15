@@ -140,7 +140,8 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return vData[ uiIdx ];
     }
 
-    template <size_t N, bool ZERO_INIT = true, bool CAPACITY_INC_ALLOWED = false> Entry<N> add( const std::array<coordinate_t, N>& vAxisSizes )
+    template <size_t N, bool ZERO_INIT = true, bool CAPACITY_INC_ALLOWED = false>
+    Entry<N> add( const std::array<coordinate_t, N>& vAxisSizes )
     {
         Entry<N> xRet{ };
         for( size_t uiI = 0; uiI < N; uiI++ )
@@ -148,12 +149,12 @@ template <typename type_defs, typename data_t, template <typename> typename data
 
         xRet.uiStartIndex = 0; // required to get result out of sizeOf function
         size_t uiToAdd = sizeOf( xRet );
-        // make sure no reallocation occurs on the vector
-        assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= uiToAdd + vData.size( ) );
         {
             // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
             // hence it is threadsave to query and or write the vector at the same time
             std::lock_guard<std::mutex> xGuard( xResizeLock );
+            // make sure no reallocation occurs on the vector
+            assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= uiToAdd + vData.size( ) );
             xRet.uiStartIndex = vData.size( );
             // make space for the new grid
             vData.resize( uiToAdd + vData.size( ) );
@@ -165,12 +166,6 @@ template <typename type_defs, typename data_t, template <typename> typename data
                 vData[ xRet.uiStartIndex + uiI ] = data_t{ };
 
         return xRet;
-    }
-
-    template <size_t N> void remove( const Entry<N>& xEntry )
-    {
-        assert( xEntry.uiStartIndex + sizeOf( xEntry ) == vData.size( ) );
-        vData.resize( xEntry.uiStartIndex );
     }
 
     void clear( )
@@ -185,33 +180,29 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return os;
     }
 
-    template <size_t N> class ParallelIterator
+    template <size_t N, typename fSuccessor_t, typename... args_successor_t> class ParallelIterator
     {
         const Entry<N> xEntry;
         std::vector<int8_t> vNumPredComputed;
         std::queue<size_t> vNext;
         std::mutex xLock;
         std::condition_variable xVar;
-        std::function<std::vector<size_t>( size_t, size_t, const Entry<N>& )> fSuccessors;
+        fSuccessor_t fSuccessors;
+        // std::function<std::vector<size_t>( size_t, size_t, const Entry<N>& )> fSuccessors;
+        std::tuple<args_successor_t&...> xStoredArgs;
 
       public:
-        ParallelIterator(
-            const Entry<N> xEntry,
-            std::function<std::vector<size_t>( size_t, size_t, const Entry<N>& )> fSuccessors =
-                []( size_t uiIdx, size_t uiDim, const Entry<N>& xEntry ) {
-                    auto vPos = NDGrid::posOf( uiIdx, xEntry );
-                    ++vPos[ uiDim ];
-                    std::vector<size_t> vRet;
-                    if( vPos[ uiDim ] < xEntry.vAxisSizes[ uiDim ] )
-                        vRet.push_back( NDGrid::indexOf( vPos, xEntry ) );
-                    return vRet;
-                } )
+        ParallelIterator( const Entry<N> xEntry,
+                          // std::function<std::vector<size_t>( size_t, size_t, const Entry<N>& )> fSuccessors =
+                          fSuccessor_t fSuccessors,
+                          args_successor_t&... vArgs )
             : xEntry( xEntry ),
               vNumPredComputed( sizeOf( xEntry ) ),
               vNext( ),
               xLock( ),
               xVar( ),
-              fSuccessors( fSuccessors )
+              fSuccessors( fSuccessors ),
+              xStoredArgs( vArgs... )
         {
             vNext.push( xEntry.uiStartIndex );
         }
@@ -228,10 +219,14 @@ template <typename type_defs, typename data_t, template <typename> typename data
             return uiRet;
         }
 
+
         void doneWith( size_t uiIdx )
         {
             for( size_t uiD = 0; uiD < N; uiD++ )
-                for( size_t uiIdx : fSuccessors( uiIdx, uiD, xEntry ) )
+            {
+                for( size_t uiIdx : std::apply(
+                         [ & ]( args_successor_t&... vArgs ) { return fSuccessors( uiIdx, uiD, xEntry, vArgs... ); },
+                         xStoredArgs ) )
                 {
                     if( uiIdx == std::numeric_limits<size_t>::max( ) ) // poison
                     {
@@ -261,29 +256,30 @@ template <typename type_defs, typename data_t, template <typename> typename data
                     if( uiX == uiNumReq )
                         xVar.notify_one( );
                 }
+            }
         }
 
-        void process( size_t uiNumThreads, std::function<void( size_t )> fDo )
+        void process( size_t uiNumThreads, std::function<void( size_t, size_t )> fDo )
         {
-            auto fTask = [ & ]( ParallelIterator* xIt, std::function<void( size_t )> fDo ) {
+            auto fTask = [ & ]( ParallelIterator* xIt, size_t uiTid, std::function<void( size_t, size_t )> fDo ) {
                 while( true )
                 {
                     size_t uiIdx = xIt->getNext( );
                     if( uiIdx == std::numeric_limits<size_t>::max( ) )
                         break;
 
-                    fDo( uiIdx );
+                    fDo( uiTid, uiIdx );
 
                     doneWith( uiIdx );
                 }
             };
             if( uiNumThreads == 0 || vNumPredComputed.size( ) == 0 )
-                fTask( this, fDo );
+                fTask( this, 0, fDo );
             else
             {
                 std::vector<std::thread> vThreads;
                 for( size_t uiI = 0; uiI < uiNumThreads && uiI < vNumPredComputed.size( ); uiI++ )
-                    vThreads.emplace_back( fTask, this, fDo );
+                    vThreads.emplace_back( fTask, this, uiI, fDo );
 
                 for( auto& xThread : vThreads )
                     xThread.join( );
@@ -291,16 +287,26 @@ template <typename type_defs, typename data_t, template <typename> typename data
         }
     }; // class
 
-    template <size_t N> ParallelIterator<N> genIterator( const Entry<N> xEntry ) const
+    template <size_t N> using default_func_t = std::function<std::vector<size_t>( size_t, size_t, const Entry<N>& )>;
+
+    template <size_t N> ParallelIterator<N, default_func_t<N>> genIterator( const Entry<N> xEntry ) const
     {
-        return ParallelIterator<N>( xEntry );
+        return ParallelIterator<N, default_func_t<N>>( xEntry,
+                                                       []( size_t uiIdx, size_t uiDim, const Entry<N>& xEntry ) {
+                                                           auto vPos = NDGrid::posOf( uiIdx, xEntry );
+                                                           ++vPos[ uiDim ];
+                                                           std::vector<size_t> vRet;
+                                                           if( vPos[ uiDim ] < xEntry.vAxisSizes[ uiDim ] )
+                                                               vRet.push_back( NDGrid::indexOf( vPos, xEntry ) );
+                                                           return vRet;
+                                                       } );
     }
 
-    template <size_t N>
-    ParallelIterator<N> genIterator(
-        const Entry<N> xEntry, std::function<std::vector<size_t>( size_t, size_t, const Entry<N>& )> fSuccessors ) const
+    template <size_t N, typename fSuccessor_t, typename... args_successor_t>
+    ParallelIterator<N, fSuccessor_t, args_successor_t...>
+    genIterator( const Entry<N> xEntry, fSuccessor_t fSuccessors, args_successor_t&... vArgs ) const
     {
-        return ParallelIterator<N>( xEntry, fSuccessors );
+        return ParallelIterator<N, fSuccessor_t, args_successor_t...>( xEntry, fSuccessors, vArgs... );
     }
 };
 

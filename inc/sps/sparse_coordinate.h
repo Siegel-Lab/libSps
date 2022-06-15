@@ -184,7 +184,9 @@ template <typename type_defs> class SparseCoord
         return vRet;
     }
 
-    template <bool CAPACITY_INC_ALLOWED=false, typename Iterator_t> Entry addStartEnd( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiStartWith, coordinate_t uiEndWith = std::numeric_limits<coordinate_t>::max() )
+    template <bool CAPACITY_INC_ALLOWED = false, typename Iterator_t>
+    Entry addStartEnd( Iterator_t xBegin, const Iterator_t& xEnd, coordinate_t uiStartWith,
+                       coordinate_t uiEndWith = std::numeric_limits<coordinate_t>::max( ) )
     {
         Entry xRet{ };
         std::vector<coordinate_t> vTmp;
@@ -201,7 +203,7 @@ template <typename type_defs> class SparseCoord
             ++xBegin;
         }
         vTmp.push_back( uiI );
-        if(uiEndWith != std::numeric_limits<coordinate_t>::max())
+        if( uiEndWith != std::numeric_limits<coordinate_t>::max( ) )
             while( uiLast < uiEndWith )
             {
                 vTmp.push_back( uiI );
@@ -212,19 +214,18 @@ template <typename type_defs> class SparseCoord
         assert( vTmp.size( ) == 1 + uiLast - uiStartWith );
 
 
-        // make sure no reallocation occurs on the vector
-        assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= vTmp.size( ) + vData.size( ) );
         {
             // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
             // hence it is threadsave to query and or write the vector at the same time
             std::lock_guard<std::mutex> xGuard( xResizeLock );
+            // make sure no reallocation occurs on the vector
+            assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= vTmp.size( ) + vData.size( ) );
             xRet.uiStartIndex = vData.size( );
             vData.resize( vTmp.size( ) + vData.size( ) );
         } // scope for xGuard
 
         xRet.uiStartCord = uiStartWith;
         xRet.uiEndCord = uiLast;
-        assert( vData.size( ) - xRet.uiStartIndex == 1 + xRet.uiEndCord - xRet.uiStartCord );
 
         // copy over the tmp vector
         for( size_t uiI = 0; uiI < vTmp.size( ); uiI++ )
@@ -234,13 +235,12 @@ template <typename type_defs> class SparseCoord
     }
 
 
-    template <bool CAPACITY_INC_ALLOWED=false>
-    Entry addStart( coordinate_t uiStartWith )
+    template <bool CAPACITY_INC_ALLOWED = false> Entry addStart( coordinate_t uiStartWith )
     {
         Entry xRet{ };
-        assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= 1 + vData.size( ) );
         {
             std::lock_guard<std::mutex> xGuard( xResizeLock );
+            assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= 1 + vData.size( ) );
             xRet.uiStartIndex = vData.size( );
             vData.push_back( 0 );
         } // scope for xGuard
@@ -250,15 +250,15 @@ template <typename type_defs> class SparseCoord
         return xRet;
     }
 
-    template <bool CAPACITY_INC_ALLOWED=false, typename Iterator_t> Entry add( Iterator_t xBegin, const Iterator_t& xEnd )
+    template <bool CAPACITY_INC_ALLOWED = false, typename Iterator_t>
+    Entry add( Iterator_t xBegin, const Iterator_t& xEnd )
     {
         if( !( xBegin != xEnd ) )
             return Entry{ };
         return addStartEnd<CAPACITY_INC_ALLOWED>( xBegin, xEnd, *xBegin );
     }
 
-    template <bool CAPACITY_INC_ALLOWED=false>
-    Entry add_vec( std::vector<size_t> vVec )
+    template <bool CAPACITY_INC_ALLOWED = false> Entry add_vec( std::vector<size_t> vVec )
     {
         return add<CAPACITY_INC_ALLOWED>( vVec.begin( ), vVec.end( ) );
     }
