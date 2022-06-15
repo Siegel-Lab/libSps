@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.9)
 
 # only adjust major and minor version - patch is taken from git commit number
-project("libSps" VERSION 0.1.0)
+project("libSps" VERSION 0.2.0)
 
 # set building python library as default
 option(WITH_PYTHON "Build python library." ON)
