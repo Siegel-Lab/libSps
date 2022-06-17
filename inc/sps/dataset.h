@@ -186,7 +186,8 @@ template <typename type_defs> class Dataset
             },
             xPoints );
         // size_t uiNumPerDimension = (size_t)std::pow( uiNumCoords, 1.0 / (float)( D ) ); //
-        size_t uiNumPerDimension = (size_t)std::pow( uiNumCoords, 1.0 / 2.0 ); // @todo why is this better?
+        // @todo why is this better?
+        size_t uiNumPerDimension = std::max( 1ul, (size_t)std::pow( uiNumCoords, 1.0 / 2.0 )); 
         uiNumCoordsInDim = uiNumCoords;
         uiNumOverlaysInDim = uiNumPerDimension;
         xProg << "generating " << uiNumPerDimension << " overlays in dimension " << uiDim << " for " << uiNumCoords
@@ -287,17 +288,9 @@ template <typename type_defs> class Dataset
         #endif
     }
 
-    coordinate_t generateSparseCoords( overlay_grid_t&
-#ifdef NDEBUG
-                                           rOverlays
-#endif
-                                       ,
+    coordinate_t generateSparseCoords( overlay_grid_t& rOverlays,
                                        sparse_coord_t& rSparseCoords,
-                                       points_t&
-#ifdef NDEBUG
-                                           vPoints
-#endif
-                                       ,
+                                       points_t& vPoints,
                                        coordinate_t uiMaxTotalSpaceRequired, 
                                        progress_stream_t xProg,
                                        std::function<coordinate_t( size_t )> fDo )
@@ -309,13 +302,9 @@ template <typename type_defs> class Dataset
         size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
             ThreadPool xPool(
-#ifndef NDEBUG
-                0
-#else
                 rOverlays.THREADSAVE && rSparseCoords.THREADSAVE && vPoints.THREADSAVE
                     ? std::thread::hardware_concurrency( )
                                                            : 0
-#endif
             );
             vPrefixSumSize.resize( std::max( xPool.numThreads( ), (size_t)1 ) );
 
@@ -377,7 +366,7 @@ template <typename type_defs> class Dataset
 
     coordinate_t generateOverlaySparseCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                               points_t& vPoints, pos_t uiNumCoordsPerDim, pos_t uiNumOverlaysPerDim,
-                                              progress_stream_t xProg, Profiler& xProfiler )
+                                              progress_stream_t xProgIn, Profiler& xProfiler )
     {
         size_t uiMaxTotalSpaceRequired = maxSpaceForOverlayCoords( uiNumCoordsPerDim, uiNumOverlaysPerDim );
         rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + uiMaxTotalSpaceRequired );
@@ -393,8 +382,9 @@ template <typename type_defs> class Dataset
         // actually process the overlays
         xIterator.process(
             uiNumThreads,
-            xProg,
+            xProgIn,
             [ & ]( size_t uiTid, size_t uiOverlayId ) {
+                progress_stream_t xProg = xProgIn;
                 // get bottom left position (compressed)
                 pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
                 if constexpr( DEPENDANT_DIMENSION )
@@ -444,18 +434,14 @@ template <typename type_defs> class Dataset
         size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
             ThreadPool xPool(
-#ifndef NDEBUG
-                0
-#else
                 rOverlays.THREADSAVE && vPoints.THREADSAVE ? std::thread::hardware_concurrency( ) : 0
-#endif
             );
 
             for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
-                    [ & ]( size_t uiTid, size_t uiOverlayId ) {
+                    [ & ]( size_t uiTid, size_t uiOverlayId, progress_stream_t xProgCpy ) {
                         rOverlays.vData[ uiOverlayId ].generateInternalPrefixSums(
-                            rOverlays, rSparseCoords, rPrefixSums, vPoints, xProg, xProfiler );
+                            rOverlays, rSparseCoords, rPrefixSums, vPoints, xProgCpy, xProfiler );
                             
                         if(uiTid == 0 && xProg.printAgain( ) )
                             xProg << Verbosity( 0 ) << "processed " << uiOverlayId - uiFrom 
@@ -464,7 +450,7 @@ template <typename type_defs> class Dataset
                                 << 100.0 * ( (double)(uiOverlayId - uiFrom) / (double)( uiTo - uiFrom ) )
                                 << "%.\n";
                     },
-                    uiOverlayId );
+                    uiOverlayId, xProg );
         } // end of scope for xPool
     }
 
@@ -531,7 +517,7 @@ template <typename type_defs> class Dataset
 
     void generateOverlayPrefixSums( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                     prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
-                                    coordinate_t uiSizeOverlayPrefixSums, progress_stream_t xProg, Profiler& xProfiler )
+                                    coordinate_t uiSizeOverlayPrefixSums, progress_stream_t xProgIn, Profiler& xProfiler )
     {
         rPrefixSums.vData.reserve( rPrefixSums.vData.size( ) + uiSizeOverlayPrefixSums );
 
@@ -542,8 +528,9 @@ template <typename type_defs> class Dataset
             rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vPoints.THREADSAVE && rPrefixSums.THREADSAVE
                 ? std::thread::hardware_concurrency( )
                 : 0,
-                xProg,
+                xProgIn,
             [ & ]( size_t /* uiTid */, size_t uiOverlayId ) {
+                progress_stream_t xProg = xProgIn;
                 pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
                 if constexpr( DEPENDANT_DIMENSION )
                     assert( exists( rSparseCoords, vGridPos ) );

@@ -86,6 +86,7 @@ struct StdOutProgressStream
     StdOutProgressStream( size_t uiVerb )
         : xLastPrint( std::chrono::high_resolution_clock::now( ) ), xVerb( uiVerb ), xCurr( 0 )
     {}
+
 };
 
 
