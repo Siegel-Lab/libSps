@@ -4,6 +4,7 @@
 #include "sps/index.h"
 #include "sps/simple_vector.h"
 #include "sps/version.h"
+#include "sps/build_time.h"
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
@@ -250,6 +251,7 @@ PYBIND11_MODULE( libSps, m )
         putenv( (char*)"STXXLERRLOGFILE=/dev/null" );
 
     m.attr( "VERSION" ) = VERSION;
+    m.attr( "BUILD_TIME" ) = BUILD_TIME;
 
     exportEnum( m );
 

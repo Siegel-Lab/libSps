@@ -69,6 +69,13 @@ add_custom_target(
         "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
     VERBATIM)
 
+add_custom_target(
+    config_build_time ALL
+    COMMAND ${CMAKE_SOURCE_DIR}/src/conf_build_time.h.in.sh
+        "${CMAKE_SOURCE_DIR}/inc/sps/build_time.h.in"
+        "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h"
+    VERBATIM)
+
 # create python module if python has been found
 if(WITH_PYTHON)
     pybind11_add_module( Sps src/tree.cpp )
@@ -123,7 +130,7 @@ target_include_directories( test PUBLIC inc )
 target_include_directories( test SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
 target_link_libraries(test PUBLIC stxxl )
 target_include_directories( test PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
-add_dependencies(test config_version)
+add_dependencies(test config_version config_build_time)
 #target_link_libraries(test PUBLIC -lpthread )
 
 # Documentation setup

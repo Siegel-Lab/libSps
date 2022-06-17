@@ -525,7 +525,7 @@ template <typename type_defs> class Dataset
                                                             rSparseCoords, xOverlays );
         // actually process the overlays
         xIterator.process(
-            rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vPoints.THREADSAVE && rPrefixSums.THREADSAVE
+            rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && rPrefixSums.THREADSAVE
                 ? std::thread::hardware_concurrency( )
                 : 0,
                 xProgIn,
@@ -827,6 +827,37 @@ template <typename type_defs> class Dataset
                 return val_t{ };
         return rOverlays.get( vSparsePos, xOverlays )
             .get( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( rSparseCoords, vSparsePos ), uiCornerIdx, xProg
+#if PROFILE_GET
+                  ,
+                  pProfiler
+#endif
+            );
+    }
+
+    sps_t getAll( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
+               const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg
+#if PROFILE_GET
+               ,
+               std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
+#endif
+    ) const
+    {
+#if PROFILE_GET
+        pProfiler->step( "dataset_get" );
+#endif
+        auto vSparsePos = overlayCoord( rSparseCoords, vPos );
+#if GET_PROG_PRINTS
+        xProg << Verbosity( 2 );
+        if( xProg.active( ) )
+            xProg << "\t" << vPos << " -> " << vSparsePos << "; that's overlay "
+                  << rOverlays.indexOf( vSparsePos, xOverlays ) << "\n";
+#endif
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            if( vSparsePos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
+                return sps_t{ };
+        return rOverlays.get( vSparsePos, xOverlays )
+            .getAll( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( rSparseCoords, vSparsePos ), 
+                    xProg
 #if PROFILE_GET
                   ,
                   pProfiler

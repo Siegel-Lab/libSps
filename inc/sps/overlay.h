@@ -566,12 +566,7 @@ template <typename type_defs> class Overlay
 #ifndef NDEBUG
                         xProg << Verbosity( 3 ) << "query " << vFullFrom << "\n";
 #endif
-                        sps_t uiRet{};
-                        if constexpr(IS_ORTHOTOPE)
-                            for(size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++)
-                                uiRet[uiI] = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, uiI, xProg );
-                        else
-                            uiRet = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, 0, xProg );
+                        sps_t uiRet = pDataset->getAll( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, xProg );
 #ifndef NDEBUG
                         xProg << Verbosity( 3 ) << "query " << vFullFrom << ": " << uiRet << "\n";
 #endif
@@ -646,6 +641,60 @@ template <typename type_defs> class Overlay
         pProfiler->step( "overlay_get: forAllCombinations" );
 #endif
     }
+    static inline __attribute__( ( always_inline ) ) void
+    getCombinationsInvariantAll( size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
+                              const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
+                              const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
+                              const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+                              progress_stream_t& 
+#if GET_PROG_PRINTS
+                              xProg
+#endif
+#if PROFILE_GET
+                              ,
+                              std::shared_ptr<Profiler>& pProfiler
+#endif
+    )
+    {
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: pick overlay" );
+#endif
+        if( uiDistToTo == 0 )
+            return;
+        size_t uiI = 0;
+        while( uiI < D && ( vPos[ uiI ] != vMyBottomLeft[ uiI ] || vSparseCoordsOverlay[ uiI ][ 0 ].uiStartIndex ==
+                                                                       std::numeric_limits<coordinate_t>::max( ) ) )
+            ++uiI;
+
+        if( uiI == D )
+            return;
+
+#if GET_PROG_PRINTS
+        xProg << Verbosity( 3 ) << "\t\tquery: " << vPos << " in overlay " << uiI << "\n";
+#endif
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: sparse coords overlay" );
+#endif
+        red_pos_t vRelevant = relevant( vPos, uiI );
+        red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiI ] );
+
+#if GET_PROG_PRINTS
+        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
+#endif
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: query overlay" );
+#endif
+        // in release mode query with sanity=false to avoid sanity checks
+        sps_t uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
+
+#if GET_PROG_PRINTS
+        xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
+#endif
+        uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? -1 : 1 );
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: forAllCombinations" );
+#endif
+    }
 
     static inline __attribute__( ( always_inline ) ) bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/, 
                                                                                bool /*bIsFrom*/ )
@@ -709,6 +758,77 @@ template <typename type_defs> class Overlay
                 uiCurr = uiCurrArr[uiCornerIdx];
             else
                 uiCurr = uiCurrArr;
+#if PROFILE_GET
+            pProfiler->step( "overlay_get" );
+#endif
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 2 ) << "\tquerying internal " << vCoords << " -> " << vSparseCoords << ": +" << uiCurr
+                  << "\n";
+#endif
+            uiRet += uiCurr;
+        }
+#if GET_PROG_PRINTS
+        else
+            xProg << Verbosity( 2 ) << "\tno internal entries\n";
+#endif
+#if PROFILE_GET
+        pProfiler->step( "overlay_get" );
+#endif
+
+
+        return uiRet;
+    }
+
+    sps_t getAll( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
+               pos_t vMyBottomLeft, progress_stream_t& xProg
+#if PROFILE_GET
+               ,
+               std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
+#endif
+    ) const
+    {
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: prep" );
+#endif
+        sps_t uiRet{ };
+
+#if GET_PROG_PRINTS
+        xProg << Verbosity( 2 ) << "\tquerying overlay for " << vCoords << "...\n";
+#endif
+
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            --vMyBottomLeft[ uiI ]; // will turn zero values into max values
+#if GET_PROG_PRINTS
+        xProg << Verbosity( 3 ) << "\t\tvMyBottomLeft " << vMyBottomLeft << "\n";
+#endif
+#if PROFILE_GET
+        pProfiler->step( "overlay_get: forAllCombinations" );
+#endif
+
+        forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariantAll, getCombinationsCond, uiRet,
+                                       vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
+                                       xProg
+#if PROFILE_GET
+                                       ,
+                                       pProfiler
+#endif
+
+        );
+#if PROFILE_GET
+        pProfiler->step( "overlay_get" );
+#endif
+
+        if( rPrefixSums.sizeOf( xInternalEntires ) > 0 )
+        {
+#if PROFILE_GET
+            pProfiler->step( "overlay_get: sparse coords internal" );
+#endif
+            auto vSparseCoords = rSparseCoords.template sparse<D, SANITY>( vCoords, vSparseCoordsInternal );
+#if PROFILE_GET
+            pProfiler->step( "overlay_get: query internal" );
+#endif
+            // in release mode query with sanity=false to avoid sanity checks
+            sps_t uiCurr = rPrefixSums.template get<D, SANITY>( vSparseCoords, xInternalEntires );
 #if PROFILE_GET
             pProfiler->step( "overlay_get" );
 #endif
