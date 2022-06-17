@@ -259,26 +259,20 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
         forAllCombinations<pos_t>(
             [ & ]( size_t uiD, pos_t vPos, size_t uiDistToTo ) {
+#if PROFILE_GET
+                pProfiler->step( "query_sub" );
+#endif
                 for( size_t uiI = 0; uiI < D; uiI++ )
                     --vPos[ uiI ];
 
 #if GET_PROG_PRINTS
                 xProg << "query: " << xDatasetId << " " << vPos << "\n";
 #endif
-#if PROFILE_GET
-                pProfiler->step( "query_" + std::to_string( uiD ) );
-#endif
-                sps_t vCurrArr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, xProg
-#if PROFILE_GET
-                                                              ,
-                                                              pProfiler
-#endif
-                );
-#if PROFILE_GET
-                pProfiler->step( "process" );
-#endif
 
-                val_t uiCurr;
+#if PROFILE_GET
+                pProfiler->step( "corner" );
+#endif
+                size_t uiCornerIndex = 0;
                 if constexpr( IS_ORTHOTOPE )
                 {
                     size_t uiDLookup;
@@ -303,10 +297,22 @@ template <typename type_defs> class Index : public AbstractIndex
                             break;
                     }
                     // uiDLookup / 2 ^ (D - ORTHOTOPE_DIMS)
-                    uiCurr = vCurrArr[ uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) ) ];
+                    uiCornerIndex = uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) );
                 }
-                else
-                    uiCurr = vCurrArr;
+#if PROFILE_GET
+                pProfiler->step( "query_" + std::to_string( uiD ) );
+#endif
+                val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, 
+                                                            uiCornerIndex, xProg
+#if PROFILE_GET
+                                                              ,
+                                                              pProfiler
+#endif
+                );
+#if PROFILE_GET
+                pProfiler->step( "process" );
+#endif
+
                 val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
 #if GET_PROG_PRINTS
                 xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"

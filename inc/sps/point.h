@@ -148,11 +148,11 @@ inline __attribute__( ( always_inline ) ) void forAllCombinationsHelperTmpl( pos
     else
     {
         vCurr[ N ] = vFrom[ N ];
-        if( fCond( vCurr[ N ] ) )
+        if( fCond( vCurr[ N ], N, true ) )
             forAllCombinationsHelperTmpl<pos_t, N + 1, NE>( vCurr, vFrom, vTo, uiDistTo + 1, uiNum, fDo, fCond,
                                                             rExtra... );
         vCurr[ N ] = vTo[ N ];
-        if( fCond( vCurr[ N ] ) )
+        if( fCond( vCurr[ N ], N, false ) )
             forAllCombinationsHelperTmpl<pos_t, N + 1, NE>(
                 vCurr, vFrom, vTo, uiDistTo, uiNum + ( 1 << ( NE - ( N + 1 ) ) ), fDo, fCond, rExtra... );
     }

@@ -566,7 +566,12 @@ template <typename type_defs> class Overlay
 #ifndef NDEBUG
                         xProg << Verbosity( 3 ) << "query " << vFullFrom << "\n";
 #endif
-                        auto uiRet = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, xProg );
+                        sps_t uiRet{};
+                        if constexpr(IS_ORTHOTOPE)
+                            for(size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++)
+                                uiRet[uiI] = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, uiI, xProg );
+                        else
+                            uiRet = pDataset->get( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, 0, xProg );
 #ifndef NDEBUG
                         xProg << Verbosity( 3 ) << "query " << vFullFrom << ": " << uiRet << "\n";
 #endif
@@ -581,10 +586,11 @@ template <typename type_defs> class Overlay
 #define SANITY 1 //! NDEBUG
 
     static inline __attribute__( ( always_inline ) ) void
-    getCombinationsInvariant( size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
+    getCombinationsInvariant( size_t, pos_t vPos, size_t uiDistToTo, val_t& uiRet, pos_t& vMyBottomLeft,
                               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
                               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
                               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+                              size_t uiCornerIdx,
                               progress_stream_t& 
 #if GET_PROG_PRINTS
                               xProg
@@ -624,7 +630,13 @@ template <typename type_defs> class Overlay
         pProfiler->step( "overlay_get: query overlay" );
 #endif
         // in release mode query with sanity=false to avoid sanity checks
-        sps_t uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
+        sps_t uiCurrArr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
+
+        val_t uiCurr;
+        if constexpr( IS_ORTHOTOPE )
+            uiCurr = uiCurrArr[uiCornerIdx];
+        else
+            uiCurr = uiCurrArr;
 
 #if GET_PROG_PRINTS
         xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
@@ -635,15 +647,15 @@ template <typename type_defs> class Overlay
 #endif
     }
 
-    static inline __attribute__( ( always_inline ) ) bool getCombinationsCond( coordinate_t uiPos )
+    static inline __attribute__( ( always_inline ) ) bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/, 
+                                                                               bool /*bIsFrom*/ )
     {
         return uiPos != std::numeric_limits<coordinate_t>::max( );
     }
 
 
-    sps_t get( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
-               pos_t vMyBottomLeft,
-               progress_stream_t& xProg
+    val_t get( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
+               pos_t vMyBottomLeft, size_t uiCornerIdx, progress_stream_t& xProg
 #if PROFILE_GET
                ,
                std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
@@ -653,7 +665,7 @@ template <typename type_defs> class Overlay
 #if PROFILE_GET
         pProfiler->step( "overlay_get: prep" );
 #endif
-        sps_t uiRet{ };
+        val_t uiRet{ };
 
 #if GET_PROG_PRINTS
         xProg << Verbosity( 2 ) << "\tquerying overlay for " << vCoords << "...\n";
@@ -670,7 +682,7 @@ template <typename type_defs> class Overlay
 
         forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariant, getCombinationsCond, uiRet,
                                        vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
-                                       xProg
+                                       uiCornerIdx, xProg
 #if PROFILE_GET
                                        ,
                                        pProfiler
@@ -691,7 +703,12 @@ template <typename type_defs> class Overlay
             pProfiler->step( "overlay_get: query internal" );
 #endif
             // in release mode query with sanity=false to avoid sanity checks
-            auto uiCurr = rPrefixSums.template get<D, SANITY>( vSparseCoords, xInternalEntires );
+            auto uiCurrArr = rPrefixSums.template get<D, SANITY>( vSparseCoords, xInternalEntires );
+            val_t uiCurr;
+            if constexpr( IS_ORTHOTOPE )
+                uiCurr = uiCurrArr[uiCornerIdx];
+            else
+                uiCurr = uiCurrArr;
 #if PROFILE_GET
             pProfiler->step( "overlay_get" );
 #endif

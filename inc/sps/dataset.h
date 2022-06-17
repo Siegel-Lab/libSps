@@ -804,8 +804,8 @@ template <typename type_defs> class Dataset
         return rOverlays.indexOf( vPosOverlay, xOverlays );
     }
 
-    sps_t get( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
-               const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg
+    val_t get( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
+               const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, size_t uiCornerIdx, progress_stream_t& xProg
 #if PROFILE_GET
                ,
                std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
@@ -824,9 +824,9 @@ template <typename type_defs> class Dataset
 #endif
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vSparsePos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
-                return sps_t{ };
+                return val_t{ };
         return rOverlays.get( vSparsePos, xOverlays )
-            .get( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( rSparseCoords, vSparsePos ), xProg
+            .get( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( rSparseCoords, vSparsePos ), uiCornerIdx, xProg
 #if PROFILE_GET
                   ,
                   pProfiler
