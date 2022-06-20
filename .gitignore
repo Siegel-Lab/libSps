@@ -1,6 +1,7 @@
 build_rel/*
 build_dbg/*
 build_test/*
+build_benchmark/*
 *.bin
 test/*
 stxxl.errlog
@@ -8,3 +9,4 @@ stxxl.log
 overlays.html
 libsps.pdf
 slurm_*
+core.*

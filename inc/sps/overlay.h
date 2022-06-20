@@ -580,6 +580,9 @@ template <typename type_defs> class Overlay
 
 #define SANITY 1 //! NDEBUG
 
+#pragma GCC diagnostic push
+// uiCornerIdx unused if IS_ORTHOTOPE = false
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     static inline __attribute__( ( always_inline ) ) void
     getCombinationsInvariant( size_t, pos_t vPos, size_t uiDistToTo, val_t& uiRet, pos_t& vMyBottomLeft,
                               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
@@ -641,6 +644,9 @@ template <typename type_defs> class Overlay
         pProfiler->step( "overlay_get: forAllCombinations" );
 #endif
     }
+    
+#pragma GCC diagnostic pop
+
     static inline __attribute__( ( always_inline ) ) void
     getCombinationsInvariantAll( size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
                               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
