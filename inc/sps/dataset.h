@@ -166,7 +166,7 @@ template <typename type_defs> class Dataset
 
     typename sparse_coord_t::Entry
     makeSparseCoords( sparse_coord_t& rSparseCoords, points_t& vPoints, typename points_t::Entry xPoints, size_t uiDim,
-                      progress_stream_t xProg, coordinate_t& uiNumCoordsInDim, coordinate_t& uiNumOverlaysInDim,
+                      progress_stream_t xProg,
                       coordinate_t uiFixedStart = std::numeric_limits<coordinate_t>::max( ),
                       coordinate_t uiFixedEnd = std::numeric_limits<coordinate_t>::max( ) ) const
     {
@@ -188,8 +188,6 @@ template <typename type_defs> class Dataset
         // size_t uiNumPerDimension = (size_t)std::pow( uiNumCoords, 1.0 / (float)( D ) ); //
         // @todo why is this better?
         size_t uiNumPerDimension = std::max( 1ul, (size_t)std::pow( uiNumCoords, 1.0 / 2.0 )); 
-        uiNumCoordsInDim = uiNumCoords;
-        uiNumOverlaysInDim = uiNumPerDimension;
         xProg << "generating " << uiNumPerDimension << " overlays in dimension " << uiDim << " for " << uiNumCoords
               << " different coordinates.\n";
         size_t uiBlockSize = std::max( 1ul, uiNumCoords / uiNumPerDimension );
@@ -269,33 +267,14 @@ template <typename type_defs> class Dataset
     }
 #pragma GCC diagnostic pop
 
-    static coordinate_t maxSpaceForInternalCoords( pos_t /*uiNumCoordsPerDim*/, pos_t /*uiNumOverlaysPerDim*/ )
-    {
-        #if 1
-            // 10Gb
-            return (coordinate_t)10000000000;
-        #else
-        coordinate_t uiMaxTotalSpaceRequired = 0;
-        for( size_t uiI = 0; uiI < D; uiI++ )
-        {
-            size_t uiToAdd = uiNumCoordsPerDim[ uiI ] + 1;
-            for( size_t uiJ = 0; uiJ < D; uiJ++ )
-                if( uiJ != uiI )
-                    uiToAdd *= uiNumOverlaysPerDim[ uiJ ];
-            uiMaxTotalSpaceRequired += uiToAdd;
-        }
-        return uiMaxTotalSpaceRequired;
-        #endif
-    }
 
     coordinate_t generateSparseCoords( overlay_grid_t& rOverlays,
                                        sparse_coord_t& rSparseCoords,
                                        points_t& vPoints,
-                                       coordinate_t uiMaxTotalSpaceRequired, 
                                        progress_stream_t xProg,
                                        std::function<coordinate_t( size_t )> fDo )
     {
-        rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + uiMaxTotalSpaceRequired );
+       rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + (2<<8) );
 
         std::vector<coordinate_t> vPrefixSumSize;
         size_t uiFrom = xOverlays.uiStartIndex;
@@ -312,6 +291,7 @@ template <typename type_defs> class Dataset
             for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
                     [ & ]( size_t uiTid, size_t uiOverlayId ) { 
+                        auto xGuard = rSparseCoords.getCapacityGuard();
                         vPrefixSumSize[ uiTid ] += fDo( uiOverlayId ); 
                         if(uiTid == 0 && xProg.printAgain( ) )
                             xProg << Verbosity( 0 ) << "processed " << uiOverlayId - uiFrom 
@@ -335,11 +315,10 @@ template <typename type_defs> class Dataset
     }
 
     coordinate_t generateInternalSparseCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                               points_t& vPoints, pos_t uiNumCoordsPerDim, pos_t uiNumOverlaysPerDim,
+                                               points_t& vPoints,
                                                progress_stream_t xProg, Profiler& xProfiler )
     {
-        size_t uiMaxTotalSpaceRequired = maxSpaceForInternalCoords( uiNumCoordsPerDim, uiNumOverlaysPerDim );
-        return generateSparseCoords( rOverlays, rSparseCoords, vPoints, uiMaxTotalSpaceRequired, xProg,
+        return generateSparseCoords( rOverlays, rSparseCoords, vPoints, xProg,
                                      [ & ]( size_t uiOverlayId ) {
                                          // get bottom left position (compressed)
                                          if constexpr( DEPENDANT_DIMENSION )
@@ -360,16 +339,15 @@ template <typename type_defs> class Dataset
     static coordinate_t maxSpaceForOverlayCoords( pos_t uiNumCoordsPerDim, pos_t uiNumOverlaysPerDim )
     {
         return maxSpaceForInternalCoords( uiNumCoordsPerDim, uiNumOverlaysPerDim );
-        //return (1 + maxSpaceForInternalCoords( uiNumCoordsPerDim, uiNumOverlaysPerDim )) * ( D - 1 );
+        return (1 + maxSpaceForInternalCoords( uiNumCoordsPerDim, uiNumOverlaysPerDim )) * ( D - 1 );
     }
 
 
     coordinate_t generateOverlaySparseCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                              points_t& vPoints, pos_t uiNumCoordsPerDim, pos_t uiNumOverlaysPerDim,
+                                              points_t& vPoints, 
                                               progress_stream_t xProgIn, Profiler& xProfiler )
     {
-        size_t uiMaxTotalSpaceRequired = maxSpaceForOverlayCoords( uiNumCoordsPerDim, uiNumOverlaysPerDim );
-        rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + uiMaxTotalSpaceRequired );
+        rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + (2<<8) );
     
         auto xIterator = rOverlays.template genIterator<D>( xOverlays, successors, *this, rOverlays, 
                                                             rSparseCoords, xOverlays );
@@ -384,6 +362,7 @@ template <typename type_defs> class Dataset
             uiNumThreads,
             xProgIn,
             [ & ]( size_t uiTid, size_t uiOverlayId ) {
+                auto xGuard = rSparseCoords.getCapacityGuard();
                 progress_stream_t xProg = xProgIn;
                 // get bottom left position (compressed)
                 pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
@@ -460,6 +439,7 @@ template <typename type_defs> class Dataset
                                            overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                             typename overlay_grid_t::template Entry<D>& xOverlays )
     {
+        auto xGuard = rSparseCoords.getCapacityGuard();
         std::vector<size_t> vRet;
         auto vPos = overlay_grid_t::posOf( uiIdx, xEntry );
 
@@ -549,8 +529,7 @@ template <typename type_defs> class Dataset
     }
 
     void generateOverlayCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, points_t& vPoints,
-                                typename points_t::Entry xPoints, progress_stream_t xProg, Profiler& xProfiler,
-                                pos_t& uiNumCoordsPerDim, pos_t& uiNumOverlaysPerDim )
+                                typename points_t::Entry xPoints, progress_stream_t xProg, Profiler& xProfiler )
     {
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
@@ -582,8 +561,7 @@ template <typename type_defs> class Dataset
                             ++xCurrPoints.uiEndIndex;
 
                         auto xCurr =
-                            makeSparseCoords( rSparseCoords, vPoints, xCurrPoints, 1, xProg, uiNumCoordsPerDim[ uiI ],
-                                              uiNumOverlaysPerDim[ uiI ], uiAbsoluteStart, uiAbsoluteEnd );
+                            makeSparseCoords( rSparseCoords, vPoints, xCurrPoints, 1, xProg, uiAbsoluteStart, uiAbsoluteEnd );
                         assert( rSparseCoords.axisSize( xCurr ) > 0 );
                         if( vSparseCoords[ uiI ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) ||
                             rSparseCoords.axisSize( vSparseCoords[ uiI ] ) < rSparseCoords.axisSize( xCurr ) )
@@ -596,8 +574,7 @@ template <typename type_defs> class Dataset
                     continue;
                 }
             }
-            vSparseCoords[ uiI ] = makeSparseCoords( rSparseCoords, vPoints, xPoints, uiI, xProg,
-                                                     uiNumCoordsPerDim[ uiI ], uiNumOverlaysPerDim[ uiI ] );
+            vSparseCoords[ uiI ] = makeSparseCoords( rSparseCoords, vPoints, xPoints, uiI, xProg );
         }
         xProg << Verbosity( 2 );
         if( xProg.active( ) )
@@ -655,18 +632,15 @@ template <typename type_defs> class Dataset
         // generate the overall sparse coordinates
         Profiler xProfiler( "setting up overlay sparse coords" );
         xProg << Verbosity( 0 ) << "generating overlay grid.\n";
-        pos_t uiNumCoordsPerDim;
-        pos_t uiNumOverlaysPerDim;
-        generateOverlayCoords( rOverlays, rSparseCoords, vPoints, xPoints, xProg, xProfiler, uiNumCoordsPerDim,
-                               uiNumOverlaysPerDim );
+        generateOverlayCoords( rOverlays, rSparseCoords, vPoints, xPoints, xProg, xProfiler );
 
         xProg << Verbosity( 0 ) << "generating internal sparse coords.\n";
         coordinate_t uiSizeInternalPrefixSums = generateInternalSparseCoords(
-            rOverlays, rSparseCoords, vPoints, uiNumCoordsPerDim, uiNumOverlaysPerDim, xProg, xProfiler );
+            rOverlays, rSparseCoords, vPoints, xProg, xProfiler );
 
         xProg << Verbosity( 0 ) << "generating overlay sparse coords.\n";
         coordinate_t uiSizeOverlayPrefixSums = generateOverlaySparseCoords(
-            rOverlays, rSparseCoords, vPoints, uiNumCoordsPerDim, uiNumOverlaysPerDim, xProg, xProfiler );
+            rOverlays, rSparseCoords, vPoints, xProg, xProfiler );
 
         xProg << Verbosity( 0 ) << "generating internal prefix sums.\n";
         generateInternalPrefixSums( rOverlays, rSparseCoords, rPrefixSums, vPoints, uiSizeInternalPrefixSums, xProg,

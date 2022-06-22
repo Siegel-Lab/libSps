@@ -20,6 +20,50 @@ template <typename type_defs> class SparseCoord
     std::mutex xResizeLock;
     coord_file_t xFile;
     coord_vec_t vData;
+    size_t uiCapChangeLocks = 0;
+    std::condition_variable xCapacityChangeVar;
+
+    class CapacityChangeLock{
+            SparseCoord& rCoords;
+        public:
+            CapacityChangeLock(SparseCoord& rCoords) : rCoords(rCoords)
+            {
+                std::lock_guard<std::mutex> xGuard( rCoords.xResizeLock );
+                ++rCoords.uiCapChangeLocks;
+            }
+
+            ~CapacityChangeLock()
+            {
+                std::lock_guard<std::mutex> xGuard( rCoords.xResizeLock );
+                assert(rCoords.uiCapChangeLocks > 0);
+                --rCoords.uiCapChangeLocks;
+                rCoords.xCapacityChangeVar.notify_one();
+            }
+    };
+
+    std::shared_ptr<CapacityChangeLock> getCapacityGuard()
+    {
+        return std::make_shared<CapacityChangeLock>(*this);
+    }
+
+    size_t add_size(size_t uiAddSize)
+    {
+        std::unique_lock<std::mutex> xGuard( xResizeLock );
+        if(vData.capacity( ) <= uiAddSize + vData.size( ))
+        {
+            assert(uiCapChangeLocks > 0);
+            --uiCapChangeLocks;
+            while(uiCapChangeLocks > 0 && vData.capacity( ) <= uiAddSize + vData.size( ))
+                xCapacityChangeVar.wait(xGuard);
+            ++uiCapChangeLocks;
+            if(vData.capacity( ) <= uiAddSize + vData.size( ))
+                vData.reserve( ( vData.size( ) + uiAddSize )*2 );
+            xCapacityChangeVar.notify_all();
+        }
+        size_t uiRet = vData.size();
+        vData.resize(uiRet + uiAddSize);
+        return uiRet;
+    }
 
     struct Entry
     {
@@ -213,16 +257,14 @@ template <typename type_defs> class SparseCoord
 
         assert( vTmp.size( ) == 1 + uiLast - uiStartWith );
 
-
+        if constexpr(CAPACITY_INC_ALLOWED)
         {
-            // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
-            // hence it is threadsave to query and or write the vector at the same time
-            std::lock_guard<std::mutex> xGuard( xResizeLock );
-            // make sure no reallocation occurs on the vector
-            assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= vTmp.size( ) + vData.size( ) );
             xRet.uiStartIndex = vData.size( );
             vData.resize( vTmp.size( ) + vData.size( ) );
-        } // scope for xGuard
+        }
+        else
+            xRet.uiStartIndex = add_size(vTmp.size( ));
+
 
         xRet.uiStartCord = uiStartWith;
         xRet.uiEndCord = uiLast;
@@ -238,12 +280,17 @@ template <typename type_defs> class SparseCoord
     template <bool CAPACITY_INC_ALLOWED = false> Entry addStart( coordinate_t uiStartWith )
     {
         Entry xRet{ };
+        
+        if constexpr(CAPACITY_INC_ALLOWED)
         {
-            std::lock_guard<std::mutex> xGuard( xResizeLock );
-            assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= 1 + vData.size( ) );
             xRet.uiStartIndex = vData.size( );
             vData.push_back( 0 );
-        } // scope for xGuard
+        }
+        else
+        {
+            xRet.uiStartIndex = add_size(1);
+            vData[xRet.uiStartIndex] = 0;
+        }
         xRet.uiStartCord = uiStartWith;
         xRet.uiEndCord = uiStartWith;
 

@@ -403,7 +403,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
         {
             ThreadPool xPool(
-#if PROFILE_GET
+#if 1 // PROFILE_GET
                 0
 #else
                 vSparseCoord.THREADSAVE && vOverlayGrid.THREADSAVE && vPrefixSumGrid.THREADSAVE
