@@ -84,7 +84,6 @@ template <typename type_defs> class SimpleVector : public AbstractIndex
         }
         return uiRet;
     }
-
 };
 
 /**
@@ -111,7 +110,8 @@ template <typename type_defs> class SimpleValVector : public AbstractIndex
      * defaults to false.
      */
     SimpleValVector( std::string sPrefix = "", bool bWrite = false )
-        : xFile( prefix_sums_vec_generator.file( sPrefix + ".vals", bWrite ) ), vData( prefix_sums_vec_generator.vec( xFile ) )
+        : xFile( prefix_sums_vec_generator.file( sPrefix + ".vals", bWrite ) ),
+          vData( prefix_sums_vec_generator.vec( xFile ) )
     {}
 
     /**
@@ -131,25 +131,20 @@ template <typename type_defs> class SimpleValVector : public AbstractIndex
      */
     val_t get( size_t uiX ) const
     {
-        return vData[uiX];
+        return vData[ uiX ];
     }
-    
-    std::vector<val_t> getMultiple(std::vector<size_t> vX ) const 
+
+    std::vector<val_t> getMultiple( std::vector<size_t> vX ) const
     {
         std::vector<val_t> vRet( vX.size( ) );
         {
             ThreadPool xPool( prefix_sums_THREADSAVE ? std::thread::hardware_concurrency( ) : 0 );
             for( size_t uiI = 0; uiI < vX.size( ); uiI++ )
-                xPool.enqueue(
-                    [ & ]( size_t, size_t uiI ) {
-                        vRet[uiI] = get(uiI);
-                    },
-                    uiI );
+                xPool.enqueue( [ & ]( size_t, size_t uiI ) { vRet[ uiI ] = get( vX[ uiI ] ); }, uiI );
         } // scope for xPool
 
         return vRet;
     }
-
 };
 
 
@@ -158,14 +153,14 @@ template <typename type_defs> class SimpleValVector : public AbstractIndex
 #if WITH_PYTHON
 template <typename type_defs> std::string exportSimpleVector( pybind11::module& m, std::string sName )
 {
-    pybind11::class_<sps::SimpleValVector<type_defs>, sps::AbstractIndex>( m, ("Val" + sName).c_str( ),
-                                                                         R"pbdoc(
+    pybind11::class_<sps::SimpleValVector<type_defs>, sps::AbstractIndex>( m, ( "Val" + sName ).c_str( ),
+                                                                           R"pbdoc(
     Simple Vector for val_t entries.
     
     .. automethod:: add
     .. automethod:: get
     .. automethod:: get_multiple
-)pbdoc"  )
+)pbdoc" )
         .def( pybind11::init<std::string, bool>( ),
               pybind11::arg( "path" ) = "",
               pybind11::arg( "write_mode" ) = false,
@@ -179,21 +174,20 @@ template <typename type_defs> std::string exportSimpleVector( pybind11::module& 
     :type write_mode: str
 )pbdoc" )
         .def( "add", &sps::SimpleValVector<type_defs>::add, pybind11::arg( "v" ),
-               R"pbdoc(
+              R"pbdoc(
     Append a value.
 
     :param v: The value.
     :type v: int
-)pbdoc"  )
+)pbdoc" )
         .def( "get", &sps::SimpleValVector<type_defs>::get, pybind11::arg( "x" ),
-               R"pbdoc(
+              R"pbdoc(
     Query a value.
 
     :param x: index of the value to query
     :type x: int
-)pbdoc"  )
-        .def( "get_multiple", &sps::SimpleValVector<type_defs>::getMultiple, pybind11::arg( "xs" ),
-              ( R"pbdoc(
+)pbdoc" )
+        .def( "get_multiple", &sps::SimpleValVector<type_defs>::getMultiple, pybind11::arg( "xs" ), ( R"pbdoc(
     Query multiple values.
     Multithreaded if the underlying storage is threadsave.
 

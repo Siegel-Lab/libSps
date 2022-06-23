@@ -277,12 +277,10 @@ template <typename type_defs, typename data_t, template <typename> typename data
 
                     doneWith( uiIdx );
 
-                    if(uiTid == 0 && xProg.printAgain( ) )
-                        xProg << Verbosity( 0 ) << "processed " << uiNumDone 
-                            << " out of " << vNumPredComputed.size()
-                            << " overlays, thats " 
-                            << 100.0 * ( (double)uiNumDone / (double)vNumPredComputed.size() )
-                            << "%.\n";
+                    if( uiTid == 0 && xProg.printAgain( ) )
+                        xProg << Verbosity( 0 ) << "processed " << uiNumDone << " out of " << vNumPredComputed.size( )
+                              << " overlays, thats " << 100.0 * ( (double)uiNumDone / (double)vNumPredComputed.size( ) )
+                              << "%.\n";
                 }
             };
             if( uiNumThreads == 0 || vNumPredComputed.size( ) == 0 )
@@ -291,7 +289,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
             {
                 std::vector<std::thread> vThreads;
                 for( size_t uiI = 0; uiI < uiNumThreads && uiI < vNumPredComputed.size( ); uiI++ )
-                    vThreads.emplace_back( std::bind(fTask, this, uiI, fDo) );
+                    vThreads.emplace_back( std::bind( fTask, this, uiI, fDo ) );
 
                 for( auto& xThread : vThreads )
                     xThread.join( );
@@ -310,6 +308,8 @@ template <typename type_defs, typename data_t, template <typename> typename data
                                                            std::vector<size_t> vRet;
                                                            if( vPos[ uiDim ] < xEntry.vAxisSizes[ uiDim ] )
                                                                vRet.push_back( NDGrid::indexOf( vPos, xEntry ) );
+                                                            if(uiIdx + 1 == NDGrid::sizeOf(xEntry) + xEntry.uiStartIndex)
+                                                                vRet.push_back( std::numeric_limits<size_t>::max() ); // poison
                                                            return vRet;
                                                        } );
     }

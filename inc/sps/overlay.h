@@ -253,23 +253,24 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
     }
 
     coordinate_t generateInternalSparseCoords( sparse_coord_t& rSparseCoords, points_t& vPoints,
-                                               progress_stream_t& 
+                                               progress_stream_t&
 #ifndef NDEBUG
-                                               xProg
+                                                   xProg
 #endif
-                                               , Profiler& 
+                                               ,
+                                               Profiler&
 #ifndef NDEBUG
-                                               xProfiler
+                                                   xProfiler
 #endif
-                                                )
+    )
     {
         if( xPoints.size( ) > 0 )
         {
@@ -310,15 +311,17 @@ template <typename type_defs> class Overlay
 
     coordinate_t generateOverlaySparseCoords( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                               points_t& vPoints, std::array<std::vector<coordinate_t>, D> vPredecessors,
-                                              pos_t vMyBottomLeft, pos_t vPosTopRight, progress_stream_t& 
+                                              pos_t vMyBottomLeft, pos_t vPosTopRight,
+                                              progress_stream_t&
 #ifndef NDEBUG
-                                              xProg
+                                                  xProg
 #endif
-                                              , Profiler& 
+                                              ,
+                                              Profiler&
 #ifndef NDEBUG
-                                              xProfiler 
+                                                  xProfiler
 #endif
-                                              )
+    )
     {
         coordinate_t uiTotalOverlayPrefixSumSize = 0;
 #ifndef NDEBUG
@@ -431,18 +434,18 @@ template <typename type_defs> class Overlay
         return uiTotalOverlayPrefixSumSize;
     }
 
-    void generateInternalPrefixSums( const overlay_grid_t&
+    void generateInternalPrefixSums( const overlay_grid_t&, sparse_coord_t& rSparseCoords,
+                                     prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
+                                     progress_stream_t&
+#ifndef NDEBUG
+                                         xProg
+#endif
                                      ,
-                                     sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
-                                     progress_stream_t& 
+                                     Profiler&
 #ifndef NDEBUG
-                                     xProg
+                                         xProfiler
 #endif
-                                     , Profiler& 
-#ifndef NDEBUG
-                                     xProfiler
-#endif
-                                      )
+    )
     {
 #ifndef NDEBUG
         xProfiler.step( "internal prefix sum setup" );
@@ -508,7 +511,6 @@ template <typename type_defs> class Overlay
 
                     ++uiNumDone;
                 } );
-
             } );
         }
 
@@ -527,16 +529,15 @@ template <typename type_defs> class Overlay
     }
 
     void generateOverlayPrefixSums( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                    prefix_sum_grid_t& rPrefixSums,
-                                    points_t&
-                                    ,
+                                    prefix_sum_grid_t& rPrefixSums, points_t&,
                                     std::array<std::vector<coordinate_t>, D> vPredecessors, pos_t vMyBottomLeft,
-                                    dataset_t* pDataset, progress_stream_t& xProg, Profiler& 
+                                    dataset_t* pDataset, progress_stream_t& xProg,
+                                    Profiler&
 
 #ifndef NDEBUG
-                                    xProfiler
+                                        xProfiler
 #endif
-                                     )
+    )
     {
         // construct overlay sum grid
 #ifndef NDEBUG
@@ -589,9 +590,9 @@ template <typename type_defs> class Overlay
                               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
                               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
                               size_t uiCornerIdx,
-                              progress_stream_t& 
+                              progress_stream_t&
 #if GET_PROG_PRINTS
-                              xProg
+                                  xProg
 #endif
 #if PROFILE_GET
                               ,
@@ -632,7 +633,7 @@ template <typename type_defs> class Overlay
 
         val_t uiCurr;
         if constexpr( IS_ORTHOTOPE )
-            uiCurr = uiCurrArr[uiCornerIdx];
+            uiCurr = uiCurrArr[ uiCornerIdx ];
         else
             uiCurr = uiCurrArr;
 
@@ -644,21 +645,21 @@ template <typename type_defs> class Overlay
         pProfiler->step( "overlay_get: forAllCombinations" );
 #endif
     }
-    
+
 #pragma GCC diagnostic pop
 
-    static inline __attribute__( ( always_inline ) ) void
-    getCombinationsInvariantAll( size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
-                              const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
-                              const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
-                              const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
-                              progress_stream_t& 
+    static inline __attribute__( ( always_inline ) ) void getCombinationsInvariantAll(
+        size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
+        const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
+        const prefix_sum_grid_t& rPrefixSums,
+        const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+        progress_stream_t&
 #if GET_PROG_PRINTS
-                              xProg
+            xProg
 #endif
 #if PROFILE_GET
-                              ,
-                              std::shared_ptr<Profiler>& pProfiler
+        ,
+        std::shared_ptr<Profiler>& pProfiler
 #endif
     )
     {
@@ -702,7 +703,7 @@ template <typename type_defs> class Overlay
 #endif
     }
 
-    static inline __attribute__( ( always_inline ) ) bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/, 
+    static inline __attribute__( ( always_inline ) ) bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/,
                                                                                bool /*bIsFrom*/ )
     {
         return uiPos != std::numeric_limits<coordinate_t>::max( );
@@ -761,7 +762,7 @@ template <typename type_defs> class Overlay
             auto uiCurrArr = rPrefixSums.template get<D, SANITY>( vSparseCoords, xInternalEntires );
             val_t uiCurr;
             if constexpr( IS_ORTHOTOPE )
-                uiCurr = uiCurrArr[uiCornerIdx];
+                uiCurr = uiCurrArr[ uiCornerIdx ];
             else
                 uiCurr = uiCurrArr;
 #if PROFILE_GET
@@ -786,10 +787,10 @@ template <typename type_defs> class Overlay
     }
 
     sps_t getAll( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
-               pos_t vMyBottomLeft, progress_stream_t& xProg
+                  pos_t vMyBottomLeft, progress_stream_t& xProg
 #if PROFILE_GET
-               ,
-               std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
+                  ,
+                  std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
 #endif
     ) const
     {

@@ -302,13 +302,13 @@ template <typename type_defs> class Index : public AbstractIndex
 #if PROFILE_GET
                 pProfiler->step( "query_" + std::to_string( uiD ) );
 #endif
-                val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, 
-                                                            uiCornerIndex, xProg
+                val_t uiCurr =
+                    vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, uiCornerIndex, xProg
 #if PROFILE_GET
-                                                              ,
-                                                              pProfiler
+                                                 ,
+                                                 pProfiler
 #endif
-                );
+                    );
 #if PROFILE_GET
                 pProfiler->step( "process" );
 #endif

@@ -86,7 +86,6 @@ struct StdOutProgressStream
     StdOutProgressStream( size_t uiVerb )
         : xLastPrint( std::chrono::high_resolution_clock::now( ) ), xVerb( uiVerb ), xCurr( 0 )
     {}
-
 };
 
 
@@ -141,9 +140,10 @@ static const bool EXPLAIN = false;
  *
  * @tparam D number of dimensions
  * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
+ * @tparam uniform_overlay_grid whether overlays are distributed uniformly (disables dependant_dim)
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, bool dependant_dim, size_t orthope>
+template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
                               D, //
@@ -161,6 +161,7 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               RamVecGenerator, //
                               RamVectorSorter, //
                               dependant_dim, //
+                              uniform_overlay_grid, //
                               orthope, //
                               EXPLAIN, //
                               StdOutProgressStream>;
@@ -289,9 +290,10 @@ template <typename val_t> struct DiskVecGenerator
  *
  * @tparam D number of dimensions
  * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
+ * @tparam uniform_overlay_grid whether overlays are distributed uniformly (disables dependant_dim)
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, bool dependant_dim, size_t orthope>
+template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope>
 using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              default_val_t, //
                              D, //
@@ -309,6 +311,7 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              DiskVecGenerator, //
                              RamVectorSorter, //
                              dependant_dim, //
+                             uniform_overlay_grid, //
                              orthope, //
                              EXPLAIN, //
                              StdOutProgressStream>;
@@ -323,9 +326,10 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
  *
  * @tparam D number of dimensions
  * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
+ * @tparam uniform_overlay_grid whether overlays are distributed uniformly (disables dependant_dim)
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, bool dependant_dim, size_t orthope>
+template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope>
 using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                default_val_t, //
                                D, //
@@ -343,6 +347,7 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                CachedVecGenerator, //
                                CachedVectorSorter, //
                                dependant_dim, //
+                               uniform_overlay_grid, //
                                orthope, //
                                EXPLAIN, //
                                StdOutProgressStream>;

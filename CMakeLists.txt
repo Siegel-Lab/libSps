@@ -14,6 +14,9 @@ set(NUM_DIMENSIONS_D "0" CACHE STRING "Build datastructures with this amount of 
 option(W_DEPENDENT_DIM "Build datastructures with dependent dimension." OFF)
 option(WO_DEPENDENT_DIM "Build datastructures without dependent dimension." ON)
 
+option(W_UNIFORM_OVERLAY_GRID "Build datastructures with a uniform olerlay grid." OFF)
+option(WO_UNIFORM_OVERLAY_GRID "Build datastructures without a uniform olerlay grid." ON)
+
 option(W_CUBES "" OFF)
 option(W_RECTANGLES "" OFF)
 option(W_INTERVALS "" OFF)
@@ -94,6 +97,13 @@ if(WITH_PYTHON)
     endif()
     if(${WO_DEPENDENT_DIM})
         target_compile_definitions( Sps PRIVATE WO_DEPENDANT_DIM )
+    endif()
+
+    if(${W_UNIFORM_OVERLAY_GRID})
+        target_compile_definitions( Sps PRIVATE W_UNIFORM_OVERLAY_GRID )
+    endif()
+    if(${WO_UNIFORM_OVERLAY_GRID})
+        target_compile_definitions( Sps PRIVATE WO_UNIFORM_OVERLAY_GRID )
     endif()
     
     if(${DISK})
