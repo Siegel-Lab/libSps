@@ -227,8 +227,9 @@ template <typename type_defs> class Overlay
     std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D> vOverlayEntries;
     typename prefix_sum_grid_t::template Entry<D> xInternalEntires;
     typename points_t::Entry xPoints;
+    sps_t uiBottomLeftVal;
 
-    Overlay( ) : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, xPoints{ }
+    Overlay( ) : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, xPoints{ }, uiBottomLeftVal{ }
     {}
 
     void iterate( coordinate_t uiEnd, std::function<void( coordinate_t )> fDo ) const
@@ -544,6 +545,20 @@ template <typename type_defs> class Overlay
         xProg << Verbosity( 1 ) << "constructing overlay sum grid\n";
         xProfiler.step( "filling overlay" );
 #endif
+        bool bAllLargerZero = true;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            bAllLargerZero = bAllLargerZero && vMyBottomLeft[uiI] > 0;
+        if(bAllLargerZero)
+        {
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                --vMyBottomLeft[uiI];
+            uiBottomLeftVal = pDataset->getAll( rOverlays, rSparseCoords, rPrefixSums, vMyBottomLeft, xProg );
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                ++vMyBottomLeft[uiI];
+        }
+        else
+            uiBottomLeftVal = sps_t{};
+
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vPredecessors[ uiI ].size( ) > 0 )
             {
@@ -571,6 +586,8 @@ template <typename type_defs> class Overlay
 #ifndef NDEBUG
                         xProg << Verbosity( 3 ) << "query " << vFullFrom << ": " << uiRet << "\n";
 #endif
+                        assert(uiRet >= uiBottomLeftVal);
+                        uiRet -= uiBottomLeftVal;
 
                         rPrefixSums.get( vTo, vOverlayEntries[ uiI ] ) = uiRet;
                     },
@@ -589,7 +606,7 @@ template <typename type_defs> class Overlay
                               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
                               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
                               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
-                              size_t uiCornerIdx,
+                              size_t uiCornerIdx, sps_t uiBottomLeftVal,
                               progress_stream_t&
 #if GET_PROG_PRINTS
                                   xProg
@@ -633,9 +650,9 @@ template <typename type_defs> class Overlay
 
         val_t uiCurr;
         if constexpr( IS_ORTHOTOPE )
-            uiCurr = uiCurrArr[ uiCornerIdx ];
+            uiCurr = uiCurrArr[ uiCornerIdx ] + uiBottomLeftVal[ uiCornerIdx ];
         else
-            uiCurr = uiCurrArr;
+            uiCurr = uiCurrArr + uiBottomLeftVal;
 
 #if GET_PROG_PRINTS
         xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
@@ -652,7 +669,7 @@ template <typename type_defs> class Overlay
         size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
         const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
         const prefix_sum_grid_t& rPrefixSums,
-        const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+        const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries, sps_t uiBottomLeftVal,
         progress_stream_t&
 #if GET_PROG_PRINTS
             xProg
@@ -693,6 +710,7 @@ template <typename type_defs> class Overlay
 #endif
         // in release mode query with sanity=false to avoid sanity checks
         sps_t uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
+        uiCurr += uiBottomLeftVal;
 
 #if GET_PROG_PRINTS
         xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
@@ -738,7 +756,7 @@ template <typename type_defs> class Overlay
 
         forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariant, getCombinationsCond, uiRet,
                                        vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
-                                       uiCornerIdx, xProg
+                                       uiCornerIdx, uiBottomLeftVal, xProg
 #if PROFILE_GET
                                        ,
                                        pProfiler
@@ -814,7 +832,7 @@ template <typename type_defs> class Overlay
 
         forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariantAll, getCombinationsCond, uiRet,
                                        vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
-                                       xProg
+                                       uiBottomLeftVal, xProg
 #if PROFILE_GET
                                        ,
                                        pProfiler

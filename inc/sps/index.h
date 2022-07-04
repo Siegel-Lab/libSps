@@ -219,10 +219,11 @@ template <typename type_defs> class Index : public AbstractIndex
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
-        // does not unload the memory half way through the initialization.
+        // does not unload the memory half way through the initialization. (not relevant for std::vector implementations)
         dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
+        xProg << Verbosity( 1 ) << "\n\nMaximal prefix sum value: " << maxPrefixSumValue() << ".\n";
         return uiRet;
     }
 
@@ -431,6 +432,20 @@ template <typename type_defs> class Index : public AbstractIndex
         pProfiler->print( "shutdown and profile" );
 #endif
         return vRet;
+    }
+
+    val_t maxPrefixSumValue() const
+    {
+        val_t uiMax = 0;
+        for (const sps_t& rSps : vPrefixSumGrid.vData)
+        {
+            if constexpr(IS_ORTHOTOPE)
+                for(size_t uiD = 0; uiD < ORTHOTOPE_DIMS; uiD++)
+                    uiMax = std::max(uiMax, rSps[uiD]);
+            else
+                uiMax = std::max(uiMax, rSps);
+        }
+        return uiMax;
     }
 
     /**
@@ -750,6 +765,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         //.def( "get", &sps::Index<type_defs>::get, "" )
         .def( "__str__", &sps::Index<type_defs>::str,
               "Return a string describing the index. Very slow for large datasets." )
+        .def( "max_prefix_value", &sps::Index<type_defs>::maxPrefixSumValue,
+              "Return the maximal stored prefix sum. Intended for storage space optimization purposes." )
         .def( "__len__", &sps::Index<type_defs>::numPoints, "Total number of points (among all datasets)." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )

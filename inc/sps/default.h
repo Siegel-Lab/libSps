@@ -128,7 +128,7 @@ template <typename it_t, typename cmp_t> struct RamVectorSorter
     }
 };
 
-using default_coordinate_t = uint32_t;
+using default_coordinate_t = uint64_t;
 using default_val_t = uint32_t;
 using default_class_key_t = uint16_t;
 static const bool EXPLAIN = false;
