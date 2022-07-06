@@ -1,3 +1,6 @@
 - biocontainer instead of yaml file?
 - think about caching the overlay prefix sums during construction...
     - would yeld another giant speedup!
+- remove vector sorter in favour of adding sort method to the vectors
+- make columns of overlays share same sparse coords lookup array?
+    - or is this alleviated with the dependent dimension?

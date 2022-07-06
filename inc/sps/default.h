@@ -177,7 +177,7 @@ template <typename val_t, size_t PageSize, size_t CachePages, size_t BlockSize> 
     {
         size_t uiRet = this->size();
 
-        typename vec_t::bufwriter_type xWriter(this->begin());
+        typename vec_t::bufwriter_type xWriter(this->end());
         for(const val_t& xVal : rOther)
             xWriter << xVal;
         xWriter.finish();

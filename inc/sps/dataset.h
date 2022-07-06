@@ -557,16 +557,10 @@ template <typename type_defs> class Dataset
                     }
                 },
                 xPoints );
-            size_t uiDAct = 0;
-            for( size_t uiI = 0; uiI < D; uiI++ )
-                if(uiMaxCoords[ uiI ] > uiMinCoords[ uiI ] + 10)
-                    uiDAct += 1;
-            uiDAct = std::max((size_t)1, uiDAct);
             pos_t uiNumOverlays;
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
-                uiSizeOverlays[ uiI ] =
-                    std::max( 1ul, (size_t)std::pow( uiMaxCoords[ uiI ] - uiMinCoords[ uiI ], 1.0 / (float)uiDAct ) );
+                uiSizeOverlays[ uiI ] = std::max( 1ul, (size_t)std::pow( uiMaxCoords[ uiI ] - uiMinCoords[ uiI ], 1.0 / 2.0 ) );
                 // 'round up' size to make sure that no points are past the last overlay
                 uiNumOverlays[ uiI ] = 1 + (uiMaxCoords[ uiI ] - uiMinCoords[ uiI ] - 1) / uiSizeOverlays[uiI];
                 xProg << "generating " << uiNumOverlays[ uiI ] << " overlays in dimension " << uiI << "\n";
