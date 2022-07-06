@@ -557,24 +557,18 @@ template <typename type_defs> class Dataset
                     }
                 },
                 xPoints );
-            coordinate_t uiCoordsTotal = 0;
             size_t uiDAct = 0;
             for( size_t uiI = 0; uiI < D; uiI++ )
-            {
-                uiCoordsTotal += uiMaxCoords[ uiI ] - uiMinCoords[ uiI ];
                 if(uiMaxCoords[ uiI ] > uiMinCoords[ uiI ] + 10)
                     uiDAct += 1;
-            }
-            size_t uiNumOverlaysTotal = std::max( 1ul, (size_t)std::pow( vPoints.size(), 1.0 / (float)uiDAct ) );
+            uiDAct = std::max((size_t)1, uiDAct);
             pos_t uiNumOverlays;
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
-                //uiNumOverlays[ uiI ] =
-                //    std::max( 1ul, (size_t)std::pow( uiMaxCoords[ uiI ] - uiMinCoords[ uiI ], 1.0 / (float)D ) );
-                size_t uiCurr = std::max((size_t)1, uiMaxCoords[ uiI ] - uiMinCoords[ uiI ]) - 1;
-                uiNumOverlays[ uiI ] = 1 + (uiNumOverlaysTotal * uiCurr) / uiCoordsTotal;
+                uiSizeOverlays[ uiI ] =
+                    std::max( 1ul, (size_t)std::pow( uiMaxCoords[ uiI ] - uiMinCoords[ uiI ], 1.0 / (float)uiDAct ) );
                 // 'round up' size to make sure that no points are past the last overlay
-                uiSizeOverlays[uiI] = 1 + uiCurr / uiNumOverlays[uiI];
+                uiNumOverlays[ uiI ] = 1 + (uiMaxCoords[ uiI ] - uiMinCoords[ uiI ] - 1) / uiSizeOverlays[uiI];
                 xProg << "generating " << uiNumOverlays[ uiI ] << " overlays in dimension " << uiI << "\n";
             }
             xOverlays = rOverlays.template add<D, true, true>( uiNumOverlays );
