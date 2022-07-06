@@ -168,6 +168,41 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return xRet;
     }
 
+    template <size_t N, bool CAPACITY_INC_ALLOWED = false>
+    Entry<N> add( const std::array<coordinate_t, N>& vAxisSizes, const std::vector<data_t>& vTmp )
+    {
+        Entry<N> xRet{ };
+        for( size_t uiI = 0; uiI < N; uiI++ )
+            xRet.vAxisSizes[ uiI ] = vAxisSizes[ uiI ];
+
+        xRet.uiStartIndex = 0; // required to get result out of sizeOf function
+        size_t uiToAdd = sizeOf( xRet );
+        assert(uiToAdd == vTmp.size());
+
+        if constexpr(THREADSAVE)
+        {
+            {
+                // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
+                // hence it is threadsave to query and or write the vector at the same time
+                std::lock_guard<std::mutex> xGuard( xResizeLock );
+                // make sure no reallocation occurs on the vector
+                assert( CAPACITY_INC_ALLOWED || vData.capacity( ) >= uiToAdd + vData.size( ) );
+                xRet.uiStartIndex = vData.size( );
+                // make space for the new grid
+                vData.resize( uiToAdd + vData.size( ) );
+            } // scope for xGuard
+            for( size_t uiI = 0; uiI < uiToAdd; uiI++ )
+                vData[ xRet.uiStartIndex + uiI ] = vTmp[uiI];
+        }
+        else
+        {
+            std::lock_guard<std::mutex> xGuard( xRWLock );
+            xRet.uiStartIndex = vData.extend(vTmp);
+        }
+
+        return xRet;
+    }
+
     void clear( )
     {
         vData.clear( );

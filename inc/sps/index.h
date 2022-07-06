@@ -223,7 +223,10 @@ template <typename type_defs> class Index : public AbstractIndex
         dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
+
+#ifndef NDEBUG
         xProg << Verbosity( 1 ) << "\n\nMaximal prefix sum value: " << maxPrefixSumValue() << ".\n";
+#endif
         return uiRet;
     }
 

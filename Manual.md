@@ -72,8 +72,13 @@ The libSps workflow is seperated in two phases: Creating an index and querying t
 ### Python
 
 This section contains the documentation for using libSps from Python3.
+libSps should be imported as follows:
+
+    from libSps import make_sps_index
 
 #### Creating indices
+
+@todo silence stxxl messages
 
 First you need to pick the correct implementation of the sparse prefix sum index for your use-case.
 For this, it is easiest to call the `make_sps_index` factory function with the appropriate parameters.

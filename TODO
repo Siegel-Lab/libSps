@@ -1,1 +1,3 @@
 - biocontainer instead of yaml file?
+- think about caching the overlay prefix sums during construction...
+    - would yeld another giant speedup!
