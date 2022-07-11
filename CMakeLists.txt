@@ -26,6 +26,8 @@ option(DISK "Build disk based datastructures (IO on load & unload)." OFF)
 option(CACHED "Build cached datastructures (IO during runtime)." ON)
 option(RAM "Build ram datastructures (Non-persistent)." ON)
 
+option(DO_PROFILE "Add profileing code to the llibrary. Uses gperftools." Off)
+
 # disallow in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
   message(SEND_ERROR "In-source builds are not allowed.")
@@ -91,6 +93,11 @@ if(WITH_PYTHON)
     target_compile_definitions( Sps PRIVATE NUM_DIMENSIONS_B=${NUM_DIMENSIONS_B} )
     target_compile_definitions( Sps PRIVATE NUM_DIMENSIONS_C=${NUM_DIMENSIONS_C} )
     target_compile_definitions( Sps PRIVATE NUM_DIMENSIONS_D=${NUM_DIMENSIONS_D} )
+
+    if(${DO_PROFILE})
+        target_compile_definitions( Sps PRIVATE DO_PROFILE )
+        target_link_libraries( Sps PUBLIC profiler )
+    endif()
 
     if(${W_DEPENDENT_DIM})
         target_compile_definitions( Sps PRIVATE W_DEPENDANT_DIM )

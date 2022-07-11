@@ -167,20 +167,22 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               StdOutProgressStream>;
 
 
-template <typename val_t, size_t PageSize, size_t CachePages, size_t BlockSize> struct CacheVec : public stxxl::VECTOR_GENERATOR<val_t, PageSize, CachePages, BlockSize>::result
+template <typename val_t, size_t PageSize, size_t CachePages, size_t BlockSize>
+struct CacheVec : public stxxl::VECTOR_GENERATOR<val_t, PageSize, CachePages, BlockSize>::result
 {
     using vec_t = typename stxxl::VECTOR_GENERATOR<val_t, PageSize, CachePages, BlockSize>::result;
+
   public:
     using vec_t::vec_t;
 
-    size_t extend(const std::vector<val_t>& rOther)
+    size_t extend( const std::vector<val_t>& rOther )
     {
-        size_t uiRet = this->size();
+        size_t uiRet = this->size( );
 
-        typename vec_t::bufwriter_type xWriter(this->end());
-        for(const val_t& xVal : rOther)
+        typename vec_t::bufwriter_type xWriter( this->end( ) );
+        for( const val_t& xVal : rOther )
             xWriter << xVal;
-        xWriter.finish();
+        xWriter.finish( );
 
         return uiRet;
     }

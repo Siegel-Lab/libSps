@@ -25,6 +25,10 @@
 #include <pybind11/stl.h>
 #endif
 
+#if DO_PROFILE
+#include <gperftools/profiler.h>
+#endif
+
 namespace sps
 {
 
@@ -211,6 +215,9 @@ template <typename type_defs> class Index : public AbstractIndex
                           coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
                           size_t uiVerbosity = 1 )
     {
+#if DO_PROFILE
+        ProfilerStart("generate.prof");
+#endif
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
 
@@ -219,18 +226,94 @@ template <typename type_defs> class Index : public AbstractIndex
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
-        // does not unload the memory half way through the initialization. (not relevant for std::vector implementations)
+        // does not unload the memory half way through the initialization. (not relevant for std::vector
+        // implementations)
         dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
 
+#if DO_PROFILE
+        ProfilerStop();
+#endif
 #ifndef NDEBUG
-        xProg << Verbosity( 1 ) << "\n\nMaximal prefix sum value: " << maxPrefixSumValue() << ".\n";
+        xProg << Verbosity( 1 ) << "\n\nMaximal prefix sum value: " << maxPrefixSumValue( ) << ".\n";
 #endif
         return uiRet;
     }
 
+  private:
+#pragma GCC diagnostic push
+// vPosTopRightActual not used with DEPENDANT_DIMENSION == false
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
+    static inline __attribute__( ( always_inline ) ) void
+    countSizeLimitedInvariant( size_t uiD, pos_t vPos, size_t uiDistToTo, IntersectionType xInterType,
+                               const dataset_vec_t& vDataSets, 
+                               const sparse_coord_t& vSparseCoord,
+                               const prefix_sum_grid_t& vPrefixSumGrid,
+                               const overlay_grid_t& vOverlayGrid,
+                               const class_key_t xDatasetId,
+                                val_t& uiRet
+    )
+    {
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            --vPos[ uiI ];
 
+#if GET_PROG_PRINTS
+        xProg << "query: " << xDatasetId << " " << vPos << "\n";
+#endif
+
+        size_t uiCornerIndex = 0;
+        if constexpr( IS_ORTHOTOPE )
+        {
+            size_t uiDLookup;
+            switch( xInterType )
+            {
+                default:
+                case IntersectionType::points_only:
+                case IntersectionType::first:
+                    uiDLookup = 0;
+                    break;
+                case IntersectionType::last:
+                    uiDLookup = ( ( 1 << D ) - 1 );
+                    break;
+                case IntersectionType::enclosed:
+                case IntersectionType::encloses:
+                    uiDLookup = uiD;
+                    break;
+                case IntersectionType::overlaps:
+                    // invert the last D bits of uiD
+                    // set all other bits to 0
+                    uiDLookup = ( ~uiD ) & ( ( 1 << D ) - 1 );
+                    break;
+            }
+            // uiDLookup / 2 ^ (D - ORTHOTOPE_DIMS)
+            uiCornerIndex = uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) );
+        }
+        val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, uiCornerIndex
+#if GET_PROG_PRINTS
+                                                    ,
+                                                    xProg
+#endif
+        );
+
+        val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
+#if GET_PROG_PRINTS
+        xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/" << ( 1 << ( D - ORTHOTOPE_DIMS ) )
+              << "]"
+              << "\n";
+#endif
+        uiRet += uiCurr * uiFac;
+    }
+    
+#pragma GCC diagnostic pop
+
+    static inline __attribute__( ( always_inline ) ) bool
+    countSizeLimitedInvariantCond( coordinate_t uiPos, size_t /*uiD*/, bool /*bIsFrom*/ )
+    {
+        return uiPos > 0;
+    }
+
+  public:
     /**
      * @brief Count the number of points between from and to in the given dataset.
      *
@@ -246,92 +329,25 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
     val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo,
-                            IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
-#if PROFILE_GET
-                            ,
-                            std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
+                            IntersectionType xInterType = IntersectionType::enclosed,
+                            size_t
+#if GET_PROG_PRINTS
+                                uiVerbosity
 #endif
+                            = 0
     ) const
     {
+#if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
+#endif
         val_t uiRet = 0;
 #pragma GCC diagnostic push
 // uiD unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-#if PROFILE_GET
-        pProfiler->step( "loop" );
-#endif
-        forAllCombinations<pos_t>(
-            [ & ]( size_t uiD, pos_t vPos, size_t uiDistToTo ) {
-#if PROFILE_GET
-                pProfiler->step( "query_sub" );
-#endif
-                for( size_t uiI = 0; uiI < D; uiI++ )
-                    --vPos[ uiI ];
-
-#if GET_PROG_PRINTS
-                xProg << "query: " << xDatasetId << " " << vPos << "\n";
-#endif
-
-#if PROFILE_GET
-                pProfiler->step( "corner" );
-#endif
-                size_t uiCornerIndex = 0;
-                if constexpr( IS_ORTHOTOPE )
-                {
-                    size_t uiDLookup;
-                    switch( xInterType )
-                    {
-                        default:
-                        case IntersectionType::points_only:
-                        case IntersectionType::first:
-                            uiDLookup = 0;
-                            break;
-                        case IntersectionType::last:
-                            uiDLookup = ( ( 1 << D ) - 1 );
-                            break;
-                        case IntersectionType::enclosed:
-                        case IntersectionType::encloses:
-                            uiDLookup = uiD;
-                            break;
-                        case IntersectionType::overlaps:
-                            // invert the last D bits of uiD
-                            // set all other bits to 0
-                            uiDLookup = ( ~uiD ) & ( ( 1 << D ) - 1 );
-                            break;
-                    }
-                    // uiDLookup / 2 ^ (D - ORTHOTOPE_DIMS)
-                    uiCornerIndex = uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) );
-                }
-#if PROFILE_GET
-                pProfiler->step( "query_" + std::to_string( uiD ) );
-#endif
-                val_t uiCurr =
-                    vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, uiCornerIndex, xProg
-#if PROFILE_GET
-                                                 ,
-                                                 pProfiler
-#endif
-                    );
-#if PROFILE_GET
-                pProfiler->step( "process" );
-#endif
-
-                val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
-#if GET_PROG_PRINTS
-                xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
-                      << ( 1 << ( D - ORTHOTOPE_DIMS ) ) << "]"
-                      << "\n";
-#endif
-                uiRet += uiCurr * uiFac;
-#if PROFILE_GET
-                pProfiler->step( "loop" );
-#endif
-            },
-            vFrom, vTo, []( coordinate_t uiPos ) { return uiPos > 0; } );
-#if PROFILE_GET
-        pProfiler->step( "init" );
-#endif
+        forAllCombinationsTmpl<pos_t>( vFrom, vTo, countSizeLimitedInvariant, countSizeLimitedInvariantCond,
+                                        xInterType, vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid, xDatasetId,
+                                        uiRet
+        );
 #pragma GCC diagnostic pop
         return uiRet;
     }
@@ -350,30 +366,15 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR,
                  IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
-#if PROFILE_GET
-                 ,
-                 std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
-#endif
     ) const
     {
-#if PROFILE_GET
-        pProfiler->step( "init: check and process coords" );
-#endif
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
                 throw std::invalid_argument( "end must be larger-equal than start." );
         auto vP = addDims( vFromR, vToR, xInterType );
         pos_t vFrom = vP[ 0 ];
         pos_t vTo = vP[ 1 ];
-#if PROFILE_GET
-        pProfiler->step( "init" );
-#endif
-        return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity
-#if PROFILE_GET
-                                 ,
-                                 pProfiler
-#endif
-        );
+        return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
     }
 
     /**
@@ -390,63 +391,32 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     std::vector<val_t> countMultiple( class_key_t xDatasetId, std::vector<std::pair<ret_pos_t, ret_pos_t>> vRegions,
                                       IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
-#if PROFILE_GET
-                                      ,
-                                      std::shared_ptr<Profiler> pProfiler = std::make_shared<Profiler>( )
-#endif
     ) const
     {
-#if PROFILE_GET
-        pProfiler->step( "init: alloc vRet" );
+#if DO_PROFILE
+        ProfilerStart("countMultiple.prof");
 #endif
 
         std::vector<val_t> vRet( vRegions.size( ) );
 
-#if PROFILE_GET
-        pProfiler->step( "init: pool" );
-#endif
-        {
-            ThreadPool xPool(
-#if 1 // PROFILE_GET
-                0
-#else
-                vSparseCoord.THREADSAVE && vOverlayGrid.THREADSAVE && vPrefixSumGrid.THREADSAVE
-                    ? std::thread::hardware_concurrency( )
-                    : 0
-#endif
-            );
-#if PROFILE_GET
-            pProfiler->step( "init" );
-#endif
-            for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
-                xPool.enqueue(
-                    [ & ]( size_t, size_t uiI ) {
-                        vRet[ uiI ] =
-                            count( xDatasetId, vRegions[ uiI ].first, vRegions[ uiI ].second, xInterType, uiVerbosity
-#if PROFILE_GET
-                                   ,
-                                   pProfiler
-#endif
-                            );
-                    },
-                    uiI );
-        } // scope for xPool
-#if PROFILE_GET
-        pProfiler->print( "shutdown and profile" );
+        for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
+            vRet[ uiI ] = count( xDatasetId, vRegions[ uiI ].first, vRegions[ uiI ].second, xInterType, uiVerbosity );
+#if DO_PROFILE
+        ProfilerStop();
 #endif
         return vRet;
     }
 
-    val_t maxPrefixSumValue() const
+    val_t maxPrefixSumValue( ) const
     {
         val_t uiMax = 0;
-        for (const sps_t& rSps : vPrefixSumGrid.vData)
+        for( const sps_t& rSps : vPrefixSumGrid.vData )
         {
-            if constexpr(IS_ORTHOTOPE)
-                for(size_t uiD = 0; uiD < ORTHOTOPE_DIMS; uiD++)
-                    uiMax = std::max(uiMax, rSps[uiD]);
+            if constexpr( IS_ORTHOTOPE )
+                for( size_t uiD = 0; uiD < ORTHOTOPE_DIMS; uiD++ )
+                    uiMax = std::max( uiMax, rSps[ uiD ] );
             else
-                uiMax = std::max(uiMax, rSps);
+                uiMax = std::max( uiMax, rSps );
         }
         return uiMax;
     }
@@ -525,8 +495,6 @@ void exportEnum( pybind11::module& m )
         .value( "points_only", IntersectionType::points_only,
                 "count orthotopes that are point-like and in the queried area" )
         .export_values( );
-
-    pybind11::class_<Profiler, std::shared_ptr<Profiler>>( m, "Profiler" ).def( pybind11::init( ) );
 }
 
 template <typename type_defs> std::string exportIndex( pybind11::module& m, std::string sName, std::string sDesc )
@@ -677,9 +645,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               pybind11::arg( "to_pos" ), //
               pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,
-#if PROFILE_GET
-              pybind11::arg( "profiler" ) = std::make_shared<Profiler>( ),
-#endif
               ( R"pbdoc(
     Count the number of points between from and to in the given dataset.
     
@@ -707,9 +672,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               pybind11::arg( "regions" ), //
               pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,
-#if PROFILE_GET
-              pybind11::arg( "profiler" ) = std::make_shared<Profiler>( ),
-#endif
               ( R"pbdoc(
     Count the number of points between from and to in the given dataset.
 
@@ -736,9 +698,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               pybind11::arg( "from_pos" ), pybind11::arg( "to_pos" ), //
               pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,
-#if PROFILE_GET
-              pybind11::arg( "profiler" ) = std::make_shared<Profiler>( ),
-#endif
               ( R"pbdoc(
     Count the number of points between from and to and in the given dataset.
 

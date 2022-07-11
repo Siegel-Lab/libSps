@@ -177,9 +177,9 @@ template <typename type_defs, typename data_t, template <typename> typename data
 
         xRet.uiStartIndex = 0; // required to get result out of sizeOf function
         size_t uiToAdd = sizeOf( xRet );
-        assert(uiToAdd == vTmp.size());
+        assert( uiToAdd == vTmp.size( ) );
 
-        if constexpr(THREADSAVE)
+        if constexpr( THREADSAVE )
         {
             {
                 // resize the vector in a locked fashion (this just increases the size variable, no allocation happens)
@@ -192,12 +192,12 @@ template <typename type_defs, typename data_t, template <typename> typename data
                 vData.resize( uiToAdd + vData.size( ) );
             } // scope for xGuard
             for( size_t uiI = 0; uiI < uiToAdd; uiI++ )
-                vData[ xRet.uiStartIndex + uiI ] = vTmp[uiI];
+                vData[ xRet.uiStartIndex + uiI ] = vTmp[ uiI ];
         }
         else
         {
             std::lock_guard<std::mutex> xGuard( xRWLock );
-            xRet.uiStartIndex = vData.extend(vTmp);
+            xRet.uiStartIndex = vData.extend( vTmp );
         }
 
         return xRet;
@@ -336,17 +336,17 @@ template <typename type_defs, typename data_t, template <typename> typename data
 
     template <size_t N> ParallelIterator<N, default_func_t<N>> genIterator( const Entry<N> xEntry ) const
     {
-        return ParallelIterator<N, default_func_t<N>>( xEntry,
-                                                       []( size_t uiIdx, size_t uiDim, const Entry<N>& xEntry ) {
-                                                           auto vPos = NDGrid::posOf( uiIdx, xEntry );
-                                                           ++vPos[ uiDim ];
-                                                           std::vector<size_t> vRet;
-                                                           if( vPos[ uiDim ] < xEntry.vAxisSizes[ uiDim ] )
-                                                               vRet.push_back( NDGrid::indexOf( vPos, xEntry ) );
-                                                            if(uiIdx + 1 == NDGrid::sizeOf(xEntry) + xEntry.uiStartIndex)
-                                                                vRet.push_back( std::numeric_limits<size_t>::max() ); // poison
-                                                           return vRet;
-                                                       } );
+        return ParallelIterator<N, default_func_t<N>>(
+            xEntry, []( size_t uiIdx, size_t uiDim, const Entry<N>& xEntry ) {
+                auto vPos = NDGrid::posOf( uiIdx, xEntry );
+                ++vPos[ uiDim ];
+                std::vector<size_t> vRet;
+                if( vPos[ uiDim ] < xEntry.vAxisSizes[ uiDim ] )
+                    vRet.push_back( NDGrid::indexOf( vPos, xEntry ) );
+                if( uiIdx + 1 == NDGrid::sizeOf( xEntry ) + xEntry.uiStartIndex )
+                    vRet.push_back( std::numeric_limits<size_t>::max( ) ); // poison
+                return vRet;
+            } );
     }
 
     template <size_t N, typename fSuccessor_t, typename... args_successor_t>

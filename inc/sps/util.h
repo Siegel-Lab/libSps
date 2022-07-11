@@ -172,63 +172,6 @@ template <typename C_T> class AlignedPower2 : public POWER_2_COND( C_T )
 
 const std::string CLRLN = "\r\033[K";
 
-#define DO_PROFILE 0
-
-#if DO_PROFILE == 1
-struct Profiler
-{
-    std::chrono::time_point<std::chrono::high_resolution_clock> xLastTimePoint;
-    std::string sLastLabel;
-    std::map<std::string, double> xTimes;
-    Profiler( std::string sLabel ) : xLastTimePoint( std::chrono::high_resolution_clock::now( ) ), sLastLabel( sLabel )
-    {}
-
-    Profiler( ) : Profiler( "init" )
-    {}
-    ~Profiler( )
-    {
-        print( "" );
-    }
-    void step( std::string sLabel )
-    {
-        if( xTimes.count( sLastLabel ) == 0 )
-            xTimes[ sLastLabel ] = 0;
-        xTimes[ sLastLabel ] = xTimes[ sLastLabel ] + std::chrono::duration<double, std::milli>(
-                                                          std::chrono::high_resolution_clock::now( ) - xLastTimePoint )
-                                                          .count( );
-        sLastLabel = sLabel;
-        xLastTimePoint = std::chrono::high_resolution_clock::now( );
-    }
-    void print( std::string sLabel )
-    {
-        step( sLabel );
-        std::cerr << std::endl;
-        double dTotal = 0;
-        for( auto xEntry : xTimes )
-            dTotal += xEntry.second;
-        for( auto xEntry : xTimes )
-            std::cerr << 100 * xEntry.second / dTotal << "%\t" << xEntry.second << " ms\t" << xEntry.first << std::endl;
-        xTimes.clear( );
-    }
-};
-#else
-struct Profiler
-{
-    Profiler( std::string )
-    {}
-
-    Profiler( )
-    {}
-    ~Profiler( )
-    {
-        print( "" );
-    }
-    void print( std::string )
-    {}
-    void step( std::string )
-    {}
-};
-#endif
 
 
 } // namespace sps

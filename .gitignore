@@ -10,3 +10,4 @@ overlays.html
 libsps.pdf
 slurm_*
 core.*
+callgrind.out.*

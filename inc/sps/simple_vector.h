@@ -137,11 +137,8 @@ template <typename type_defs> class SimpleValVector : public AbstractIndex
     std::vector<val_t> getMultiple( std::vector<size_t> vX ) const
     {
         std::vector<val_t> vRet( vX.size( ) );
-        {
-            ThreadPool xPool( prefix_sums_THREADSAVE ? std::thread::hardware_concurrency( ) : 0 );
-            for( size_t uiI = 0; uiI < vX.size( ); uiI++ )
-                xPool.enqueue( [ & ]( size_t, size_t uiI ) { vRet[ uiI ] = get( vX[ uiI ] ); }, uiI );
-        } // scope for xPool
+        for( size_t uiI = 0; uiI < vX.size( ); uiI++ )
+            vRet[ uiI ] = get( vX[ uiI ] );
 
         return vRet;
     }
