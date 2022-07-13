@@ -20,4 +20,3 @@ dependencies:
   - breathe
   - tectonic
   - clang-format
-  - gperftools

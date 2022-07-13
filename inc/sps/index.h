@@ -63,7 +63,9 @@ enum IntersectionType
  */
 template <typename type_defs> class Index : public AbstractIndex
 {
+    public:
     EXTRACT_TYPE_DEFS; // macro call
+    private:
 
     using point_t = Point<type_defs>;
 
@@ -216,7 +218,7 @@ template <typename type_defs> class Index : public AbstractIndex
                           size_t uiVerbosity = 1 )
     {
 #if DO_PROFILE
-        ProfilerStart("generate.prof");
+        ProfilerStart("gperftools.generate.prof");
 #endif
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
@@ -233,6 +235,7 @@ template <typename type_defs> class Index : public AbstractIndex
         vDataSets.push_back( xNew );
 
 #if DO_PROFILE
+        ProfilerFlush();
         ProfilerStop();
 #endif
 #ifndef NDEBUG
@@ -394,7 +397,7 @@ template <typename type_defs> class Index : public AbstractIndex
     ) const
     {
 #if DO_PROFILE
-        ProfilerStart("countMultiple.prof");
+        ProfilerStart("gperftools.countMultiple.prof");
 #endif
 
         std::vector<val_t> vRet( vRegions.size( ) );
@@ -402,6 +405,7 @@ template <typename type_defs> class Index : public AbstractIndex
         for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
             vRet[ uiI ] = count( xDatasetId, vRegions[ uiI ].first, vRegions[ uiI ].second, xInterType, uiVerbosity );
 #if DO_PROFILE
+        ProfilerFlush();
         ProfilerStop();
 #endif
         return vRet;
