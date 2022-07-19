@@ -26,7 +26,7 @@ option(DISK "Build disk based datastructures (IO on load & unload)." OFF)
 option(CACHED "Build cached datastructures (IO during runtime)." ON)
 option(RAM "Build ram datastructures (Non-persistent)." ON)
 
-option(DO_PROFILE "Add profileing code to the llibrary. Uses gperftools." Off)
+option(DO_PROFILE "Add profileing code to the llibrary. Uses gperftools." OFF)
 
 # disallow in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")

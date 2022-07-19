@@ -25,7 +25,7 @@
 #include <pybind11/stl.h>
 #endif
 
-#if DO_PROFILE
+#ifdef DO_PROFILE
 #include <gperftools/profiler.h>
 #endif
 
@@ -215,9 +215,10 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     class_key_t generate( coordinate_t uiFrom = 0,
                           coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
+                          double fFac = 0,
                           size_t uiVerbosity = 1 )
     {
-#if DO_PROFILE
+#ifdef DO_PROFILE
         ProfilerStart("gperftools.generate.prof");
 #endif
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
@@ -230,11 +231,11 @@ template <typename type_defs> class Index : public AbstractIndex
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg );
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, fFac, xProg );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
 
-#if DO_PROFILE
+#ifdef DO_PROFILE
         ProfilerFlush();
         ProfilerStop();
 #endif
@@ -396,7 +397,7 @@ template <typename type_defs> class Index : public AbstractIndex
                                       IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
     ) const
     {
-#if DO_PROFILE
+#ifdef DO_PROFILE
         ProfilerStart("gperftools.countMultiple.prof");
 #endif
 
@@ -404,7 +405,7 @@ template <typename type_defs> class Index : public AbstractIndex
 
         for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
             vRet[ uiI ] = count( xDatasetId, vRegions[ uiI ].first, vRegions[ uiI ].second, xInterType, uiVerbosity );
-#if DO_PROFILE
+#ifdef DO_PROFILE
         ProfilerFlush();
         ProfilerStop();
 #endif
@@ -623,6 +624,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               &sps::Index<type_defs>::generate,
               pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
+              pybind11::arg( "factor" ) = 0,
               pybind11::arg( "verbosity" ) = 1,
               R"pbdoc(
     Generate a new dataset.
