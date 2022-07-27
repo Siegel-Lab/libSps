@@ -628,25 +628,9 @@ template <typename type_defs> class Dataset
         return s;
     }
 
-    uint64_t simulateIntervalSize( double s, double n )
-    {
-        double dMax = 0;
-        double dMin = s + 1;
-        std::uniform_real_distribution<> xDis(0.0, s);
-        for( uint64_t x = 0; x < n; x++ )
-        {
-            double d = xDis(xGen);
-            dMax = std::max(dMax, d);
-            dMin = std::min(dMin, d);
-        }
-        if(dMin > dMax)
-            return 0;
-        return dMax - dMin;
-    }
-
     std::tuple<uint64_t, uint64_t> overlayHelper( double uiNumAvgPointsInOverlay, pos_t uiSparseCoords,
                                                   size_t uiNumPoints, pos_t uiCoordinateSizes, pos_t uiNumOverlays,
-                                                  uint64_t uiNumOverlaysTotal,
+                                                  uint64_t uiNumOverlaysTotal, bool bISP,
                                                   size_t uiD, pos_t uiP )
     {
         if( uiD < D )
@@ -656,7 +640,7 @@ template <typename type_defs> class Dataset
             {
                 uiP[ uiD ] = uiX;
                 auto uiR = overlayHelper( uiNumAvgPointsInOverlay, uiSparseCoords, uiNumPoints, uiCoordinateSizes,
-                                          uiNumOverlays, uiNumOverlaysTotal, uiD + 1, uiP );
+                                          uiNumOverlays, uiNumOverlaysTotal, bISP, uiD + 1, uiP );
                 std::get<0>( uiRet ) = addOverflow( std::get<0>( uiRet ), std::get<0>( uiR ) );
                 std::get<1>( uiRet ) = addOverflow( std::get<1>( uiRet ), std::get<1>( uiR ) );
             }
@@ -666,7 +650,6 @@ template <typename type_defs> class Dataset
         {
             uint64_t uiNumPSTotal = 0;
             uint64_t uiNumLookUpTables = 0;
-            std::binomial_distribution<int> xBinDistrib(uiNumPoints, 1.0/uiNumOverlaysTotal);
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
                 uint64_t uiNumOverlaysBefore = 1;
@@ -683,25 +666,37 @@ template <typename type_defs> class Dataset
                                                                    uiNumRelevantPoints ) );
 
                         if( uiP[ uiI ] > 0 )
-                            uiNumLookUpTables =
-                                addOverflow( uiNumLookUpTables,
-                                             drawIntervalSize( 
-                                                uiCoordinateSizes[ uiJ ] / (double)uiNumOverlays[ uiJ ],
-                                                                   uiNumRelevantPoints ) );
+                        {
+                            if(bISP)
+                                uiNumLookUpTables =
+                                    addOverflow( uiNumLookUpTables,
+                                                drawIntervalSize( 
+                                                    uiCoordinateSizes[ uiJ ] / (double)uiNumOverlays[ uiJ ],
+                                                                    uiNumRelevantPoints ) );
+                            else
+                                uiNumLookUpTables =
+                                    addOverflow( uiNumLookUpTables,
+                                                 uiCoordinateSizes[ uiJ ] / (double)uiNumOverlays[ uiJ ] );
+                        }
                     }
                 uiNumPSTotal = addOverflow( uiNumPSTotal, uiNumPSCurr );
 
-                uiNumLookUpTables =
-                    addOverflow( uiNumLookUpTables,
-                                 drawIntervalSize( uiCoordinateSizes[ uiI ] / (double)uiNumOverlays[ uiI ],
-                                                   uiNumAvgPointsInOverlay ) );
+                if(bISP)
+                    uiNumLookUpTables =
+                        addOverflow( uiNumLookUpTables,
+                                    drawIntervalSize( uiCoordinateSizes[ uiI ] / (double)uiNumOverlays[ uiI ],
+                                                    uiNumAvgPointsInOverlay ) );
+                else
+                    uiNumLookUpTables =
+                        addOverflow( uiNumLookUpTables,
+                                     uiCoordinateSizes[ uiI ] / (double)uiNumOverlays[ uiI ] );
             }
             return std::tuple<uint64_t, uint64_t>( uiNumPSTotal, uiNumLookUpTables );
         }
     }
 
     uint64_t estimateDataStructureSize( pos_t uiNumOverlays, pos_t uiCoordinateSizes, pos_t uiSparseCoords,
-                                        size_t uiNumPoints, bool bCCP = true )
+                                        size_t uiNumPoints, bool bCCP = true, bool bISP = true )
     {
         uint64_t uiNumOverlaysNotInFirstRow = 1;
         uint64_t uiNumOverlaysTotal = 1;
@@ -715,7 +710,7 @@ template <typename type_defs> class Dataset
 
         uint64_t uiNumPSTotal = 1;
         auto uiR = overlayHelper( uiNumAvgPointsInOverlay, uiSparseCoords, uiNumPoints, uiCoordinateSizes,
-                                  uiNumOverlays, uiNumOverlaysTotal, 0, pos_t{ } );
+                                  uiNumOverlays, uiNumOverlaysTotal, bISP, 0, pos_t{ } );
         uint64_t uiNumOverlayEntriesTotal = multOverflow( std::get<0>( uiR ), sizeof( sps_t ) );
         uint64_t uiNumLookupTotal = multOverflow( std::get<1>( uiR ), sizeof( coordinate_t ) );
         // per overlay
@@ -743,7 +738,7 @@ template <typename type_defs> class Dataset
         uint64_t uiSizeOverlaysOverhead = multOverflow( uiNumOverlaysTotal, sizeof( overlay_t ) );
 
         // full
-        return addOverflow( addOverflow( addOverflow( 0*uiNumPSTotal, 0*uiNumOverlayEntriesTotal ), uiNumLookupTotal ),
+        return addOverflow( addOverflow( addOverflow( uiNumPSTotal, 0*uiNumOverlayEntriesTotal ), 0*uiNumLookupTotal ),
                             0*uiSizeOverlaysOverhead );
     }
 
@@ -787,11 +782,15 @@ template <typename type_defs> class Dataset
                 uiNumOverlays *= uiX;
             std::cout << uiNumOverlays << " "
                       << (double)estimateDataStructureSize( toNumbers( vNumRatios, fD ), uiCoordinateSizes,
-                                                            uiSparseCoords, uiNumPoints, true ) /
+                                                            uiSparseCoords, uiNumPoints, true, true ) /
                              (double)1000000000.0
                       << " "
                       << (double)estimateDataStructureSize( toNumbers( vNumRatios, fD ), uiCoordinateSizes,
-                                                            uiSparseCoords, uiNumPoints, false ) /
+                                                            uiSparseCoords, uiNumPoints, true, false ) /
+                             (double)1000000000.0
+                      << " "
+                      << (double)estimateDataStructureSize( toNumbers( vNumRatios, fD ), uiCoordinateSizes,
+                                                            uiSparseCoords, uiNumPoints, false, true ) /
                              (double)1000000000.0
                       << std::endl;
         }
@@ -821,8 +820,7 @@ template <typename type_defs> class Dataset
             fStartPos = fBest - fDist / uiNumSamplingSteps;
             fEndPos = fBest + fDist / uiNumSamplingSteps;
         }
-        //return toNumbers( vNumRatios, ( fStartPos + fEndPos ) / 2 );
-        return toNumbers( vNumRatios, 10 );
+        return toNumbers( vNumRatios, ( fStartPos + fEndPos ) / 2 );
     }
 
 #pragma GCC diagnostic push
