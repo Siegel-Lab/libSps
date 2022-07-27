@@ -63,10 +63,9 @@ enum IntersectionType
  */
 template <typename type_defs> class Index : public AbstractIndex
 {
-    public:
+  public:
     EXTRACT_TYPE_DEFS; // macro call
-    private:
-
+  private:
     using point_t = Point<type_defs>;
 
     using points_t = Points<type_defs>;
@@ -219,7 +218,7 @@ template <typename type_defs> class Index : public AbstractIndex
                           size_t uiVerbosity = 1 )
     {
 #ifdef DO_PROFILE
-        ProfilerStart("gperftools.generate.prof");
+        ProfilerStart( "gperftools.generate.prof" );
 #endif
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
@@ -236,8 +235,8 @@ template <typename type_defs> class Index : public AbstractIndex
         vDataSets.push_back( xNew );
 
 #ifdef DO_PROFILE
-        ProfilerFlush();
-        ProfilerStop();
+        ProfilerFlush( );
+        ProfilerStop( );
 #endif
 #ifndef NDEBUG
         xProg << Verbosity( 1 ) << "\n\nMaximal prefix sum value: " << maxPrefixSumValue( ) << ".\n";
@@ -251,13 +250,9 @@ template <typename type_defs> class Index : public AbstractIndex
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     static inline __attribute__( ( always_inline ) ) void
     countSizeLimitedInvariant( size_t uiD, pos_t vPos, size_t uiDistToTo, IntersectionType xInterType,
-                               const dataset_vec_t& vDataSets, 
-                               const sparse_coord_t& vSparseCoord,
-                               const prefix_sum_grid_t& vPrefixSumGrid,
-                               const overlay_grid_t& vOverlayGrid,
-                               const class_key_t xDatasetId,
-                                val_t& uiRet
-    )
+                               const dataset_vec_t& vDataSets, const sparse_coord_t& vSparseCoord,
+                               const prefix_sum_grid_t& vPrefixSumGrid, const overlay_grid_t& vOverlayGrid,
+                               const class_key_t xDatasetId, val_t& uiRet )
     {
         for( size_t uiI = 0; uiI < D; uiI++ )
             --vPos[ uiI ];
@@ -308,7 +303,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
         uiRet += uiCurr * uiFac;
     }
-    
+
 #pragma GCC diagnostic pop
 
     static inline __attribute__( ( always_inline ) ) bool
@@ -338,8 +333,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #if GET_PROG_PRINTS
                                 uiVerbosity
 #endif
-                            = 0
-    ) const
+                            = 0 ) const
     {
 #if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
@@ -348,10 +342,8 @@ template <typename type_defs> class Index : public AbstractIndex
 #pragma GCC diagnostic push
 // uiD unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-        forAllCombinationsTmpl<pos_t>( vFrom, vTo, countSizeLimitedInvariant, countSizeLimitedInvariantCond,
-                                        xInterType, vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid, xDatasetId,
-                                        uiRet
-        );
+        forAllCombinationsTmpl<pos_t>( vFrom, vTo, countSizeLimitedInvariant, countSizeLimitedInvariantCond, xInterType,
+                                       vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid, xDatasetId, uiRet );
 #pragma GCC diagnostic pop
         return uiRet;
     }
@@ -369,8 +361,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
     val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR,
-                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
-    ) const
+                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
     {
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
@@ -394,11 +385,11 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return std::vector<val_t> The number of points in dataset_id between from_pos and to_pos for each given region.
      */
     std::vector<val_t> countMultiple( class_key_t xDatasetId, std::vector<std::pair<ret_pos_t, ret_pos_t>> vRegions,
-                                      IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
-    ) const
+                                      IntersectionType xInterType = IntersectionType::enclosed,
+                                      size_t uiVerbosity = 0 ) const
     {
 #ifdef DO_PROFILE
-        ProfilerStart("gperftools.countMultiple.prof");
+        ProfilerStart( "gperftools.countMultiple.prof" );
 #endif
 
         std::vector<val_t> vRet( vRegions.size( ) );
@@ -406,8 +397,8 @@ template <typename type_defs> class Index : public AbstractIndex
         for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
             vRet[ uiI ] = count( xDatasetId, vRegions[ uiI ].first, vRegions[ uiI ].second, xInterType, uiVerbosity );
 #ifdef DO_PROFILE
-        ProfilerFlush();
-        ProfilerStop();
+        ProfilerFlush( );
+        ProfilerStop( );
 #endif
         return vRet;
     }

@@ -253,8 +253,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -704,8 +704,7 @@ template <typename type_defs> class Overlay
     }
 
     sps_t getAll( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
-                  pos_t vMyBottomLeft, progress_stream_t& xProg
-    ) const
+                  pos_t vMyBottomLeft, progress_stream_t& xProg ) const
     {
         sps_t uiRet{ };
 
