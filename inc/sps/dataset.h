@@ -532,26 +532,6 @@ template <typename type_defs> class Dataset
             } );
     }
 
-    static uint64_t multOverflow( uint64_t uiA, uint64_t uiB )
-    {
-        if( uiA != 0 && ( uiA * uiB ) / uiA != uiB )
-        {
-            std::cout << "overflow" << std::endl;
-            return std::numeric_limits<uint64_t>::max( );
-        }
-        return uiA * uiB;
-    }
-
-    static uint64_t addOverflow( uint64_t uiA, uint64_t uiB )
-    {
-        if( uiA > std::numeric_limits<uint64_t>::max( ) - uiB )
-        {
-            std::cout << "overflow" << std::endl;
-            return std::numeric_limits<uint64_t>::max( );
-        }
-        return uiA + uiB;
-    }
-
     /**
      * @brief Get the Number of different Coupons drawn after uiNumDraws draws and with uiNumCouponsTotal different
      * coupons in total
@@ -573,6 +553,9 @@ template <typename type_defs> class Dataset
      */
     static uint64_t drawNumCoupons( uint64_t uiNumCouponsTotal, uint64_t uiNumDraws )
     {
+        if( uiNumDraws == 0 )
+            return 0;
+
         for( uint64_t uiI = 1; uiI <= uiNumCouponsTotal; uiI++ )
         {
             // time (draws) required to draw the uiI'th different coupon
@@ -623,6 +606,7 @@ template <typename type_defs> class Dataset
         return s;
     }
 
+    // @todo run x times to get average
     static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>
     estimateDataStructureElementsHelper( size_t uiNumPoints, pos_t uiCoordinateSizes, pos_t uiNumOverlays,
                                          uint64_t uiNumOverlaysTotal, bool bCCP, bool bISP, size_t uiD, pos_t uiP )
@@ -636,10 +620,10 @@ template <typename type_defs> class Dataset
                 uiP[ uiD ] = uiX;
                 auto uiR = estimateDataStructureElementsHelper( uiNumPoints, uiCoordinateSizes, uiNumOverlays,
                                                                 uiNumOverlaysTotal, bCCP, bISP, uiD + 1, uiP );
-                std::get<0>( uiRet ) = addOverflow( std::get<0>( uiRet ), std::get<0>( uiR ) );
-                std::get<1>( uiRet ) = addOverflow( std::get<1>( uiRet ), std::get<1>( uiR ) );
-                std::get<2>( uiRet ) = addOverflow( std::get<2>( uiRet ), std::get<2>( uiR ) );
-                std::get<3>( uiRet ) = addOverflow( std::get<3>( uiRet ), std::get<3>( uiR ) );
+                std::get<0>( uiRet ) = std::get<0>( uiRet ) + std::get<0>( uiR );
+                std::get<1>( uiRet ) = std::get<1>( uiRet ) + std::get<1>( uiR );
+                std::get<2>( uiRet ) = std::get<2>( uiRet ) + std::get<2>( uiR );
+                std::get<3>( uiRet ) = std::get<3>( uiRet ) + std::get<3>( uiR );
             }
             return uiRet;
         }
@@ -653,34 +637,28 @@ template <typename type_defs> class Dataset
             uint64_t uiNumPointsInOverlay = xDist2( xGen );
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
-                if( uiP[ uiI ] > 0 )
-                {
-                    uint64_t uiNumOverlaysBefore = uiP[ uiI ];
-                    // for( size_t uiK = 0; uiK < D; uiK++ )
-                    //     uiNumOverlaysBefore = multOverflow( uiNumOverlaysBefore, uiP[ uiK ] + ( uiK == uiI ? 0 : 1 )
-                    //     );
-                    std::binomial_distribution<int> xDist( uiNumPoints,
-                                                           uiNumOverlaysBefore / (double)uiNumOverlaysTotal );
-                    uint64_t uiNumRelevantPoints = xDist( xGen );
-                    uint64_t uiNumPSOverlayCurr = 1;
-                    for( size_t uiJ = 0; uiJ < D; uiJ++ )
-                        if( uiJ != uiI )
-                        {
-                            coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiJ ] - 1 ) / uiNumOverlays[ uiJ ];
-                            if( bCCP )
-                                uiNumPSOverlayCurr = multOverflow(
-                                    uiNumPSOverlayCurr, drawNumCoupons( uiOverlaySize, uiNumRelevantPoints ) );
-                            else
-                                uiNumPSOverlayCurr = multOverflow( uiNumPSOverlayCurr, uiOverlaySize );
+                uint64_t uiNumOverlaysBefore = uiP[ uiI ];
+                // for( size_t uiK = 0; uiK < D; uiK++ )
+                //     uiNumOverlaysBefore = multOverflow( uiNumOverlaysBefore, uiP[ uiK ] + ( uiK == uiI ? 0 : 1 )
+                //     );
+                std::binomial_distribution<int> xDist( uiNumPoints, uiNumOverlaysBefore / (double)uiNumOverlaysTotal );
+                uint64_t uiNumRelevantPoints = xDist( xGen );
+                uint64_t uiNumPSOverlayCurr = 1;
+                for( size_t uiJ = 0; uiJ < D; uiJ++ )
+                    if( uiJ != uiI )
+                    {
+                        coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiJ ] - 1 ) / uiNumOverlays[ uiJ ];
+                        if( bCCP )
+                            uiNumPSOverlayCurr *= 1 + drawNumCoupons( uiOverlaySize, uiNumRelevantPoints );
+                        else
+                            uiNumPSOverlayCurr *= 1 + uiOverlaySize;
 
-                            if( bISP )
-                                uiNumLookUpTablesOverlay = addOverflow(
-                                    uiNumLookUpTablesOverlay, drawIntervalSize( uiOverlaySize, uiNumRelevantPoints ) );
-                            else
-                                uiNumLookUpTablesOverlay = addOverflow( uiNumLookUpTablesOverlay, uiOverlaySize );
-                        }
-                    uiNumPSOverlay = addOverflow( uiNumPSOverlay, uiNumPSOverlayCurr );
-                }
+                        if( bISP )
+                            uiNumLookUpTablesOverlay += 1 + drawIntervalSize( uiOverlaySize, uiNumRelevantPoints );
+                        else
+                            uiNumLookUpTablesOverlay += 1 + uiOverlaySize;
+                    }
+                uiNumPSOverlay += uiNumPSOverlayCurr;
                 coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlays[ uiI ];
 
                 // prefix sums in overlay
@@ -691,17 +669,15 @@ template <typename type_defs> class Dataset
                 // coupons in total and we draw uiNumAvgPointsInOverlay many times. returned we get how many different
                 // coupons we have drawn, which correspons to the number of rows that actually have at least one point.
                 if( bCCP )
-                    uiNumPSInternal =
-                        multOverflow( uiNumPSInternal, drawNumCoupons( uiOverlaySize, uiNumPointsInOverlay ) );
+                    uiNumPSInternal *= 1 + drawNumCoupons( uiOverlaySize, uiNumPointsInOverlay );
                 else
                     // intentionally use bad way of estimation
-                    uiNumPSInternal = multOverflow( uiNumPSInternal, uiNumPointsInOverlay );
+                    uiNumPSInternal *= 1 + uiNumPointsInOverlay;
 
                 if( bISP )
-                    uiNumLookUpTablesInternal = addOverflow( uiNumLookUpTablesInternal,
-                                                             drawIntervalSize( uiOverlaySize, uiNumPointsInOverlay ) );
+                    uiNumLookUpTablesInternal += 1 + drawIntervalSize( uiOverlaySize, uiNumPointsInOverlay );
                 else
-                    uiNumLookUpTablesInternal = addOverflow( uiNumLookUpTablesInternal, uiOverlaySize );
+                    uiNumLookUpTablesInternal += 1 + uiOverlaySize;
             }
             return std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>(
                 uiNumPSOverlay, uiNumPSInternal, uiNumLookUpTablesOverlay, uiNumLookUpTablesInternal );
@@ -714,7 +690,7 @@ template <typename type_defs> class Dataset
     {
         uint64_t uiNumOverlaysTotal = 1;
         for( size_t uiI = 0; uiI < D; uiI++ )
-            uiNumOverlaysTotal = multOverflow( uiNumOverlaysTotal, uiNumOverlays[ uiI ] );
+            uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
         return std::tuple_cat( estimateDataStructureElementsHelper( uiNumPoints, uiCoordinateSizes, uiNumOverlays,
                                                                     uiNumOverlaysTotal, bCCP, bISP, 0, pos_t{ } ),
                                std::make_tuple( uiNumOverlaysTotal ) );
@@ -754,15 +730,14 @@ template <typename type_defs> class Dataset
                                                bool bCCP, bool bISP )
     {
         auto uiR = estimateDataStructureElements( uiNumOverlays, uiCoordinateSizes, uiNumPoints, bCCP, bISP );
-        uint64_t uiNumPSTotal = multOverflow( addOverflow( std::get<0>( uiR ), std::get<1>( uiR ) ), sizeof( sps_t ) );
+        uint64_t uiNumPSTotal = ( std::get<0>( uiR ) + std::get<1>( uiR ) ) * sizeof( sps_t );
 
-        uint64_t uiNumLookupTotal =
-            multOverflow( addOverflow( std::get<2>( uiR ), std::get<3>( uiR ) ), sizeof( coordinate_t ) );
+        uint64_t uiNumLookupTotal = ( std::get<2>( uiR ) + std::get<3>( uiR ) ) * sizeof( coordinate_t );
 
-        uint64_t uiSizeOverlaysOverhead = multOverflow( std::get<4>( uiR ), sizeof( overlay_t ) );
+        uint64_t uiSizeOverlaysOverhead = std::get<4>( uiR ) * sizeof( overlay_t );
 
         // full
-        return addOverflow( addOverflow( uiNumPSTotal, uiNumLookupTotal ), uiSizeOverlaysOverhead );
+        return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead;
     }
 
     static uint64_t estimateDataStructureSize( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac,
