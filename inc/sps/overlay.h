@@ -260,6 +260,26 @@ template <typename type_defs> class Overlay
         iterateHelper<0, N>( rEnds, fDo, rCurr );
     }
 
+    coordinate_t getNumInternalSparseCoords( ) const
+    {
+        coordinate_t uiNumInternalSparseCoords = 0;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            uiNumInternalSparseCoords +=
+                1 + vSparseCoordsInternal[ uiI ].uiEndCord - vSparseCoordsInternal[ uiI ].uiStartCord;
+
+        return uiNumInternalSparseCoords;
+    }
+
+    coordinate_t getNumInternalPrefixSums( const sparse_coord_t& rSparseCoords ) const
+    {
+        pos_t vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
+        coordinate_t uiNumInternalPrefixSums = 1;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            uiNumInternalPrefixSums *= vInternalAxisSizes[ uiI ];
+
+        return uiNumInternalPrefixSums;
+    }
+
     coordinate_t generateInternalSparseCoords( sparse_coord_t& rSparseCoords, points_t& vPoints,
                                                progress_stream_t&
 #ifndef NDEBUG
@@ -293,14 +313,35 @@ template <typename type_defs> class Overlay
                 // end of scope xFullLock
             }
 
-            pos_t vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
-            coordinate_t uiNumInternalPrefixSums = 1;
-            for( size_t uiI = 0; uiI < D; uiI++ )
-                uiNumInternalPrefixSums *= vInternalAxisSizes[ uiI ];
 
-            return uiNumInternalPrefixSums;
+            return getNumInternalPrefixSums( rSparseCoords );
         }
         return 0;
+    }
+    coordinate_t getNumOverlaySparseCoords( ) const
+    {
+        coordinate_t uiNumOverlaySparseCoords = 0;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
+                uiNumOverlaySparseCoords +=
+                    1 + vSparseCoordsOverlay[ uiI ][ uiJ ].uiEndCord - vSparseCoordsOverlay[ uiI ][ uiJ ].uiStartCord;
+
+        return uiNumOverlaySparseCoords;
+    }
+
+    coordinate_t getNumOverlayPrefixSums( const sparse_coord_t& rSparseCoords ) const
+    {
+        coordinate_t uiTotalOverlayPrefixSumSize = 0;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
+            coordinate_t uiCurr = 1;
+            for( size_t uiI = 0; uiI < D - 1; uiI++ )
+                uiCurr *= vAxisSizes[ uiI ];
+            uiTotalOverlayPrefixSumSize += uiCurr;
+        }
+
+        return uiTotalOverlayPrefixSumSize;
     }
 
     coordinate_t generateOverlaySparseCoords( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
@@ -312,7 +353,6 @@ template <typename type_defs> class Overlay
 #endif
     )
     {
-        coordinate_t uiTotalOverlayPrefixSumSize = 0;
 #ifndef NDEBUG
         // construct sparse coordinates for each dimension
         xProg << Verbosity( 1 ) << "constructing sparse coordinates for overlay bottom left= " << vMyBottomLeft
@@ -411,15 +451,8 @@ template <typename type_defs> class Overlay
                     vSparseCoordsOverlay[ uiI ][ uiJ ].stream( std::cout << "result: ", rSparseCoords ) << std::endl;
 #endif
             }
-
-            // compute size of this overlay
-            red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
-            coordinate_t uiCurr = 1;
-            for( size_t uiI = 0; uiI < D - 1; uiI++ )
-                uiCurr *= vAxisSizes[ uiI ];
-            uiTotalOverlayPrefixSumSize += uiCurr;
         }
-        return uiTotalOverlayPrefixSumSize;
+        return getNumOverlayPrefixSums( rSparseCoords );
     }
 
     void generateInternalPrefixSums( const overlay_grid_t&, sparse_coord_t& rSparseCoords,

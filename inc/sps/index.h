@@ -417,6 +417,44 @@ template <typename type_defs> class Index : public AbstractIndex
         return uiMax;
     }
 
+    coordinate_t getNumInternalPrefixSums( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumInternalPrefixSums( vOverlayGrid, vSparseCoord );
+    }
+
+    coordinate_t getNumOverlayPrefixSums( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumOverlayPrefixSums( vOverlayGrid, vSparseCoord );
+    }
+
+    coordinate_t getNumInternalSparseCoords( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumInternalSparseCoords( vOverlayGrid );
+    }
+
+    coordinate_t getNumOverlaySparseCoords( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumOverlaySparseCoords( vOverlayGrid );
+    }
+
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateDataStructureElements( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac, bool bCCP,
+                                   bool bISP )
+    {
+        return dataset_t::estimateDataStructureElements( uiCoordinateSizes, uiNumPoints, fFac, bCCP, bISP );
+    }
+
+    static uint64_t estimateDataStructureSize( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac, 
+                                        bool bCCP, bool bISP )
+    {
+        return dataset_t::estimateDataStructureSize( uiCoordinateSizes, uiNumPoints, fFac, bCCP, bISP );
+    }
+
+    static uint64_t pickNumOverlays( pos_t uiCoordinateSizes, size_t uiNumPoints )
+    {
+        return dataset_t::pickNumOverlays( uiCoordinateSizes, uiNumPoints );
+    }
+
     /**
      * @brief Return a string describing the index.
      *
@@ -731,6 +769,13 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )
         .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
+        .def_static( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements )
+        .def_static( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize )
+        .def_static( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays )
+        .def( "get_num_internal_prefix_sums", &sps::Index<type_defs>::getNumInternalPrefixSums )
+        .def( "get_num_overlay_prefix_sums", &sps::Index<type_defs>::getNumOverlayPrefixSums )
+        .def( "get_num_internal_sparse_coords", &sps::Index<type_defs>::getNumInternalSparseCoords )
+        .def( "get_num_overlay_sparse_coords", &sps::Index<type_defs>::getNumOverlaySparseCoords )
 
         ;
     return "    " + sName + "\n";
