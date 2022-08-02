@@ -253,8 +253,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -264,8 +264,9 @@ template <typename type_defs> class Overlay
     {
         coordinate_t uiNumInternalSparseCoords = 0;
         for( size_t uiI = 0; uiI < D; uiI++ )
-            uiNumInternalSparseCoords +=
-                1 + vSparseCoordsInternal[ uiI ].uiEndCord - vSparseCoordsInternal[ uiI ].uiStartCord;
+            if( vSparseCoordsInternal[ uiI ].uiStartIndex != std::numeric_limits<coordinate_t>::max( ) )
+                uiNumInternalSparseCoords +=
+                    1 + vSparseCoordsInternal[ uiI ].uiEndCord - vSparseCoordsInternal[ uiI ].uiStartCord;
 
         return uiNumInternalSparseCoords;
     }
@@ -318,13 +319,15 @@ template <typename type_defs> class Overlay
         }
         return 0;
     }
+
     coordinate_t getNumOverlaySparseCoords( ) const
     {
         coordinate_t uiNumOverlaySparseCoords = 0;
         for( size_t uiI = 0; uiI < D; uiI++ )
             for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
-                uiNumOverlaySparseCoords +=
-                    1 + vSparseCoordsOverlay[ uiI ][ uiJ ].uiEndCord - vSparseCoordsOverlay[ uiI ][ uiJ ].uiStartCord;
+                if( vSparseCoordsOverlay[ uiI ][ uiJ ].uiStartIndex != std::numeric_limits<coordinate_t>::max( ) )
+                    uiNumOverlaySparseCoords += 1 + vSparseCoordsOverlay[ uiI ][ uiJ ].uiEndCord -
+                                                vSparseCoordsOverlay[ uiI ][ uiJ ].uiStartCord;
 
         return uiNumOverlaySparseCoords;
     }

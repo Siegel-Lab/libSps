@@ -438,21 +438,24 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
     static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
-    estimateDataStructureElements( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac, bool bCCP,
-                                   bool bISP )
+    estimateDataStructureElements( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
     {
-        return dataset_t::estimateDataStructureElements( uiCoordinateSizes, uiNumPoints, fFac, bCCP, bISP );
+        return dataset_t::estimateDataStructureElements( uiCoordinateSizes, uiNumPoints, fFac );
     }
 
-    static uint64_t estimateDataStructureSize( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac, 
-                                        bool bCCP, bool bISP )
+    static uint64_t estimateDataStructureSize( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
     {
-        return dataset_t::estimateDataStructureSize( uiCoordinateSizes, uiNumPoints, fFac, bCCP, bISP );
+        return dataset_t::estimateDataStructureSize( uiCoordinateSizes, uiNumPoints, fFac );
     }
 
     static uint64_t pickNumOverlays( pos_t uiCoordinateSizes, size_t uiNumPoints )
     {
         return dataset_t::pickNumOverlays( uiCoordinateSizes, uiNumPoints );
+    }
+    
+    static double toFactor( pos_t uiCoordinateSizes, uint64_t uiNumOverlays)
+    {
+        return dataset_t::toFactor( uiCoordinateSizes, uiNumOverlays );
     }
 
     /**
@@ -772,6 +775,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def_static( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements )
         .def_static( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize )
         .def_static( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays )
+        .def_static( "to_factor", &sps::Index<type_defs>::toFactor )
         .def( "get_num_internal_prefix_sums", &sps::Index<type_defs>::getNumInternalPrefixSums )
         .def( "get_num_overlay_prefix_sums", &sps::Index<type_defs>::getNumOverlayPrefixSums )
         .def( "get_num_internal_sparse_coords", &sps::Index<type_defs>::getNumInternalSparseCoords )
