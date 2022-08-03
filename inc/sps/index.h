@@ -478,6 +478,17 @@ template <typename type_defs> class Index : public AbstractIndex
         return dataset_t::pickNumOverlays( uiCoordinateSizes, uiNumPoints );
     }
 
+    uint64_t pickNumOverlaysFromPoints( coordinate_t uiFrom = 0,
+                                        coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    {
+        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
+            uiTo = numPoints( );
+        typename points_t::Entry xPoints;
+        xPoints.uiStartIndex = uiFrom;
+        xPoints.uiEndIndex = uiTo;
+        return dataset_t::pickNumOverlays( vPoints, xPoints );
+    }
+
     static double toFactor( pos_t uiCoordinateSizes, uint64_t uiNumOverlays )
     {
         return dataset_t::toFactor( uiCoordinateSizes, uiNumOverlays );

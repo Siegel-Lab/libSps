@@ -863,32 +863,30 @@ template <typename type_defs> class Dataset
         std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
 
         double fStartPos = 0;
-        double fEndPos = 100.0;
-        double fMinDiff = 0.1;
+        double fEndPos = 10.0;
+        while( true )
+        {
+            uint64_t uiCenter =
+                    estimateDataStructureSize( toNumbers( vNumRatios, ( fStartPos + fEndPos ) / 2 ), uiCoordinateSizes, uiNumPoints );
+            uint64_t uiEnd =
+                    estimateDataStructureSize( toNumbers( vNumRatios, fEndPos ), uiCoordinateSizes, uiNumPoints );
+            if(uiEnd >= uiCenter + 1000)
+                break;
+            fEndPos *= 2;
+        }
+        const double fMinDiff = 0.1;
         while( fEndPos - fStartPos > fMinDiff )
         {
             double fOneThird = (fEndPos - fStartPos) * 1.0/3.0 + fStartPos;
             double fTwoThirds = (fEndPos - fStartPos) * 2.0/3.0 + fStartPos;
-            uint64_t uiStart =
-                    estimateDataStructureSize( toNumbers( vNumRatios, fStartPos ), uiCoordinateSizes, uiNumPoints );
             uint64_t uiOneThird =
                     estimateDataStructureSize( toNumbers( vNumRatios, fOneThird ), uiCoordinateSizes, uiNumPoints );
             uint64_t uiTwoThirds =
                     estimateDataStructureSize( toNumbers( vNumRatios, fTwoThirds ), uiCoordinateSizes, uiNumPoints );
-            uint64_t uiEnd =
-                    estimateDataStructureSize( toNumbers( vNumRatios, fEndPos ), uiCoordinateSizes, uiNumPoints );
-            if(uiTwoThirds <= uiOneThird && uiTwoThirds <= uiStart && uiTwoThirds <= uiEnd)
+            if(uiTwoThirds <= uiOneThird)
                 fStartPos = fOneThird;
-            else if(uiOneThird < uiTwoThirds && uiOneThird <= uiStart && uiOneThird <= uiEnd)
+            else if(uiOneThird < uiTwoThirds)
                 fEndPos = fTwoThirds;
-            else if(uiStart < uiEnd && uiStart <= uiOneThird && uiStart <= uiTwoThirds && fStartPos > 0)
-                fStartPos = std::max(0.0, fStartPos - (fEndPos - fStartPos));
-            else if(uiStart < uiEnd && uiStart <= uiOneThird && uiStart <= uiTwoThirds && fStartPos == 0)
-                fEndPos = std::max(0.0, fEndPos / 2);
-            else if(uiEnd < uiStart && uiEnd <= uiOneThird && uiEnd <= uiTwoThirds)
-                fEndPos = fEndPos + (fEndPos - fStartPos);
-            else
-                break;
         }
         return ( fStartPos + fEndPos ) / 2;
     }
@@ -902,6 +900,12 @@ template <typename type_defs> class Dataset
             uiRet *= vNums[ uiI ];
 
         return uiRet;
+    }
+    
+    static uint64_t estimateDataStructureSize( points_t& vPoints, typename points_t::Entry xPoints, double fFac )
+    {
+        pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
+        return estimateDataStructureSize( uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex, fFac );
     }
 
     static pos_t pickOverlayNumbers( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
