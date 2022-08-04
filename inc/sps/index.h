@@ -437,13 +437,18 @@ template <typename type_defs> class Index : public AbstractIndex
         return vDataSets[ xDatasetId ].getNumOverlaySparseCoords( vOverlayGrid );
     }
 
-    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
-    estimateDataStructureElements( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
+    coordinate_t getNumGlobalSparseCoords( class_key_t xDatasetId ) const
     {
-        return dataset_t::estimateDataStructureElementsSampling( uiCoordinateSizes, uiNumPoints, fFac );
+        return vDataSets[ xDatasetId ].getNumGlobalSparseCoords( );
     }
 
-    std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateDataStructureElements( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
+    {
+        return dataset_t::estimateDataStructureElements( uiCoordinateSizes, uiNumPoints, fFac );
+    }
+
+    std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
     estimateDataStructureElementsFromPoints( double fFac, coordinate_t uiFrom = 0,
                                              coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
@@ -453,7 +458,7 @@ template <typename type_defs> class Index : public AbstractIndex
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::estimateDataStructureElementsSampling( vPoints, xPoints, fFac );
+        return dataset_t::estimateDataStructureElements( vPoints, xPoints, fFac );
     }
 
     static uint64_t estimateDataStructureSize( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
@@ -818,6 +823,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "get_num_overlay_prefix_sums", &sps::Index<type_defs>::getNumOverlayPrefixSums )
         .def( "get_num_internal_sparse_coords", &sps::Index<type_defs>::getNumInternalSparseCoords )
         .def( "get_num_overlay_sparse_coords", &sps::Index<type_defs>::getNumOverlaySparseCoords )
+        .def( "get_num_global_sparse_coords", &sps::Index<type_defs>::getNumGlobalSparseCoords )
 
         ;
     return "    " + sName + "\n";
