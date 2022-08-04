@@ -173,18 +173,21 @@ template <typename type_defs> class Dataset
 
     typename sparse_coord_t::Entry
     makeSparseCoords( sparse_coord_t& rSparseCoords, points_t& vPoints, typename points_t::Entry xPoints, size_t uiDim,
-                      size_t uiNumBlocks, progress_stream_t xProg, 
+                      size_t uiNumBlocks, progress_stream_t xProg,
                       coordinate_t uiFixedStart = std::numeric_limits<coordinate_t>::max( ),
                       coordinate_t uiFixedEnd = std::numeric_limits<coordinate_t>::max( ) ) const
     {
         size_t uiNumCoords = 0;
         coordinate_t uiLast = std::numeric_limits<coordinate_t>::max( );
+        coordinate_t uiFirst = std::numeric_limits<coordinate_t>::max( );
         sort_points( vPoints.vData.begin( ) + xPoints.uiStartIndex, vPoints.vData.begin( ) + xPoints.uiEndIndex,
                      PointsComperator( uiDim ) );
         vPoints.iterate(
             [ & ]( const point_t& xPoint ) {
                 // @todo consider all coordinates of point
                 coordinate_t uiCurr = xPoint.vPos[ uiDim ];
+                if( uiFirst == std::numeric_limits<coordinate_t>::max( ) )
+                    uiFirst = uiCurr;
                 if( uiCurr != uiLast )
                 {
                     uiLast = uiCurr;
@@ -192,15 +195,16 @@ template <typename type_defs> class Dataset
                 }
             },
             xPoints );
-        size_t uiBlockSize = 1 + (uiNumCoords-1) / uiNumBlocks;
-        xProg << "generating " << uiNumBlocks << " overlays in dimension " << uiDim << " for "
-              << uiNumCoords << " different coordinates.\n";
+        size_t uiBlockSize = 1 + ( uiNumCoords - 1 ) / uiNumBlocks;
+        xProg << "generating " << uiNumBlocks << " overlays in dimension " << uiDim << " for " << uiNumCoords
+              << " different coordinates.\n";
         auto xStart = DimIterator( vPoints.cbegin( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
         auto xEnd = DimIterator( vPoints.cend( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
-        if(uiFixedEnd == std::numeric_limits<coordinate_t>::max( ))
-            uiFixedEnd = uiLast;
         if( uiFixedStart == std::numeric_limits<coordinate_t>::max( ) )
-            return rSparseCoords.template add<true>( xStart, xEnd );
+        {
+            uiFixedEnd = uiLast;
+            uiFixedStart = uiFirst;
+        }
         return rSparseCoords.template addStartEnd<true>( xStart, xEnd, uiFixedStart, uiFixedEnd );
     }
 
@@ -716,9 +720,9 @@ template <typename type_defs> class Dataset
         if constexpr( !UNIFORM_OVERLAY_GRID )
         {
             for( size_t uiI = 0; uiI < D; uiI++ )
-                uiNumBlockLookup += uiCoordinateSizes[ uiI ] - 1;
+                uiNumBlockLookup += uiCoordinateSizes[ uiI ];
             if constexpr( DEPENDANT_DIMENSION )
-                uiNumBlockLookup += (uiCoordinateSizes[ 1 ] - 1) * ( uiNumOverlays[ 0 ] - 1 );
+                uiNumBlockLookup += ( uiCoordinateSizes[ 1 ] ) * ( uiNumOverlays[ 0 ] - 1 );
         }
         return std::make_tuple( ( uiNumOverlaysTotal * std::get<0>( tTotal ) ) / uiNumSamples,
                                 ( uiNumOverlaysTotal * std::get<1>( tTotal ) ) / uiNumSamples,
@@ -950,9 +954,9 @@ template <typename type_defs> class Dataset
                                                           vSparseCoords[ 0 ] ) == uiBin )
                                 ++xCurrPoints.uiEndIndex;
 
-                            auto xCurr = makeSparseCoords( rSparseCoords, vPoints, xCurrPoints, 1, 
-                                                           uiNumOverlaysPerDim[uiI], xProg,
-                                                           uiAbsoluteStart, uiAbsoluteEnd );
+                            auto xCurr =
+                                makeSparseCoords( rSparseCoords, vPoints, xCurrPoints, 1, uiNumOverlaysPerDim[ uiI ],
+                                                  xProg, uiAbsoluteStart, uiAbsoluteEnd );
                             assert( rSparseCoords.axisSize( xCurr ) > 0 );
                             if( vSparseCoords[ uiI ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) ||
                                 rSparseCoords.axisSize( vSparseCoords[ uiI ] ) < rSparseCoords.axisSize( xCurr ) )
@@ -965,8 +969,8 @@ template <typename type_defs> class Dataset
                         continue;
                     }
                 }
-                vSparseCoords[ uiI ] = makeSparseCoords( rSparseCoords, vPoints, xPoints, uiI, 
-                                                         uiNumOverlaysPerDim[uiI], xProg );
+                vSparseCoords[ uiI ] =
+                    makeSparseCoords( rSparseCoords, vPoints, xPoints, uiI, uiNumOverlaysPerDim[ uiI ], xProg );
             }
             xProg << Verbosity( 2 );
             if( xProg.active( ) )
