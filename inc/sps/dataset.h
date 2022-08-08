@@ -596,7 +596,7 @@ template <typename type_defs> class Dataset
         double x = uiX;
         double s = uiS;
         double n = uiN;
-        return ( ( 1 + s - x ) * std::pow( x / s, n ) - ( s - x ) * std::pow( (x - 1) / s, n ) );
+        return ( ( 1 + s - x ) * std::pow( x / s, n ) - ( s - x ) * std::pow( ( x - 1 ) / s, n ) );
     }
 
     /**
@@ -656,25 +656,25 @@ template <typename type_defs> class Dataset
     {
         return searchInCPF( 1, s, intervalSizeProblemZero, s, n );
     }
-    
+
 
     static uint64_t sampleNumPoints( const points_t& vPoints, typename points_t::Entry xPoints, pos_t uiFrom,
                                      pos_t uiTo )
     {
         uint64_t uiNum = 0;
         const uint64_t uiNumSamples = 1000;
-        std::uniform_int_distribution<uint64_t> xDist( 0, xPoints.size( ) );
+        std::uniform_int_distribution<size_t> xDist( 0, xPoints.size( ) - 1 );
         for( size_t uiI = 0; uiI < uiNumSamples; uiI++ )
         {
             bool bInside = true;
-            uint64_t uiX = xDist( xGen );
+            size_t uiX = xDist( xGen );
             for( size_t uiD = 0; uiD < D; uiD++ )
                 bInside = bInside && vPoints.vData[ uiX ].vPos[ uiD ] >= uiFrom[ uiD ] &&
                           vPoints.vData[ uiX ].vPos[ uiD ] < uiTo[ uiD ];
             uiNum += bInside;
         }
 
-        return ( uiNum * xPoints.size( ) ) / uiNumSamples;
+        return std::round( ( uiNum * xPoints.size( ) ) / (double)uiNumSamples );
     }
 
 
@@ -967,7 +967,6 @@ template <typename type_defs> class Dataset
 
     static std::array<pos_t, 3> generateCoordSizes( points_t& vPoints, typename points_t::Entry xPoints )
     {
-        pos_t uiCoordinateSizes{ };
         pos_t uiMaxCoords;
         pos_t uiMinCoords;
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -986,6 +985,7 @@ template <typename type_defs> class Dataset
             },
             xPoints );
 
+        pos_t uiCoordinateSizes;
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiCoordinateSizes[ uiI ] = uiMaxCoords[ uiI ] - uiMinCoords[ uiI ];
         return std::array<pos_t, 3>{ uiCoordinateSizes, uiMaxCoords, uiMinCoords };
