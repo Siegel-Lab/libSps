@@ -674,6 +674,9 @@ template <typename type_defs> class Dataset
             uiNum += bInside;
         }
 
+        if( IS_ORTHOTOPE ) // assume all hyperrectangles have an area of zero
+            return std::round( ( uiNum * xPoints.size( ) ) / (double)( uiNumSamples * ( 1 << ORTHOTOPE_DIMS ) ) );
+
         return std::round( ( uiNum * xPoints.size( ) ) / (double)uiNumSamples );
     }
 
@@ -726,9 +729,13 @@ template <typename type_defs> class Dataset
 
 
                         coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiJ ] - 1 ) / uiNumOverlays[ uiJ ];
-                        uiNumPSOverlayCurr *= 1 + drawNumCoupons( uiOverlaySize, uiNumRelevantPoints );
+                        // uiNumPSOverlayCurr *= 1 + drawNumCoupons( uiOverlaySize, uiNumRelevantPoints );
+                        uiNumPSOverlayCurr *=
+                            ( uiP[ uiJ ] > 0 ? 1 : 0 ) + drawNumCoupons( uiOverlaySize, uiNumRelevantPoints );
 
-                        uiNumLookUpTablesOverlay += 1 + drawIntervalSizeZero( uiOverlaySize, uiNumRelevantPoints );
+                        // uiNumLookUpTablesOverlay += drawIntervalSizeZero( uiOverlaySize + 1, uiNumRelevantPoints );
+                        uiNumLookUpTablesOverlay +=
+                            ( uiP[ uiJ ] > 0 ? 1 : 0 ) + drawIntervalSizeZero( uiOverlaySize, uiNumRelevantPoints );
                     }
                 uiNumPSOverlay += uiNumPSOverlayCurr;
             }
@@ -960,7 +967,7 @@ template <typename type_defs> class Dataset
                                      size_t uiNumPoints, double fFac )
     {
         std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
-        if( fFac > 0 )
+        if( fFac >= 0 )
             return toNumbers( vNumRatios, fFac );
         return toNumbers( vNumRatios, pickOverlayFactor( vPoints, xPoints, uiCoordinateSizes, uiNumPoints ) );
     }

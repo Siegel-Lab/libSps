@@ -214,7 +214,7 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     class_key_t generate( coordinate_t uiFrom = 0,
                           coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
-                          double fFac = 0,
+                          double fFac = -1,
                           size_t uiVerbosity = 1 )
     {
 #ifdef DO_PROFILE
