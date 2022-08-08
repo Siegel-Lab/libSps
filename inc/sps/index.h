@@ -442,14 +442,8 @@ template <typename type_defs> class Index : public AbstractIndex
         return vDataSets[ xDatasetId ].getNumGlobalSparseCoords( );
     }
 
-    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
-    estimateDataStructureElements( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
-    {
-        return dataset_t::estimateDataStructureElements( uiCoordinateSizes, uiNumPoints, fFac );
-    }
-
     std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
-    estimateDataStructureElementsFromPoints( double fFac, coordinate_t uiFrom = 0,
+    estimateDataStructureElements( double fFac, coordinate_t uiFrom = 0,
                                              coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
 
@@ -461,12 +455,7 @@ template <typename type_defs> class Index : public AbstractIndex
         return dataset_t::estimateDataStructureElements( vPoints, xPoints, fFac );
     }
 
-    static uint64_t estimateDataStructureSize( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
-    {
-        return dataset_t::estimateDataStructureSize( uiCoordinateSizes, uiNumPoints, fFac );
-    }
-
-    uint64_t estimateDataStructureSizeFromPoints( double fFac, coordinate_t uiFrom = 0,
+    uint64_t estimateDataStructureSize( double fFac, coordinate_t uiFrom = 0,
                                                   coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
 
@@ -478,12 +467,7 @@ template <typename type_defs> class Index : public AbstractIndex
         return dataset_t::estimateDataStructureSize( vPoints, xPoints, fFac );
     }
 
-    static uint64_t pickNumOverlays( pos_t uiCoordinateSizes, size_t uiNumPoints )
-    {
-        return dataset_t::pickNumOverlays( uiCoordinateSizes, uiNumPoints );
-    }
-
-    uint64_t pickNumOverlaysFromPoints( coordinate_t uiFrom = 0,
+    uint64_t pickNumOverlays( coordinate_t uiFrom = 0,
                                         coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
@@ -494,9 +478,15 @@ template <typename type_defs> class Index : public AbstractIndex
         return dataset_t::pickNumOverlays( vPoints, xPoints );
     }
 
-    static double toFactor( pos_t uiCoordinateSizes, uint64_t uiNumOverlays )
+    double toFactor( uint64_t uiNumOverlays, coordinate_t uiFrom = 0,
+                                      coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
-        return dataset_t::toFactor( uiCoordinateSizes, uiNumOverlays );
+        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
+            uiTo = numPoints( );
+        typename points_t::Entry xPoints;
+        xPoints.uiStartIndex = uiFrom;
+        xPoints.uiEndIndex = uiTo;
+        return dataset_t::toFactor( vPoints, xPoints, uiNumOverlays );
     }
 
     /**
@@ -813,12 +803,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )
         .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
-        .def_static( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, "" )
-        .def( "estimate_num_elements_from_points", &sps::Index<type_defs>::estimateDataStructureElementsFromPoints, "" )
-        .def_static( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, "" )
-        .def( "estimate_size_from_points", &sps::Index<type_defs>::estimateDataStructureSizeFromPoints, "" )
-        .def_static( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays )
-        .def_static( "to_factor", &sps::Index<type_defs>::toFactor )
+        .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, "" )
+        .def( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, "" )
+        .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays )
+        .def( "to_factor", &sps::Index<type_defs>::toFactor )
         .def( "get_num_internal_prefix_sums", &sps::Index<type_defs>::getNumInternalPrefixSums )
         .def( "get_num_overlay_prefix_sums", &sps::Index<type_defs>::getNumOverlayPrefixSums )
         .def( "get_num_internal_sparse_coords", &sps::Index<type_defs>::getNumInternalSparseCoords )

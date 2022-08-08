@@ -578,77 +578,130 @@ template <typename type_defs> class Dataset
     }
 
     /**
-     * @brief probability that n points randomly distributed in an interval of size s span an interval of size x
+     * @brief probability that n points randomly distributed in an interval of size s span an interval of size x or less
      *
      * @details
      * n points are distributed randomly and discretely in an interval of size s.
-     * Returned is the probability that these points span over an interval of size x,
-     * i.e. that the position of the highest point minus the position of the lowest point is exactly x.
+     * Returned is the probability that these points span over an interval of size <= x,
+     * i.e. that the position of the highest point minus the position of the lowest point is smaller or equal to x.
      * @note this requires s >= x > 0 (both for s and x) and n > 0.
      *
-     * @param s size of the interval points are distributed in
-     * @param x size of the interval spanned by the n points
+     * @param x maximal size of the interval spanned by the n points
+     * @param s size of the interval that points are distributed in
      * @param n number of points
      * @return double probability for this situation to happen
      */
-    static double intervalSizeProblem( double s, double x, double n )
+    static double intervalSizeProblem( uint64_t uiX, uint64_t uiS, uint64_t uiN )
     {
-        return ( ( 1 + s - x ) *
-                 ( std::pow( x, n ) - 2 * std::pow( x - 1, n ) + std::pow( std::max( 0.0, x - 2 ), n ) ) ) /
-               std::pow( s, n );
+        double x = uiX;
+        double s = uiS;
+        double n = uiN;
+        return ( ( 1 + s - x ) * std::pow( x / s, n ) - ( s - x ) * std::pow( (x - 1) / s, n ) );
+    }
+
+    /**
+     * @brief probability that n points randomly distributed in an interval of size s span an interval [1,k] for k <= x
+     *
+     * @details
+     * n points are distributed randomly and discretely in an interval of size s.
+     * Returned is the probability that these points span over an interval of size <= x that starts at zero,
+     * i.e. that the position of the highest point is smaller or equal to x.
+     * @note this requires s >= x > 0 (both for s and x) and n > 0.
+     *
+     * @param x maximal position of the highest point
+     * @param s size of the interval that points are distributed in
+     * @param n number of points
+     * @return double probability for this situation to happen
+     */
+    static double intervalSizeProblemZero( uint64_t uiX, uint64_t uiS, uint64_t uiN )
+    {
+        double x = uiX;
+        double s = uiS;
+        double n = uiN;
+        return std::pow( x / s, n );
+    }
+
+    template <typename F, typename... Args>
+    static uint64_t searchInCPF( uint64_t uiStart, uint64_t uiEnd, F&& fFunc, Args... args )
+    {
+        std::uniform_real_distribution<double> xDis( 0.0, 1.0 );
+        double p = xDis( xGen );
+        while( uiStart < uiEnd )
+        {
+            uint64_t uiCenter = ( uiStart + uiEnd ) / 2;
+            if( p >= fFunc( uiCenter, args... ) )
+            {
+                if( uiStart == uiCenter )
+                    return uiEnd;
+                uiStart = uiCenter;
+            }
+            else
+            {
+                if( uiEnd == uiCenter )
+                    return uiStart;
+                uiEnd = uiCenter;
+            }
+        }
+        return uiStart;
     }
 
     static uint64_t drawIntervalSize( uint64_t s, uint64_t n )
     {
         if( n == 0 )
             return 0;
-        std::uniform_real_distribution<double> xDis( 0.0, 1.0 );
-        double p = xDis( xGen );
-        for( uint64_t x = 1; x < s; x++ )
-        {
-            p -= intervalSizeProblem( s, x, n );
-            if( p <= 0 )
-                return x;
-        }
-        return s;
+        return searchInCPF( 1, s, intervalSizeProblem, s, n );
     }
 
-    static uint64_t sampleIntervalSize( uint64_t s, uint64_t n )
+    static uint64_t drawIntervalSizeZero( uint64_t s, uint64_t n )
     {
-        std::uniform_int_distribution<uint64_t> xDis( 0.0, s );
-        uint64_t uiMax = 0;
-        for( uint64_t x = 0; x < n; x++ )
-            uiMax = std::max( uiMax, xDis( xGen ) );
-        return uiMax;
+        return searchInCPF( 1, s, intervalSizeProblemZero, s, n );
     }
+    
 
-    static uint64_t sampleIntervalSize2( uint64_t s, uint64_t n )
+    static uint64_t sampleNumPoints( const points_t& vPoints, typename points_t::Entry xPoints, pos_t uiFrom,
+                                     pos_t uiTo )
     {
-        if( n == 0 )
-            return 0;
-        for( uint64_t x = 1; x < s; x++ )
+        uint64_t uiNum = 0;
+        const uint64_t uiNumSamples = 1000;
+        std::uniform_int_distribution<uint64_t> xDist( 0, xPoints.size( ) );
+        for( size_t uiI = 0; uiI < uiNumSamples; uiI++ )
         {
-            std::binomial_distribution<int> xDist( n, 1 / (double)( s - x + 1 ) );
-            uint64_t p = xDist( xGen );
-            if( p >= n )
-                return x;
-            n -= p;
+            bool bInside = true;
+            uint64_t uiX = xDist( xGen );
+            for( size_t uiD = 0; uiD < D; uiD++ )
+                bInside = bInside && vPoints.vData[ uiX ].vPos[ uiD ] >= uiFrom[ uiD ] &&
+                          vPoints.vData[ uiX ].vPos[ uiD ] < uiTo[ uiD ];
+            uiNum += bInside;
         }
-        return s;
+
+        return ( uiNum * xPoints.size( ) ) / uiNumSamples;
     }
 
 
-    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> estimateOverlay( size_t uiNumPoints,
-                                                                               pos_t uiCoordinateSizes,
-                                                                               pos_t uiNumOverlays,
-                                                                               uint64_t uiNumOverlaysTotal, pos_t uiP )
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateOverlay( const points_t& vPoints, typename points_t::Entry xPoints, size_t, pos_t uiCoordinateSizes,
+                     pos_t uiNumOverlays, uint64_t, pos_t uiP )
     {
         uint64_t uiNumPSInternal = 0;
         uint64_t uiNumPSOverlay = 0;
         uint64_t uiNumLookUpTablesInternal = 0;
         uint64_t uiNumLookUpTablesOverlay = 0;
-        std::binomial_distribution<int> xDist2( uiNumPoints, 1.0 / uiNumOverlaysTotal );
-        uint64_t uiNumPointsInOverlay = xDist2( xGen );
+        pos_t uiFrom, uiTo;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            uiFrom[ uiI ] = uiP[ uiI ] * ( 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlays[ uiI ] );
+            uiTo[ uiI ] = ( uiP[ uiI ] + 1 ) * ( 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlays[ uiI ] );
+        }
+        uint64_t uiNumPointsInOverlay;
+
+        if constexpr( UNIFORM_OVERLAY_GRID )
+            uiNumPointsInOverlay = sampleNumPoints( vPoints, xPoints, uiFrom, uiTo );
+        else
+        {
+            std::binomial_distribution<int> xDist( xPoints.size( ), 1.0 / toAmount( uiNumOverlays ) );
+            uiNumPointsInOverlay = xDist( xGen );
+        }
+
         uiNumPSInternal = 1;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
@@ -658,21 +711,24 @@ template <typename type_defs> class Dataset
                 for( size_t uiJ = 0; uiJ < D; uiJ++ )
                     if( uiJ != uiI )
                     {
-                        uint64_t uiNumOverlaysBefore = 1;
+                        pos_t uiFrom, uiTo;
                         for( size_t uiK = 0; uiK < D; uiK++ )
+                        {
+                            uiTo[ uiK ] = ( uiP[ uiK ] + ( uiK == uiI ? 0 : 1 ) ) *
+                                          ( 1 + ( uiCoordinateSizes[ uiK ] - 1 ) / uiNumOverlays[ uiK ] );
                             if( uiK != uiJ )
-                                uiNumOverlaysBefore *= uiP[ uiK ] + ( uiK == uiI ? 0 : 1 );
-                        std::binomial_distribution<int> xDist( uiNumPoints,
-                                                               uiNumOverlaysBefore / (double)uiNumOverlaysTotal );
-                        uint64_t uiNumRelevantPoints = xDist( xGen );
+                                uiFrom[ uiK ] = 0;
+                            else
+                                uiFrom[ uiK ] =
+                                    uiP[ uiK ] * ( 1 + ( uiCoordinateSizes[ uiK ] - 1 ) / uiNumOverlays[ uiK ] );
+                        }
+                        uint64_t uiNumRelevantPoints = sampleNumPoints( vPoints, xPoints, uiFrom, uiTo );
 
 
                         coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiJ ] - 1 ) / uiNumOverlays[ uiJ ];
-                        uiNumPSOverlayCurr *=
-                            1 + drawNumCoupons( uiOverlaySize, uiNumRelevantPoints ); // @fixme overestimation
+                        uiNumPSOverlayCurr *= 1 + drawNumCoupons( uiOverlaySize, uiNumRelevantPoints );
 
-                        uiNumLookUpTablesOverlay +=
-                            1 + sampleIntervalSize( uiOverlaySize, uiNumRelevantPoints ); // @fixme overestimation
+                        uiNumLookUpTablesOverlay += 1 + drawIntervalSizeZero( uiOverlaySize, uiNumRelevantPoints );
                     }
                 uiNumPSOverlay += uiNumPSOverlayCurr;
             }
@@ -694,7 +750,8 @@ template <typename type_defs> class Dataset
     }
 
     static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
-    estimateDataStructureElements( pos_t uiNumOverlays, pos_t uiCoordinateSizes, size_t uiNumPoints )
+    estimateDataStructureElements( const points_t& vPoints, typename points_t::Entry xPoints, pos_t uiNumOverlays,
+                                   pos_t uiCoordinateSizes, size_t uiNumPoints )
     {
         uint64_t uiNumOverlaysTotal = 1;
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -709,7 +766,8 @@ template <typename type_defs> class Dataset
                 std::uniform_int_distribution<uint64_t> xDis( 0, uiNumOverlays[ uiI ] - 1 );
                 uiP[ uiI ] = xDis( xGen );
             }
-            auto tCurr = estimateOverlay( uiNumPoints, uiCoordinateSizes, uiNumOverlays, uiNumOverlaysTotal, uiP );
+            auto tCurr = estimateOverlay( vPoints, xPoints, uiNumPoints, uiCoordinateSizes, uiNumOverlays,
+                                          uiNumOverlaysTotal, uiP );
 
             std::get<0>( tTotal ) += std::get<0>( tCurr );
             std::get<1>( tTotal ) += std::get<1>( tCurr );
@@ -779,24 +837,33 @@ template <typename type_defs> class Dataset
         return ( fStartPos + fEndPos ) / 2;
     }
 
-    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
-    estimateDataStructureElements( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
+    static double toFactor( points_t& vPoints, typename points_t::Entry xPoints, uint64_t uiNumOverlays )
     {
-        return estimateDataStructureElements( toNumbers( toNumRatios( uiCoordinateSizes ), fFac ), uiCoordinateSizes,
-                                              uiNumPoints );
+        pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
+        return toFactor( uiCoordinateSizes, uiNumOverlays );
+    }
+
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateDataStructureElements( points_t& vPoints, typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
+                                   size_t uiNumPoints, double fFac )
+    {
+        return estimateDataStructureElements( vPoints, xPoints, toNumbers( toNumRatios( uiCoordinateSizes ), fFac ),
+                                              uiCoordinateSizes, uiNumPoints );
     }
 
     static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
     estimateDataStructureElements( points_t& vPoints, typename points_t::Entry xPoints, double fFac )
     {
         pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
-        return estimateDataStructureElements( uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex, fFac );
+        return estimateDataStructureElements( vPoints, xPoints, uiCoordinateSizes,
+                                              xPoints.uiEndIndex - xPoints.uiStartIndex, fFac );
     }
 
 
-    static uint64_t estimateDataStructureSize( pos_t uiNumOverlays, pos_t uiCoordinateSizes, size_t uiNumPoints )
+    static uint64_t estimateDataStructureSize( points_t& vPoints, typename points_t::Entry xPoints, pos_t uiNumOverlays,
+                                               pos_t uiCoordinateSizes, size_t uiNumPoints )
     {
-        auto uiR = estimateDataStructureElements( uiNumOverlays, uiCoordinateSizes, uiNumPoints );
+        auto uiR = estimateDataStructureElements( vPoints, xPoints, uiNumOverlays, uiCoordinateSizes, uiNumPoints );
         uint64_t uiNumPSTotal = ( std::get<0>( uiR ) + std::get<1>( uiR ) ) * sizeof( sps_t );
 
         uint64_t uiNumLookupTotal =
@@ -808,69 +875,94 @@ template <typename type_defs> class Dataset
         return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead;
     }
 
-    static uint64_t estimateDataStructureSize( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
+    static uint64_t estimateDataStructureSize( points_t& vPoints, typename points_t::Entry xPoints,
+                                               pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
     {
-        return estimateDataStructureSize( toNumbers( toNumRatios( uiCoordinateSizes ), fFac ), uiCoordinateSizes,
-                                          uiNumPoints );
+        return estimateDataStructureSize( vPoints, xPoints, toNumbers( toNumRatios( uiCoordinateSizes ), fFac ),
+                                          uiCoordinateSizes, uiNumPoints );
     }
 
     static uint64_t estimateDataStructureSize( points_t& vPoints, typename points_t::Entry xPoints, double fFac )
     {
         pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
-        return estimateDataStructureSize( uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex, fFac );
+        return estimateDataStructureSize( vPoints, xPoints, uiCoordinateSizes,
+                                          xPoints.uiEndIndex - xPoints.uiStartIndex, fFac );
     }
 
-
-    static double pickOverlayFactor( pos_t uiCoordinateSizes, size_t uiNumPoints ) // @continue_here test this tomorrow
+    static coordinate_t toAmount( pos_t vNums )
     {
-        std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
-
-        double fStartPos = 0;
-        double fEndPos = 10.0;
-        while( true )
-        {
-            uint64_t uiCenter = estimateDataStructureSize( toNumbers( vNumRatios, ( fStartPos + fEndPos ) / 2 ),
-                                                           uiCoordinateSizes, uiNumPoints );
-            uint64_t uiEnd =
-                estimateDataStructureSize( toNumbers( vNumRatios, fEndPos ), uiCoordinateSizes, uiNumPoints );
-            if( uiEnd >= uiCenter + 1000 )
-                break;
-            fEndPos *= 2;
-        }
-        const double fMinDiff = 0.1;
-        while( fEndPos - fStartPos > fMinDiff )
-        {
-            double fOneThird = ( fEndPos - fStartPos ) * 1.0 / 3.0 + fStartPos;
-            double fTwoThirds = ( fEndPos - fStartPos ) * 2.0 / 3.0 + fStartPos;
-            uint64_t uiOneThird =
-                estimateDataStructureSize( toNumbers( vNumRatios, fOneThird ), uiCoordinateSizes, uiNumPoints );
-            uint64_t uiTwoThirds =
-                estimateDataStructureSize( toNumbers( vNumRatios, fTwoThirds ), uiCoordinateSizes, uiNumPoints );
-            if( uiTwoThirds <= uiOneThird )
-                fStartPos = fOneThird;
-            else if( uiOneThird < uiTwoThirds )
-                fEndPos = fTwoThirds;
-        }
-        return ( fStartPos + fEndPos ) / 2;
-    }
-
-    static coordinate_t pickNumOverlays( pos_t uiCoordinateSizes, size_t uiNumPoints )
-    {
-        auto vNums = toNumbers( toNumRatios( uiCoordinateSizes ), pickOverlayFactor( uiCoordinateSizes, uiNumPoints ) );
-
         coordinate_t uiRet = 1;
-        for( size_t uiI = 1; uiI < D; uiI += 1 )
+        for( size_t uiI = 0; uiI < D; uiI += 1 )
             uiRet *= vNums[ uiI ];
 
         return uiRet;
     }
 
-    static pos_t pickOverlayNumbers( pos_t uiCoordinateSizes, size_t uiNumPoints, double fFac )
+
+    static double pickOverlayFactor( points_t& vPoints, typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
+                                     size_t uiNumPoints )
+    {
+        std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
+
+        double fEnd = 100;
+
+        // make sure to place end past the minimum
+        while( true )
+        {
+            uint64_t uiEnd = estimateDataStructureSize( vPoints, xPoints, toNumbers( vNumRatios, fEnd ),
+                                                        uiCoordinateSizes, uiNumPoints );
+            uint64_t uiCenter = estimateDataStructureSize( vPoints, xPoints, toNumbers( vNumRatios, fEnd / 2 ),
+                                                           uiCoordinateSizes, uiNumPoints );
+            if( uiEnd > uiCenter + 10000 )
+                break;
+            fEnd *= 2;
+        }
+
+        // fund the minumum between 0 and fEnd
+        double fStart = 0;
+        const double fSampleSteps = 10;
+        while( toAmount( toNumbers( vNumRatios, fStart ) ) != toAmount( toNumbers( vNumRatios, fEnd ) ) )
+        {
+            double fMin = 0;
+            uint64_t uiMin = std::numeric_limits<uint64_t>::max( );
+            for( double fPos = fStart; fPos <= fEnd; fPos += ( fEnd - fStart ) / fSampleSteps )
+            {
+                uint64_t uiCurr = estimateDataStructureSize( vPoints, xPoints, toNumbers( vNumRatios, fPos ),
+                                                             uiCoordinateSizes, uiNumPoints );
+                if( uiCurr < uiMin )
+                {
+                    uiMin = uiCurr;
+                    fMin = fPos;
+                }
+            }
+            fStart = std::max( 0.0, fMin - ( fEnd - fStart ) / fSampleSteps );
+            fEnd = fMin + ( fEnd - fStart ) / fSampleSteps;
+        }
+        return fStart;
+    }
+
+    static coordinate_t pickNumOverlays( points_t& vPoints, typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
+                                         size_t uiNumPoints )
+    {
+        auto vNums = toNumbers( toNumRatios( uiCoordinateSizes ),
+                                pickOverlayFactor( vPoints, xPoints, uiCoordinateSizes, uiNumPoints ) );
+
+        return toAmount( vNums );
+    }
+
+    static coordinate_t pickNumOverlays( points_t& vPoints, typename points_t::Entry xPoints )
+    {
+        pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
+        return pickNumOverlays( vPoints, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex );
+    }
+
+    static pos_t pickOverlayNumbers( points_t& vPoints, typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
+                                     size_t uiNumPoints, double fFac )
     {
         std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
         if( fFac > 0 )
             return toNumbers( vNumRatios, fFac );
-        return toNumbers( vNumRatios, pickOverlayFactor( uiCoordinateSizes, uiNumPoints ) );
+        return toNumbers( vNumRatios, pickOverlayFactor( vPoints, xPoints, uiCoordinateSizes, uiNumPoints ) );
     }
 
     static std::array<pos_t, 3> generateCoordSizes( points_t& vPoints, typename points_t::Entry xPoints )
@@ -911,7 +1003,7 @@ template <typename type_defs> class Dataset
         uiMinCoords = xA[ 2 ];
 
         pos_t uiNumOverlaysPerDim =
-            pickOverlayNumbers( uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex, fFac );
+            pickOverlayNumbers( vPoints, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex, fFac );
         if constexpr( UNIFORM_OVERLAY_GRID )
         {
             for( size_t uiI = 0; uiI < D; uiI++ )
