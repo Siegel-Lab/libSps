@@ -141,7 +141,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                   Div(text="<b>total file size error</b>", align="center")])
     for _n in range(MIN_FILL, MAX_FILL):
         n = 10**_n
-        for offset in [0, 100]:
+        for offset in [0]: #[0, 100]:
             for density in [0.1, 1, 10]:
                 for asp_ratio in [1, 10]:
                     for distrib in ["even", "dist_dep_dec", "diagonal", "log_norm"]:

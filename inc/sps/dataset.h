@@ -1478,6 +1478,28 @@ template <typename type_defs> class Dataset
         return uiRet;
     }
 
+    coordinate_t getNumOverlays( ) const
+    {
+        return overlay_grid_t::sizeOf( xOverlays );
+    }
+
+    // @todo @continue_here export this function in index.h and then use it!
+    coordinate_t getSize( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords ) const
+    {
+        uint64_t uiNumPSTotal = ( getNumInternalPrefixSums( rOverlays, rSparseCoords ) +
+                                  getNumOverlayPrefixSums( rOverlays, rSparseCoords ) ) *
+                                sizeof( sps_t );
+
+        uint64_t uiNumLookupTotal = ( getNumInternalSparseCoords( rOverlays ) + getNumOverlaySparseCoords( rOverlays ) +
+                                      getNumGlobalSparseCoords( rOverlays ) ) *
+                                    sizeof( coordinate_t );
+
+        uint64_t uiSizeOverlaysOverhead = getNumOverlays( ) * sizeof( overlay_t );
+
+        // full
+        return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead;
+    }
+
     friend std::ostream& operator<<( std::ostream& os, const Dataset& rDataset )
     {
         os << "<" << std::endl;

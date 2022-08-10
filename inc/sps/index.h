@@ -118,27 +118,48 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     void clear( )
     {
-        vPoints.clear( );
+        clearPoints( );
         clearKeepPoints( );
     }
 
     /**
-     * @brief Clear the index but keep the points.
+     * @brief Clear the complete index.
      *
-     * Clears all datasets.
+     * @details
+     * Clears all datasets and all points.
+     */
+    void clearPoints( )
+    {
+        vPoints.clear( );
+        vDesc.clear( );
+    }
+
+    /**
+     * @brief Clear the points.
      */
     void clearKeepPoints( )
     {
-        vDesc.clear( );
         vSparseCoord.clear( );
         vPrefixSumGrid.clear( );
         vOverlayGrid.clear( );
         vDataSets.clear( );
     }
 
+    void popDataset( )
+    {
+        vSparseCoord.resize( vSparseCoord.size( ) - ( getNumInternalSparseCoords( vDataSets.size( ) - 1 ) +
+                                                      getNumGlobalSparseCoords( vDataSets.size( ) - 1 ) +
+                                                      getNumOverlaySparseCoords( vDataSets.size( ) - 1 ) ) );
+        vPrefixSumGrid.resize( vPrefixSumGrid.size( ) - ( getNumInternalPrefixSums( vDataSets.size( ) - 1 ) +
+                                                          getNumOverlayPrefixSums( vDataSets.size( ) - 1 ) ) );
+        vOverlayGrid.resize( vOverlayGrid.size( ) - ( getNumOverlays( vDataSets.size( ) - 1 ) ) );
+        vDataSets.pop_back( );
+    }
+
     /**
      * @brief Append a point to the data structure.
      *
+     * @details
      * The point will not be queryable until generate is called.
      *
      * @tparam trigger This function is only active if IS_ORTHOTOPE = false
@@ -482,6 +503,17 @@ template <typename type_defs> class Index : public AbstractIndex
     coordinate_t getNumGlobalSparseCoords( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getNumGlobalSparseCoords( );
+    }
+
+    /**
+     * @brief Count the number of overlay blocks.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return coordinate_t number of overlay blocks
+     */
+    coordinate_t getNumOverlays( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumOverlays( );
     }
 
     /**
@@ -928,6 +960,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
         .def( "clear_keep_points", &sps::Index<type_defs>::clearKeepPoints,
               "Clear the index datasets, but keep the points." )
+        .def( "pop_dataset", &sps::Index<type_defs>::popDataset,
+              "Remove the last dataset." )
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo,
               "Return information about the overlay boxes." )
         .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
