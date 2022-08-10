@@ -114,11 +114,21 @@ template <typename type_defs> class Index : public AbstractIndex
     /**
      * @brief Clear the complete index.
      *
-     * Clears all datasets.
+     * Clears all datasets and all points.
      */
     void clear( )
     {
         vPoints.clear( );
+        clearKeepPoints();
+    }
+
+    /**
+     * @brief Clear the index but keep the points.
+     *
+     * Clears all datasets.
+     */
+    void clearKeepPoints( )
+    {
         vDesc.clear( );
         vSparseCoord.clear( );
         vPrefixSumGrid.clear( );
@@ -800,6 +810,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               "Return the maximal stored prefix sum. Intended for storage space optimization purposes." )
         .def( "__len__", &sps::Index<type_defs>::numPoints, "Total number of points (among all datasets)." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
+        .def( "clear_keep_points", &sps::Index<type_defs>::clearKeepPoints, "Clear the complete index." )
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )
         .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
