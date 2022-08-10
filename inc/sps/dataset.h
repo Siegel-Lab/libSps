@@ -10,6 +10,7 @@
 #include <cassert>
 #include <functional>
 #include <mutex>
+#include <random>
 #include <string>
 
 
@@ -38,6 +39,8 @@ template <typename type_defs> class Dataset
     pos_t uiSizeOverlays; // only relevant if UNIFORM_OVERLAY_GRID is true
     pos_t uiMaxCoords; // only relevant if UNIFORM_OVERLAY_GRID is true
     pos_t uiMinCoords; // only relevant if UNIFORM_OVERLAY_GRID is true
+
+    static std::mt19937 xGen;
 
     class DimIterator
     {
@@ -164,23 +167,58 @@ template <typename type_defs> class Dataset
     points_sort_func_t<points_it_t, PointsComperator> sort_points =
         points_sort_func_t<points_it_t, PointsComperator>( );
 
+    struct PointsComperatorDistinct
+    {
+        bool operator( )( const point_t& a, const point_t& b ) const
+        {
+            for( size_t uiI = 0; uiI < D; uiI++ )
+            {
+                if( a.vPos[ uiI ] > b.vPos[ uiI ] )
+                    return false;
+                else if( a.vPos[ uiI ] < b.vPos[ uiI ] )
+                    return true;
+                // else if positions are equal continue
+            }
+            return false;
+        }
+
+        point_t min_value( ) const
+        {
+            point_t xRet{ };
+            return xRet;
+        };
+
+        point_t max_value( ) const
+        {
+            point_t xRet{ };
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                xRet.vPos[ uiI ] = std::numeric_limits<coordinate_t>::max( );
+            return xRet;
+        };
+    };
+    static points_sort_func_t<points_it_t, PointsComperatorDistinct> sort_points_distinct;
+
   public:
     Dataset( ) : vSparseCoords( ), xSparseCoordsDependantDimension( )
     {}
 
     typename sparse_coord_t::Entry
     makeSparseCoords( sparse_coord_t& rSparseCoords, points_t& vPoints, typename points_t::Entry xPoints, size_t uiDim,
-                      progress_stream_t xProg, coordinate_t uiFixedStart = std::numeric_limits<coordinate_t>::max( ),
+                      size_t uiNumBlocks, progress_stream_t xProg,
+                      coordinate_t uiFixedStart = std::numeric_limits<coordinate_t>::max( ),
                       coordinate_t uiFixedEnd = std::numeric_limits<coordinate_t>::max( ) ) const
     {
         size_t uiNumCoords = 0;
         coordinate_t uiLast = std::numeric_limits<coordinate_t>::max( );
+        coordinate_t uiFirst = std::numeric_limits<coordinate_t>::max( );
         sort_points( vPoints.vData.begin( ) + xPoints.uiStartIndex, vPoints.vData.begin( ) + xPoints.uiEndIndex,
                      PointsComperator( uiDim ) );
         vPoints.iterate(
             [ & ]( const point_t& xPoint ) {
                 // @todo consider all coordinates of point
                 coordinate_t uiCurr = xPoint.vPos[ uiDim ];
+                if( uiFirst == std::numeric_limits<coordinate_t>::max( ) )
+                    uiFirst = uiCurr;
                 if( uiCurr != uiLast )
                 {
                     uiLast = uiCurr;
@@ -188,13 +226,16 @@ template <typename type_defs> class Dataset
                 }
             },
             xPoints );
-        size_t uiBlockSize = std::max( 1ul, (size_t)std::pow( uiNumCoords, 1.0 / 2.0 ) );
-        xProg << "generating " << 1 + ( uiNumCoords - 1 ) / uiBlockSize << " overlays in dimension " << uiDim << " for "
-              << uiNumCoords << " different coordinates.\n";
+        size_t uiBlockSize = 1 + ( uiNumCoords - 1 ) / uiNumBlocks;
+        xProg << "generating " << uiNumBlocks << " overlays in dimension " << uiDim << " for " << uiNumCoords
+              << " different coordinates.\n";
         auto xStart = DimIterator( vPoints.cbegin( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
         auto xEnd = DimIterator( vPoints.cend( xPoints ), vPoints.cend( xPoints ), uiDim, uiBlockSize );
         if( uiFixedStart == std::numeric_limits<coordinate_t>::max( ) )
-            return rSparseCoords.template add<true>( xStart, xEnd );
+        {
+            uiFixedEnd = uiLast;
+            uiFixedStart = uiFirst;
+        }
         return rSparseCoords.template addStartEnd<true>( xStart, xEnd, uiFixedStart, uiFixedEnd );
     }
 
@@ -529,36 +570,531 @@ template <typename type_defs> class Dataset
             } );
     }
 
-
-    void generateOverlayCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, points_t& vPoints,
-                                typename points_t::Entry xPoints, progress_stream_t xProg )
+    /**
+     * @brief Get the Number of different Coupons drawn after uiNumDraws draws and with uiNumCouponsTotal different
+     * coupons in total
+     *
+     * Coupons collector's problem https://en.wikipedia.org/wiki/Coupon_collector%27s_problem
+     * Instead of calculating the time required to get all coupons,
+     * we want to know the number of coupons we have after a certain time.
+     *
+     * For this we iterate over the following equation:
+     * Let time T be the number of draws needed to collect all n coupons, and let t_i be the time to collect the i-th
+     * coupon after i − 1 coupons have been collected.
+     * t_i = n / (n - i + 1)
+     *
+     * Hence, for each i we need to check weather t_i is still larger thant the remaining number of draws we have.
+     *
+     * @param uiNumCouponsTotal total number of coupons n
+     * @param uiNumDraws time for drawing coupons sum(t_1, t_2, ..., t_i)
+     * @return uint64_t number of different coupons drawn i
+     */
+    static uint64_t drawNumCoupons( uint64_t uiNumCouponsTotal, uint64_t uiNumDraws )
     {
+        if( uiNumDraws == 0 )
+            return 0;
+
+        for( uint64_t uiI = 1; uiI <= uiNumCouponsTotal; uiI++ )
+        {
+            // time (draws) required to draw the uiI'th different coupon
+            std::geometric_distribution<int> xDist( ( (double)( uiNumCouponsTotal - uiI + 1 ) ) /
+                                                    ( (double)( uiNumCouponsTotal ) ) );
+            uint64_t uiNumDrawsRequired = xDist( xGen ) + 1;
+
+            if( uiNumDraws < uiNumDrawsRequired )
+                return uiI - 1;
+            uiNumDraws -= uiNumDrawsRequired;
+        }
+        return uiNumCouponsTotal;
+    }
+
+    /**
+     * @brief probability that n points randomly distributed in an interval of size s span an interval of size x or less
+     *
+     * @details
+     * n points are distributed randomly and discretely in an interval of size s.
+     * Returned is the probability that these points span over an interval of size <= x,
+     * i.e. that the position of the highest point minus the position of the lowest point is smaller or equal to x.
+     * @note this requires s >= x > 0 (both for s and x) and n > 0.
+     *
+     * @param x maximal size of the interval spanned by the n points
+     * @param s size of the interval that points are distributed in
+     * @param n number of points
+     * @return double probability for this situation to happen
+     */
+    static double intervalSizeProblem( uint64_t uiX, uint64_t uiS, uint64_t uiN )
+    {
+        double x = uiX;
+        double s = uiS;
+        double n = uiN;
+        return ( ( 1 + s - x ) * std::pow( x / s, n ) - ( s - x ) * std::pow( ( x - 1 ) / s, n ) );
+    }
+
+    /**
+     * @brief probability that n points randomly distributed in an interval of size s span an interval [1,k] for k <= x
+     *
+     * @details
+     * n points are distributed randomly and discretely in an interval of size s.
+     * Returned is the probability that these points span over an interval of size <= x that starts at zero,
+     * i.e. that the position of the highest point is smaller or equal to x.
+     * @note this requires s >= x > 0 (both for s and x) and n > 0.
+     *
+     * @param x maximal position of the highest point
+     * @param s size of the interval that points are distributed in
+     * @param n number of points
+     * @return double probability for this situation to happen
+     */
+    static double intervalSizeProblemZero( uint64_t uiX, uint64_t uiS, uint64_t uiN )
+    {
+        double x = uiX;
+        double s = uiS;
+        double n = uiN;
+        return std::pow( x / s, n );
+    }
+
+
+    template <typename F, typename... Args>
+    static uint64_t searchInCPF( uint64_t uiStart, uint64_t uiEnd, F&& fFunc, Args... args )
+    {
+        std::uniform_real_distribution<double> xDis( 0.0, 1.0 );
+        double p = xDis( xGen );
+        while( uiStart < uiEnd )
+        {
+            uint64_t uiCenter = ( uiStart + uiEnd ) / 2;
+            if( p >= fFunc( uiCenter, args... ) )
+            {
+                if( uiStart == uiCenter )
+                    return uiEnd;
+                uiStart = uiCenter;
+            }
+            else
+            {
+                if( uiEnd == uiCenter )
+                    return uiStart;
+                uiEnd = uiCenter;
+            }
+        }
+        return uiStart;
+    }
+
+    static uint64_t drawIntervalSize( uint64_t s, uint64_t n )
+    {
+        if( n == 0 )
+            return 0;
+        return searchInCPF( 1, s, intervalSizeProblem, s, n );
+    }
+
+    static uint64_t drawIntervalSizeZero( uint64_t s, uint64_t n )
+    {
+        return searchInCPF( 1, s, intervalSizeProblemZero, s, n );
+    }
+
+
+    static uint64_t sampleNumPoints( const points_t& vPoints, typename points_t::Entry xPoints, pos_t uiFrom,
+                                     pos_t uiTo, uint64_t uiCorrectedNumPoints )
+    {
+        uint64_t uiNum = 0;
+        const uint64_t uiNumSamples = 1000;
+        std::uniform_int_distribution<size_t> xDist( xPoints.uiStartIndex, xPoints.uiEndIndex - 1 );
+        for( size_t uiI = 0; uiI < uiNumSamples; uiI++ )
+        {
+            bool bInside = true;
+            size_t uiX = xDist( xGen );
+            for( size_t uiD = 0; uiD < D; uiD++ )
+                bInside = bInside && vPoints.vData[ uiX ].vPos[ uiD ] >= uiFrom[ uiD ] &&
+                          vPoints.vData[ uiX ].vPos[ uiD ] < uiTo[ uiD ];
+            uiNum += bInside;
+        }
+
+        // if( IS_ORTHOTOPE ) // assume all hyperrectangles have an area of zero
+        //     return std::round( ( uiNum * xPoints.size( ) ) / (double)( uiNumSamples * ( 1 << ORTHOTOPE_DIMS ) ) );
+
+        return std::round( ( uiNum * uiCorrectedNumPoints ) / (double)uiNumSamples );
+    }
+
+
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateOverlay( const points_t& vPoints, typename points_t::Entry xPoints, size_t, pos_t uiCoordinateSizes,
+                     pos_t uiNumOverlays, uint64_t, pos_t uiP, uint64_t uiCorrectedNumPoints )
+    {
+        uint64_t uiNumPSInternal = 0;
+        uint64_t uiNumPSOverlay = 0;
+        uint64_t uiNumLookUpTablesInternal = 0;
+        uint64_t uiNumLookUpTablesOverlay = 0;
+        pos_t uiFrom, uiTo;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            uiFrom[ uiI ] = uiP[ uiI ] * ( 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlays[ uiI ] );
+            uiTo[ uiI ] = ( uiP[ uiI ] + 1 ) * ( 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlays[ uiI ] );
+        }
+        uint64_t uiNumPointsInOverlay;
+
+        if constexpr( UNIFORM_OVERLAY_GRID )
+            uiNumPointsInOverlay = sampleNumPoints( vPoints, xPoints, uiFrom, uiTo, uiCorrectedNumPoints );
+        else
+        {
+            std::binomial_distribution<int> xDist( xPoints.size( ), 1.0 / toAmount( uiNumOverlays ) );
+            uiNumPointsInOverlay = xDist( xGen );
+        }
+
+        uiNumPSInternal = 1;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            if( uiP[ uiI ] > 0 )
+            {
+                uint64_t uiNumPSOverlayCurr = 1;
+                for( size_t uiJ = 0; uiJ < D; uiJ++ )
+                    if( uiJ != uiI )
+                    {
+                        pos_t uiFrom, uiTo;
+                        for( size_t uiK = 0; uiK < D; uiK++ )
+                        {
+                            uiTo[ uiK ] = ( uiP[ uiK ] + ( uiK == uiI ? 0 : 1 ) ) *
+                                          ( 1 + ( uiCoordinateSizes[ uiK ] - 1 ) / uiNumOverlays[ uiK ] );
+                            if( uiK != uiJ )
+                                uiFrom[ uiK ] = 0;
+                            else
+                                uiFrom[ uiK ] =
+                                    uiP[ uiK ] * ( 1 + ( uiCoordinateSizes[ uiK ] - 1 ) / uiNumOverlays[ uiK ] );
+                        }
+                        uint64_t uiNumRelevantPoints =
+                            sampleNumPoints( vPoints, xPoints, uiFrom, uiTo, uiCorrectedNumPoints );
+
+
+                        coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiJ ] - 1 ) / uiNumOverlays[ uiJ ];
+                        // uiNumPSOverlayCurr *= 1 + drawNumCoupons( uiOverlaySize, uiNumRelevantPoints );
+                        uiNumPSOverlayCurr *=
+                            ( uiP[ uiJ ] > 0 ? 1 : 0 ) + drawNumCoupons( uiOverlaySize, uiNumRelevantPoints );
+
+                        // uiNumLookUpTablesOverlay += drawIntervalSizeZero( uiOverlaySize + 1, uiNumRelevantPoints );
+                        uiNumLookUpTablesOverlay +=
+                            ( uiP[ uiJ ] > 0 ? 1 : 0 ) + drawIntervalSizeZero( uiOverlaySize, uiNumRelevantPoints );
+                    }
+                uiNumPSOverlay += uiNumPSOverlayCurr;
+            }
+            coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlays[ uiI ];
+
+            // prefix sums in overlay
+            // use the coupons collectors problem to adjust for several points lying in the same row or column of
+            // the overlay the size of the prefix sum matrix is determined merely by the number of non-empty columns
+            // and rows. so if multiple points lie in the same spot they do not need both be considered. translated
+            // into the coupons collectors problem: we have num_sparse_coords / num_overlays_in_axis many different
+            // coupons in total and we draw uiNumAvgPointsInOverlay many times. returned we get how many different
+            // coupons we have drawn, which correspons to the number of rows that actually have at least one point.
+            uiNumPSInternal *= drawNumCoupons( uiOverlaySize, uiNumPointsInOverlay );
+
+            uiNumLookUpTablesInternal += drawIntervalSize( uiOverlaySize, uiNumPointsInOverlay );
+        }
+        return std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>(
+            uiNumPSOverlay, uiNumPSInternal, uiNumLookUpTablesOverlay, uiNumLookUpTablesInternal );
+    }
+
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateDataStructureElements( const points_t& vPoints, typename points_t::Entry xPoints, pos_t uiNumOverlays,
+                                   pos_t uiCoordinateSizes, size_t uiNumPoints, uint64_t uiCorrectedNumPoints )
+    {
+        uint64_t uiNumOverlaysTotal = 1;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
+        std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
+        size_t uiNumSamples = 1000;
+        for( size_t uiI = 0; uiI < uiNumSamples; uiI++ )
+        {
+            pos_t uiP{ };
+            for( size_t uiI = 0; uiI < D; uiI++ )
+            {
+                std::uniform_int_distribution<uint64_t> xDis( 0, uiNumOverlays[ uiI ] - 1 );
+                uiP[ uiI ] = xDis( xGen );
+            }
+            auto tCurr = estimateOverlay( vPoints, xPoints, uiNumPoints, uiCoordinateSizes, uiNumOverlays,
+                                          uiNumOverlaysTotal, uiP, uiCorrectedNumPoints );
+
+            std::get<0>( tTotal ) += std::get<0>( tCurr );
+            std::get<1>( tTotal ) += std::get<1>( tCurr );
+            std::get<2>( tTotal ) += std::get<2>( tCurr );
+            std::get<3>( tTotal ) += std::get<3>( tCurr );
+        }
+        uint64_t uiNumBlockLookup = 0;
+        if constexpr( !UNIFORM_OVERLAY_GRID )
+        {
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                uiNumBlockLookup += uiCoordinateSizes[ uiI ];
+            if constexpr( DEPENDANT_DIMENSION )
+                uiNumBlockLookup += ( uiCoordinateSizes[ 1 ] ) * ( uiNumOverlays[ 0 ] - 1 );
+        }
+        return std::make_tuple( ( uiNumOverlaysTotal * std::get<0>( tTotal ) ) / uiNumSamples,
+                                ( uiNumOverlaysTotal * std::get<1>( tTotal ) ) / uiNumSamples,
+                                ( uiNumOverlaysTotal * std::get<2>( tTotal ) ) / uiNumSamples,
+                                ( uiNumOverlaysTotal * std::get<3>( tTotal ) ) / uiNumSamples,
+                                uiNumOverlaysTotal,
+                                uiNumBlockLookup );
+    }
+
+    static pos_t toNumbers( std::array<double, D> vRatios, double fFactor )
+    {
+        pos_t uiRet;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            uiRet[ uiI ] = std::max( (coordinate_t)1, (coordinate_t)( vRatios[ uiI ] * fFactor ) );
+
+        return uiRet;
+    }
+
+    static std::array<double, D> toNumRatios( pos_t uiCoordinateSizes )
+    {
+        std::array<double, D> vNumRatios;
+        double fTotal = 0;
+
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            fTotal += (double)uiCoordinateSizes[ uiI ];
+
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            vNumRatios[ uiI ] = (double)uiCoordinateSizes[ uiI ] / fTotal;
+
+        return vNumRatios;
+    }
+
+    static double toFactor( pos_t uiCoordinateSizes, uint64_t uiNumOverlays )
+    {
+        auto vRatios = toNumRatios( uiCoordinateSizes );
+        double fStartPos = 0;
+        double fEndPos = 1000.0;
+        while( fEndPos - fStartPos > 0.01 )
+        {
+            double fCenter = ( fStartPos + fEndPos ) / 2;
+            auto vNums = toNumbers( vRatios, fCenter );
+
+            uint64_t uiNumCurr = 1;
+            for( size_t uiI = 0; uiI < vNums.size( ); uiI++ )
+                uiNumCurr *= vNums[ uiI ];
+
+            if( uiNumCurr == uiNumOverlays )
+                return fCenter;
+            else if( uiNumCurr > uiNumOverlays )
+                fEndPos = fCenter;
+            else
+                fStartPos = fCenter;
+        }
+        return ( fStartPos + fEndPos ) / 2;
+    }
+
+    static double toFactor( points_t& vPoints, const typename points_t::Entry xPoints, uint64_t uiNumOverlays )
+    {
+        pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
+        return toFactor( uiCoordinateSizes, uiNumOverlays );
+    }
+
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateDataStructureElements( points_t& vPoints, const typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
+                                   size_t uiNumPoints, uint64_t uiCorrectedNumPoints, double fFac )
+    {
+        return estimateDataStructureElements( vPoints, xPoints, toNumbers( toNumRatios( uiCoordinateSizes ), fFac ),
+                                              uiCoordinateSizes, uiNumPoints, uiCorrectedNumPoints );
+    }
+
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateDataStructureElements( points_t& vPoints, const typename points_t::Entry xPoints, double fFac )
+    {
+        pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
+        return estimateDataStructureElements(
+            vPoints, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex,
+            correctedNumPoints( vPoints, xPoints, toAmount( uiCoordinateSizes ) ), fFac );
+    }
+
+
+    static uint64_t estimateDataStructureSize( points_t& vPoints, const typename points_t::Entry xPoints,
+                                               pos_t uiNumOverlays, pos_t uiCoordinateSizes, size_t uiNumPoints,
+                                               uint64_t uiCorrectedNumPoints )
+    {
+        auto uiR = estimateDataStructureElements( vPoints, xPoints, uiNumOverlays, uiCoordinateSizes, uiNumPoints,
+                                                  uiCorrectedNumPoints );
+        uint64_t uiNumPSTotal = ( std::get<0>( uiR ) + std::get<1>( uiR ) ) * sizeof( sps_t );
+
+        uint64_t uiNumLookupTotal =
+            ( std::get<2>( uiR ) + std::get<3>( uiR ) + std::get<5>( uiR ) ) * sizeof( coordinate_t );
+
+        uint64_t uiSizeOverlaysOverhead = std::get<4>( uiR ) * sizeof( overlay_t );
+
+        // full
+        return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead;
+    }
+
+    static uint64_t estimateDataStructureSize( points_t& vPoints, const typename points_t::Entry xPoints,
+                                               pos_t uiCoordinateSizes, size_t uiNumPoints,
+                                               uint64_t uiCorrectedNumPoints, double fFac )
+    {
+        return estimateDataStructureSize( vPoints, xPoints, toNumbers( toNumRatios( uiCoordinateSizes ), fFac ),
+                                          uiCoordinateSizes, uiNumPoints, uiCorrectedNumPoints );
+    }
+
+    static uint64_t estimateDataStructureSize( points_t& vPoints, const typename points_t::Entry xPoints, double fFac )
+    {
+        pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
+        return estimateDataStructureSize( vPoints, xPoints, uiCoordinateSizes,
+                                          xPoints.uiEndIndex - xPoints.uiStartIndex,
+                                          correctedNumPoints( vPoints, xPoints, toAmount( uiCoordinateSizes ) ), fFac );
+    }
+
+    static coordinate_t toAmount( pos_t vNums )
+    {
+        coordinate_t uiRet = 1;
+        for( size_t uiI = 0; uiI < D; uiI += 1 )
+            uiRet *= vNums[ uiI ];
+
+        return uiRet;
+    }
+
+
+    static double pickOverlayFactor( points_t& vPoints, const typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
+                                     size_t uiNumPoints, uint64_t uiCorrectedNumPoints )
+    {
+        std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
+
+        double fEnd = 100;
+
+        // make sure to place end past the minimum
+        while( true )
+        {
+            uint64_t uiEnd = estimateDataStructureSize( vPoints, xPoints, toNumbers( vNumRatios, fEnd ),
+                                                        uiCoordinateSizes, uiNumPoints, uiCorrectedNumPoints );
+            uint64_t uiCenter = estimateDataStructureSize( vPoints, xPoints, toNumbers( vNumRatios, fEnd / 2 ),
+                                                           uiCoordinateSizes, uiNumPoints, uiCorrectedNumPoints );
+            if( uiEnd > uiCenter + 10000 )
+                break;
+            fEnd *= 2;
+        }
+
+        // fund the minumum between 0 and fEnd
+        double fStart = 0;
+        const double fSampleSteps = 10;
+        while( toAmount( toNumbers( vNumRatios, fStart ) ) != toAmount( toNumbers( vNumRatios, fEnd ) ) )
+        {
+            double fMin = 0;
+            uint64_t uiMin = std::numeric_limits<uint64_t>::max( );
+            for( double fPos = fStart; fPos <= fEnd; fPos += ( fEnd - fStart ) / fSampleSteps )
+            {
+                uint64_t uiCurr = estimateDataStructureSize( vPoints, xPoints, toNumbers( vNumRatios, fPos ),
+                                                             uiCoordinateSizes, uiNumPoints, uiCorrectedNumPoints );
+                if( uiCurr < uiMin )
+                {
+                    uiMin = uiCurr;
+                    fMin = fPos;
+                }
+            }
+            fStart = std::max( 0.0, fMin - ( fEnd - fStart ) / fSampleSteps );
+            fEnd = fMin + ( fEnd - fStart ) / fSampleSteps;
+        }
+        return fStart;
+    }
+
+    static coordinate_t pickNumOverlays( points_t& vPoints, const typename points_t::Entry xPoints,
+                                         pos_t uiCoordinateSizes, size_t uiNumPoints, uint64_t uiCorrectedNumPoints )
+    {
+        auto vNums =
+            toNumbers( toNumRatios( uiCoordinateSizes ),
+                       pickOverlayFactor( vPoints, xPoints, uiCoordinateSizes, uiNumPoints, uiCorrectedNumPoints ) );
+
+        return toAmount( vNums );
+    }
+
+    static coordinate_t pickNumOverlays( points_t& vPoints, const typename points_t::Entry xPoints )
+    {
+        pos_t uiCoordinateSizes = generateCoordSizes( vPoints, xPoints )[ 0 ];
+        return pickNumOverlays( vPoints, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex,
+                                correctedNumPoints( vPoints, xPoints, toAmount( uiCoordinateSizes ) ) );
+    }
+
+    static pos_t pickOverlayNumbers( points_t& vPoints, const typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
+                                     size_t uiNumPoints, uint64_t uiCorrectedNumPoints, double fFac )
+    {
+        std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
+        if( fFac >= 0 )
+            return toNumbers( vNumRatios, fFac );
+        return toNumbers( vNumRatios,
+                          pickOverlayFactor( vPoints, xPoints, uiCoordinateSizes, uiNumPoints, uiCorrectedNumPoints ) );
+    }
+
+    static uint64_t correctedNumPoints( points_t& vPoints, const typename points_t::Entry xPoints,
+                                        uint64_t uiNumGridCells )
+    {
+        sort_points_distinct( vPoints.vData.begin( ) + xPoints.uiStartIndex,
+                              vPoints.vData.begin( ) + xPoints.uiEndIndex,
+                              PointsComperatorDistinct( ) );
+        pos_t uiLast;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            uiLast[ uiI ] = std::numeric_limits<coordinate_t>::max( );
+        uint64_t uiDistinct = 0;
+        vPoints.iterate(
+            [ & ]( const point_t& xPoint ) {
+                bool bSame = true;
+                for( size_t uiI = 0; uiI < D; uiI++ )
+                {
+                    bSame = bSame && xPoint.vPos[ uiI ] == uiLast[ uiI ];
+                    uiLast[ uiI ] = xPoint.vPos[ uiI ];
+                }
+                uiDistinct += !bSame;
+            },
+            xPoints );
+
+        // scale up to expected number of points to produce this number of distinct points
+        // assuming points are randomly distributed
+        double e = uiDistinct;
+        double n = uiNumGridCells;
+        uint64_t uiCorrected = std::log( 1 - ( e / n ) ) / std::log( ( n - 1 ) / n );
+        //std::cout << "uiDistinct: " << uiDistinct << " uiNumGridCells: " << uiNumGridCells
+        //          << " uiActual: " << uiCorrected << std::endl;
+        return uiCorrected;
+    }
+
+    static std::array<pos_t, 3> generateCoordSizes( points_t& vPoints, const typename points_t::Entry xPoints )
+    {
+        pos_t uiMaxCoords;
+        pos_t uiMinCoords;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            uiMinCoords[ uiI ] = std::numeric_limits<coordinate_t>::max( );
+            uiMaxCoords[ uiI ] = 0;
+        }
+
+        vPoints.iterate(
+            [ & ]( const point_t& xPoint ) {
+                for( size_t uiI = 0; uiI < D; uiI++ )
+                {
+                    uiMinCoords[ uiI ] = std::min( uiMinCoords[ uiI ], xPoint.vPos[ uiI ] );
+                    uiMaxCoords[ uiI ] = std::max( uiMaxCoords[ uiI ], xPoint.vPos[ uiI ] + 1 );
+                }
+            },
+            xPoints );
+
+        pos_t uiCoordinateSizes;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            uiCoordinateSizes[ uiI ] = uiMaxCoords[ uiI ] - uiMinCoords[ uiI ];
+        return std::array<pos_t, 3>{ uiCoordinateSizes, uiMaxCoords, uiMinCoords };
+    }
+
+#pragma GCC diagnostic push
+// vPos not used with DEPENDANT_DIMENSION == false
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
+    void generateOverlayCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, points_t& vPoints,
+                                typename points_t::Entry xPoints, double fFac, progress_stream_t xProg )
+    {
+        auto xA = generateCoordSizes( vPoints, xPoints );
+        pos_t uiCoordinateSizes = xA[ 0 ];
+        uiMaxCoords = xA[ 1 ];
+        uiMinCoords = xA[ 2 ];
+
+        pos_t uiNumOverlaysPerDim =
+            pickOverlayNumbers( vPoints, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex,
+                                correctedNumPoints( vPoints, xPoints, toAmount( uiCoordinateSizes ) ), fFac );
         if constexpr( UNIFORM_OVERLAY_GRID )
         {
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
-                uiMinCoords[ uiI ] = std::numeric_limits<coordinate_t>::max( );
-                uiMaxCoords[ uiI ] = 0;
-            }
-            vPoints.iterate(
-                [ & ]( const point_t& xPoint ) {
-                    for( size_t uiI = 0; uiI < D; uiI++ )
-                    {
-                        uiMinCoords[ uiI ] = std::min( uiMinCoords[ uiI ], xPoint.vPos[ uiI ] );
-                        uiMaxCoords[ uiI ] = std::max( uiMaxCoords[ uiI ], xPoint.vPos[ uiI ] + 1 );
-                    }
-                },
-                xPoints );
-            pos_t uiNumOverlays;
-            for( size_t uiI = 0; uiI < D; uiI++ )
-            {
-                uiSizeOverlays[ uiI ] =
-                    std::max( 1ul, (size_t)std::pow( uiMaxCoords[ uiI ] - uiMinCoords[ uiI ], 1.0 / 2.0 ) );
                 // 'round up' size to make sure that no points are past the last overlay
-                uiNumOverlays[ uiI ] = 1 + ( uiMaxCoords[ uiI ] - uiMinCoords[ uiI ] - 1 ) / uiSizeOverlays[ uiI ];
-                xProg << "generating " << uiNumOverlays[ uiI ] << " overlays in dimension " << uiI << "\n";
+                uiSizeOverlays[ uiI ] = 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlaysPerDim[ uiI ];
+                xProg << "generating " << uiNumOverlaysPerDim[ uiI ] << " overlays in dimension " << uiI << "\n";
             }
-            xOverlays = rOverlays.template add<D, true, true>( uiNumOverlays );
+
+            xOverlays = rOverlays.template add<D, true, true>( uiNumOverlaysPerDim );
         }
         else
         {
@@ -591,8 +1127,9 @@ template <typename type_defs> class Dataset
                                                           vSparseCoords[ 0 ] ) == uiBin )
                                 ++xCurrPoints.uiEndIndex;
 
-                            auto xCurr = makeSparseCoords( rSparseCoords, vPoints, xCurrPoints, 1, xProg,
-                                                           uiAbsoluteStart, uiAbsoluteEnd );
+                            auto xCurr =
+                                makeSparseCoords( rSparseCoords, vPoints, xCurrPoints, 1, uiNumOverlaysPerDim[ uiI ],
+                                                  xProg, uiAbsoluteStart, uiAbsoluteEnd );
                             assert( rSparseCoords.axisSize( xCurr ) > 0 );
                             if( vSparseCoords[ uiI ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) ||
                                 rSparseCoords.axisSize( vSparseCoords[ uiI ] ) < rSparseCoords.axisSize( xCurr ) )
@@ -605,7 +1142,8 @@ template <typename type_defs> class Dataset
                         continue;
                     }
                 }
-                vSparseCoords[ uiI ] = makeSparseCoords( rSparseCoords, vPoints, xPoints, uiI, xProg );
+                vSparseCoords[ uiI ] =
+                    makeSparseCoords( rSparseCoords, vPoints, xPoints, uiI, uiNumOverlaysPerDim[ uiI ], xProg );
             }
             xProg << Verbosity( 2 );
             if( xProg.active( ) )
@@ -655,16 +1193,17 @@ template <typename type_defs> class Dataset
         }
         assert( vSplitPoints[ uiNumTotal - 1 ].uiEndIndex == xPoints.uiEndIndex );
     }
+#pragma GCC diagnostic pop
 
     Dataset( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
-             points_t& vPoints, typename points_t::Entry xPoints, progress_stream_t xProg )
+             points_t& vPoints, typename points_t::Entry xPoints, double fFac, progress_stream_t xProg )
         : vSparseCoords( ), xSparseCoordsDependantDimension( )
     {
         if( xPoints.uiEndIndex == xPoints.uiStartIndex )
             return;
         // generate the overall sparse coordinates
         xProg << Verbosity( 0 ) << "generating overlay grid.\n";
-        generateOverlayCoords( rOverlays, rSparseCoords, vPoints, xPoints, xProg );
+        generateOverlayCoords( rOverlays, rSparseCoords, vPoints, xPoints, fFac, xProg );
 
         xProg << Verbosity( 0 ) << "generating internal sparse coords.\n";
         coordinate_t uiSizeInternalPrefixSums =
@@ -859,8 +1398,7 @@ template <typename type_defs> class Dataset
     }
 
     sps_t getAll( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
-                  const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg
-    ) const
+                  const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg ) const
     {
         auto vSparsePos = overlayCoord( rSparseCoords, vPos );
 #if GET_PROG_PRINTS
@@ -873,8 +1411,55 @@ template <typename type_defs> class Dataset
             if( vSparsePos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
                 return sps_t{ };
         return rOverlays.get( vSparsePos, xOverlays )
-            .getAll( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( rSparseCoords, vSparsePos ), xProg
-            );
+            .getAll( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( rSparseCoords, vSparsePos ), xProg );
+    }
+
+    coordinate_t getNumInternalPrefixSums( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords ) const
+    {
+        coordinate_t uiRet = 0;
+        for( coordinate_t uiI = 0; uiI < rOverlays.sizeOf( xOverlays ); uiI++ )
+            uiRet += rOverlays.vData[ uiI + xOverlays.uiStartIndex ].getNumInternalPrefixSums( rSparseCoords );
+        return uiRet;
+    }
+
+    coordinate_t getNumOverlayPrefixSums( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords ) const
+    {
+        coordinate_t uiRet = 0;
+        for( coordinate_t uiI = 0; uiI < rOverlays.sizeOf( xOverlays ); uiI++ )
+            uiRet += rOverlays.vData[ uiI + xOverlays.uiStartIndex ].getNumOverlayPrefixSums( rSparseCoords );
+        return uiRet;
+    }
+
+    coordinate_t getNumInternalSparseCoords( const overlay_grid_t& rOverlays ) const
+    {
+        coordinate_t uiRet = 0;
+        for( coordinate_t uiI = 0; uiI < rOverlays.sizeOf( xOverlays ); uiI++ )
+            uiRet += rOverlays.vData[ uiI + xOverlays.uiStartIndex ].getNumInternalSparseCoords( );
+        return uiRet;
+    }
+
+    coordinate_t getNumOverlaySparseCoords( const overlay_grid_t& rOverlays ) const
+    {
+        coordinate_t uiRet = 0;
+        for( coordinate_t uiI = 0; uiI < rOverlays.sizeOf( xOverlays ); uiI++ )
+            uiRet += rOverlays.vData[ uiI + xOverlays.uiStartIndex ].getNumOverlaySparseCoords( );
+        return uiRet;
+    }
+
+    coordinate_t getNumGlobalSparseCoords( ) const
+    {
+        coordinate_t uiRet = 0;
+
+        if constexpr( !UNIFORM_OVERLAY_GRID )
+        {
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                if( uiI != 1 || !DEPENDANT_DIMENSION )
+                    uiRet += 1 + vSparseCoords[ uiI ].uiEndCord - vSparseCoords[ uiI ].uiStartCord;
+            if constexpr( DEPENDANT_DIMENSION )
+                uiRet += xSparseCoordsDependantDimension.uiNum * ( 1 + xSparseCoordsDependantDimension.uiEndCord -
+                                                                   xSparseCoordsDependantDimension.uiStartCord );
+        }
+        return uiRet;
     }
 
     friend std::ostream& operator<<( std::ostream& os, const Dataset& rDataset )
@@ -914,5 +1499,13 @@ template <typename type_defs> class Dataset
     }
 };
 
+template <typename type_defs> std::mt19937 Dataset<type_defs>::xGen = std::mt19937( std::random_device( )( ) );
+
+template <typename type_defs>
+Dataset<type_defs>::points_sort_func_t<typename Dataset<type_defs>::points_it_t,
+                                       typename Dataset<type_defs>::PointsComperatorDistinct>
+    Dataset<type_defs>::sort_points_distinct =
+        Dataset<type_defs>::points_sort_func_t<typename Dataset<type_defs>::points_it_t, //
+                                               typename Dataset<type_defs>::PointsComperatorDistinct>( );
 
 } // namespace sps

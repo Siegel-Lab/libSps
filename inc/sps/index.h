@@ -25,8 +25,8 @@
 #include <pybind11/stl.h>
 #endif
 
-#if DO_PROFILE
-#include <profiler.h>
+#ifdef DO_PROFILE
+#include <gperftools/profiler.h>
 #endif
 
 namespace sps
@@ -63,8 +63,9 @@ enum IntersectionType
  */
 template <typename type_defs> class Index : public AbstractIndex
 {
+  public:
     EXTRACT_TYPE_DEFS; // macro call
-
+  private:
     using point_t = Point<type_defs>;
 
     using points_t = Points<type_defs>;
@@ -213,10 +214,11 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     class_key_t generate( coordinate_t uiFrom = 0,
                           coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
+                          double fFac = -1,
                           size_t uiVerbosity = 1 )
     {
-#if DO_PROFILE
-        ProfilerStart("generate.prof");
+#ifdef DO_PROFILE
+        ProfilerStart( "gperftools.generate.prof" );
 #endif
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
@@ -228,12 +230,13 @@ template <typename type_defs> class Index : public AbstractIndex
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, xProg );
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, fFac, xProg );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
 
-#if DO_PROFILE
-        ProfilerStop();
+#ifdef DO_PROFILE
+        ProfilerFlush( );
+        ProfilerStop( );
 #endif
 #ifndef NDEBUG
         xProg << Verbosity( 1 ) << "\n\nMaximal prefix sum value: " << maxPrefixSumValue( ) << ".\n";
@@ -247,13 +250,9 @@ template <typename type_defs> class Index : public AbstractIndex
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     static inline __attribute__( ( always_inline ) ) void
     countSizeLimitedInvariant( size_t uiD, pos_t vPos, size_t uiDistToTo, IntersectionType xInterType,
-                               const dataset_vec_t& vDataSets, 
-                               const sparse_coord_t& vSparseCoord,
-                               const prefix_sum_grid_t& vPrefixSumGrid,
-                               const overlay_grid_t& vOverlayGrid,
-                               const class_key_t xDatasetId,
-                                val_t& uiRet
-    )
+                               const dataset_vec_t& vDataSets, const sparse_coord_t& vSparseCoord,
+                               const prefix_sum_grid_t& vPrefixSumGrid, const overlay_grid_t& vOverlayGrid,
+                               const class_key_t xDatasetId, val_t& uiRet )
     {
         for( size_t uiI = 0; uiI < D; uiI++ )
             --vPos[ uiI ];
@@ -304,7 +303,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
         uiRet += uiCurr * uiFac;
     }
-    
+
 #pragma GCC diagnostic pop
 
     static inline __attribute__( ( always_inline ) ) bool
@@ -334,8 +333,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #if GET_PROG_PRINTS
                                 uiVerbosity
 #endif
-                            = 0
-    ) const
+                            = 0 ) const
     {
 #if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
@@ -344,10 +342,8 @@ template <typename type_defs> class Index : public AbstractIndex
 #pragma GCC diagnostic push
 // uiD unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-        forAllCombinationsTmpl<pos_t>( vFrom, vTo, countSizeLimitedInvariant, countSizeLimitedInvariantCond,
-                                        xInterType, vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid, xDatasetId,
-                                        uiRet
-        );
+        forAllCombinationsTmpl<pos_t>( vFrom, vTo, countSizeLimitedInvariant, countSizeLimitedInvariantCond, xInterType,
+                                       vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid, xDatasetId, uiRet );
 #pragma GCC diagnostic pop
         return uiRet;
     }
@@ -365,8 +361,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
     val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR,
-                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
-    ) const
+                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
     {
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
@@ -390,19 +385,20 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return std::vector<val_t> The number of points in dataset_id between from_pos and to_pos for each given region.
      */
     std::vector<val_t> countMultiple( class_key_t xDatasetId, std::vector<std::pair<ret_pos_t, ret_pos_t>> vRegions,
-                                      IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0
-    ) const
+                                      IntersectionType xInterType = IntersectionType::enclosed,
+                                      size_t uiVerbosity = 0 ) const
     {
-#if DO_PROFILE
-        ProfilerStart("countMultiple.prof");
+#ifdef DO_PROFILE
+        ProfilerStart( "gperftools.countMultiple.prof" );
 #endif
 
         std::vector<val_t> vRet( vRegions.size( ) );
 
         for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
             vRet[ uiI ] = count( xDatasetId, vRegions[ uiI ].first, vRegions[ uiI ].second, xInterType, uiVerbosity );
-#if DO_PROFILE
-        ProfilerStop();
+#ifdef DO_PROFILE
+        ProfilerFlush( );
+        ProfilerStop( );
 #endif
         return vRet;
     }
@@ -419,6 +415,78 @@ template <typename type_defs> class Index : public AbstractIndex
                 uiMax = std::max( uiMax, rSps );
         }
         return uiMax;
+    }
+
+    coordinate_t getNumInternalPrefixSums( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumInternalPrefixSums( vOverlayGrid, vSparseCoord );
+    }
+
+    coordinate_t getNumOverlayPrefixSums( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumOverlayPrefixSums( vOverlayGrid, vSparseCoord );
+    }
+
+    coordinate_t getNumInternalSparseCoords( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumInternalSparseCoords( vOverlayGrid );
+    }
+
+    coordinate_t getNumOverlaySparseCoords( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumOverlaySparseCoords( vOverlayGrid );
+    }
+
+    coordinate_t getNumGlobalSparseCoords( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumGlobalSparseCoords( );
+    }
+
+    std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    estimateDataStructureElements( double fFac, coordinate_t uiFrom = 0,
+                                             coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    {
+
+        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
+            uiTo = numPoints( );
+        typename points_t::Entry xPoints;
+        xPoints.uiStartIndex = uiFrom;
+        xPoints.uiEndIndex = uiTo;
+        return dataset_t::estimateDataStructureElements( vPoints, xPoints, fFac );
+    }
+
+    uint64_t estimateDataStructureSize( double fFac, coordinate_t uiFrom = 0,
+                                                  coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    {
+
+        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
+            uiTo = numPoints( );
+        typename points_t::Entry xPoints;
+        xPoints.uiStartIndex = uiFrom;
+        xPoints.uiEndIndex = uiTo;
+        return dataset_t::estimateDataStructureSize( vPoints, xPoints, fFac );
+    }
+
+    uint64_t pickNumOverlays( coordinate_t uiFrom = 0,
+                                        coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    {
+        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
+            uiTo = numPoints( );
+        typename points_t::Entry xPoints;
+        xPoints.uiStartIndex = uiFrom;
+        xPoints.uiEndIndex = uiTo;
+        return dataset_t::pickNumOverlays( vPoints, xPoints );
+    }
+
+    double toFactor( uint64_t uiNumOverlays, coordinate_t uiFrom = 0,
+                                      coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    {
+        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
+            uiTo = numPoints( );
+        typename points_t::Entry xPoints;
+        xPoints.uiStartIndex = uiFrom;
+        xPoints.uiEndIndex = uiTo;
+        return dataset_t::toFactor( vPoints, xPoints, uiNumOverlays );
     }
 
     /**
@@ -619,6 +687,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               &sps::Index<type_defs>::generate,
               pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
+              pybind11::arg( "factor" ) = 0,
               pybind11::arg( "verbosity" ) = 1,
               R"pbdoc(
     Generate a new dataset.
@@ -734,6 +803,15 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )
         .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
+        .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, "" )
+        .def( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, "" )
+        .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays )
+        .def( "to_factor", &sps::Index<type_defs>::toFactor )
+        .def( "get_num_internal_prefix_sums", &sps::Index<type_defs>::getNumInternalPrefixSums )
+        .def( "get_num_overlay_prefix_sums", &sps::Index<type_defs>::getNumOverlayPrefixSums )
+        .def( "get_num_internal_sparse_coords", &sps::Index<type_defs>::getNumInternalSparseCoords )
+        .def( "get_num_overlay_sparse_coords", &sps::Index<type_defs>::getNumOverlaySparseCoords )
+        .def( "get_num_global_sparse_coords", &sps::Index<type_defs>::getNumGlobalSparseCoords )
 
         ;
     return "    " + sName + "\n";

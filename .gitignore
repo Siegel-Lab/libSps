@@ -2,6 +2,7 @@ build_rel/*
 build_dbg/*
 build_test/*
 build_benchmark/*
+build/*
 *.bin
 test/*
 stxxl.errlog
@@ -11,3 +12,5 @@ libsps.pdf
 slurm_*
 core.*
 callgrind.out.*
+settings.json
+*.prof

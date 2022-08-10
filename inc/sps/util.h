@@ -173,5 +173,4 @@ template <typename C_T> class AlignedPower2 : public POWER_2_COND( C_T )
 const std::string CLRLN = "\r\033[K";
 
 
-
 } // namespace sps
