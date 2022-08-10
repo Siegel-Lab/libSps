@@ -119,7 +119,7 @@ template <typename type_defs> class Index : public AbstractIndex
     void clear( )
     {
         vPoints.clear( );
-        clearKeepPoints();
+        clearKeepPoints( );
     }
 
     /**
@@ -413,6 +413,7 @@ template <typename type_defs> class Index : public AbstractIndex
         return vRet;
     }
 
+  private:
     val_t maxPrefixSumValue( ) const
     {
         val_t uiMax = 0;
@@ -427,31 +428,91 @@ template <typename type_defs> class Index : public AbstractIndex
         return uiMax;
     }
 
+  public:
+    /**
+     * @brief Count the number of internal prefix sums stored in the dataset with id dataset_id.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return coordinate_t number of internal prefix sums
+     */
     coordinate_t getNumInternalPrefixSums( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getNumInternalPrefixSums( vOverlayGrid, vSparseCoord );
     }
 
+    /**
+     * @brief Count the number of overlay prefix sums stored in the dataset with id dataset_id.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return coordinate_t number of overlay prefix sums
+     */
     coordinate_t getNumOverlayPrefixSums( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getNumOverlayPrefixSums( vOverlayGrid, vSparseCoord );
     }
 
+    /**
+     * @brief Count the number of internal sparse coordinates stored in the dataset with id dataset_id.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return coordinate_t number of internal sparse coordinates
+     */
     coordinate_t getNumInternalSparseCoords( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getNumInternalSparseCoords( vOverlayGrid );
     }
 
+    /**
+     * @brief Count the number of overlay sparse coordinates stored in the dataset with id dataset_id.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return coordinate_t number of overlay sparse coordinates
+     */
     coordinate_t getNumOverlaySparseCoords( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getNumOverlaySparseCoords( vOverlayGrid );
     }
 
+    /**
+     * @brief Count the number of global sparse coordinates stored in the dataset with id dataset_id.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return coordinate_t number of global sparse coordinates
+     */
     coordinate_t getNumGlobalSparseCoords( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getNumGlobalSparseCoords( );
     }
 
+    /**
+     * @brief Predict the number of data structure elements stored in a dataset.
+     *
+     * @details
+     *
+     * Here f is proportional to the number of boxes used in the data structure.
+     * For any dataset, there is an optimal value for f that leads to the minimal data structure size.
+     * Since the data structure size is proportional to the time required to build the datastructure this also minimizes
+     * construction time.
+     *
+     * The purpose of this function is to find the optimal value for f.
+     *
+     * Uses a statistical approach to predict the number of elements.
+     * For details see the corresponding github page or our manuscript.
+     *
+     * There are five values predicted:
+     * - The number of internal prefix sums
+     * - The number of overlay prefix sums
+     * - The number of internal sparse coordinates
+     * - The number of overlay sparse coordinates
+     * - The number of global sparse coordinates
+     *
+     *
+     * @param fFac factor that is proportional to the number of boxes within the data structure
+     * @param uiFrom index of first point that shall be included in the dataset
+     * @param uiTo ndex of first point that shall not be included in the dataset anymore
+     * @return std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t> The predicted number of dataset
+     * structure elements
+     */
     std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
     estimateDataStructureElements( double fFac, coordinate_t uiFrom = 0,
                                    coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
@@ -465,6 +526,19 @@ template <typename type_defs> class Index : public AbstractIndex
         return dataset_t::estimateDataStructureElements( vPoints, xPoints, fFac );
     }
 
+    /**
+     * @brief Predict the size of the data structure.
+     *
+     * @details
+     *
+     * See estimate_num_elements for a detailed description.
+     * This merely adds the predicted values together and converts to storage size in bytes.
+     *
+     * @param fFac factor that is proportional to the number of boxes within the data structure
+     * @param uiFrom index of first point that shall be included in the dataset
+     * @param uiTo index of first point that shall not be included in the dataset anymore
+     * @return uint64_t The predicted size of the datastructure in bytes
+     */
     uint64_t estimateDataStructureSize( double fFac, coordinate_t uiFrom = 0,
                                         coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
@@ -477,6 +551,18 @@ template <typename type_defs> class Index : public AbstractIndex
         return dataset_t::estimateDataStructureSize( vPoints, xPoints, fFac );
     }
 
+    /**
+     * @brief Predict the best f.
+     *
+     * @details
+     *
+     * Here f is a factor proportional to the number of boxes used in the data structure.
+     * See estimate_num_elements for a detailed description.
+     *
+     * @param uiFrom index of first point that shall be included in the dataset
+     * @param uiTo index of first point that shall not be included in the dataset anymore
+     * @return uint64_t The predicted best value for f
+     */
     uint64_t pickNumOverlays( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
@@ -487,6 +573,19 @@ template <typename type_defs> class Index : public AbstractIndex
         return dataset_t::pickNumOverlays( vPoints, xPoints );
     }
 
+    /**
+     * @brief Convert a given number of overlay blocks to the factor f.
+     *
+     * @details
+     *
+     * Here f is a factor proportional to the number of boxes used in the data structure.
+     * See estimate_num_elements for a detailed description.
+     *
+     * @param uiNumOverlays number of overlay blocks
+     * @param uiFrom index of first point that shall be included in the dataset
+     * @param uiTo index of first point that shall not be included in the dataset anymore
+     * @return double f
+     */
     double toFactor( uint64_t uiNumOverlays, coordinate_t uiFrom = 0,
                      coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
@@ -534,6 +633,12 @@ template <typename type_defs> class Index : public AbstractIndex
         return os;
     }
 
+    /**
+     * @brief Return information about the overlay boxes.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return std::vector<typename dataset_t::OverlayInfo> information about all overlays
+     */
     std::vector<typename dataset_t::OverlayInfo> getOverlayInfo( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getOverlayInfo( vOverlayGrid, vSparseCoord, vPoints );
@@ -596,10 +701,22 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     .. automethod:: add_point
     .. automethod:: generate
     .. automethod:: count
+    .. automethod:: count_size_limited
     .. automethod:: count_multiple
     .. automethod:: __str__
     .. automethod:: __len__
     .. automethod:: clear
+    .. automethod:: clear_keep_points
+    .. automethod:: __get_overlay_info
+    .. automethod:: get_overlay_grid
+    .. automethod:: estimate_num_elements
+    .. automethod:: pick_num_overlays
+    .. automethod:: to_factor
+    .. automethod:: get_num_internal_prefix_sums
+    .. automethod:: get_num_overlay_prefix_sums
+    .. automethod:: get_num_internal_sparse_coords
+    .. automethod:: get_num_overlay_sparse_coords
+    .. automethod:: get_num_global_sparse_coords
 )pbdoc" )
                                                                            .c_str( ) );
 
@@ -809,8 +926,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               "Return the maximal stored prefix sum. Intended for storage space optimization purposes." )
         .def( "__len__", &sps::Index<type_defs>::numPoints, "Total number of points (among all datasets)." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
-        .def( "clear_keep_points", &sps::Index<type_defs>::clearKeepPoints, "Clear the complete index." )
-        .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )
+        .def( "clear_keep_points", &sps::Index<type_defs>::clearKeepPoints,
+              "Clear the index datasets, but keep the points." )
+        .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo,
+              "Return information about the overlay boxes." )
         .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
         .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, pybind11::arg( "f" ),
@@ -828,11 +947,12 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     Uses a statistical approach to predict the number of elements.
     For details see the corresponding github page or our manuscript.
 
-    There are four values predicted:
+    There are five values predicted:
     - The number of internal prefix sums
     - The number of overlay prefix sums
     - The number of internal sparse coordinates
     - The number of overlay sparse coordinates
+    - The number of global sparse coordinates
 
     :param f: factor that is proportional to the number of boxes within the data structure
     :type f: float
@@ -842,6 +962,9 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 
     :param to_points: index of first point that shall not be included in the dataset anymore
     :type f: int
+
+    :return: The predicted number of dataset structure elements
+    :rtype: list[int[int]]
 )pbdoc" )
         .def( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, pybind11::arg( "f" ),
               pybind11::arg( "from_points" ) = 0,
@@ -860,14 +983,104 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 
     :param to_points: index of first point that shall not be included in the dataset anymore
     :type f: int
+
+    :return: The predicted size of the datastructure in bytes
+    :rtype: int
 )pbdoc" )
-        .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays )
-        .def( "to_factor", &sps::Index<type_defs>::toFactor )
-        .def( "get_num_internal_prefix_sums", &sps::Index<type_defs>::getNumInternalPrefixSums )
-        .def( "get_num_overlay_prefix_sums", &sps::Index<type_defs>::getNumOverlayPrefixSums )
-        .def( "get_num_internal_sparse_coords", &sps::Index<type_defs>::getNumInternalSparseCoords )
-        .def( "get_num_overlay_sparse_coords", &sps::Index<type_defs>::getNumOverlaySparseCoords )
-        .def( "get_num_global_sparse_coords", &sps::Index<type_defs>::getNumGlobalSparseCoords )
+        .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays, pybind11::arg( "from_points" ) = 0,
+              pybind11::arg( "to_points" ) = std::numeric_limits<coordinate_t>::max( ),
+              R"pbdoc(
+    Predict the best f.
+
+    Here f is a factor proportional to the number of boxes used in the data structure.
+    See estimate_num_elements for a detailed description. 
+
+    :param from_points: index of first point that shall be included in the dataset
+    :type f: int
+
+    :param to_points: index of first point that shall not be included in the dataset anymore
+    :type f: int
+
+    :return: The predicted best value for f.
+    :rtype: float
+)pbdoc" )
+        .def( "to_factor", &sps::Index<type_defs>::toFactor, pybind11::arg( "num_overlays" ),
+              pybind11::arg( "from_points" ) = 0,
+              pybind11::arg( "to_points" ) = std::numeric_limits<coordinate_t>::max( ),
+              R"pbdoc(
+    Convert a given number of overlay blocks to the factor f.
+
+    Here f is a factor proportional to the number of boxes used in the data structure.
+    See estimate_num_elements for a detailed description. 
+
+    :param num_overlays: number of overlay blocks
+    :type f: int
+
+    :param from_points: index of first point that shall be included in the dataset
+    :type f: int
+
+    :param to_points: index of first point that shall not be included in the dataset anymore
+    :type f: int
+
+    :return: f.
+    :rtype: float
+)pbdoc" )
+        .def( "get_num_internal_prefix_sums", &sps::Index<type_defs>::getNumInternalPrefixSums,
+              pybind11::arg( "dataset_id" ),
+              R"pbdoc(
+    Count the number of internal prefix sums stored in the dataset with id dataset_id.
+
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+
+    :return: number of internal prefix sums.
+    :rtype: int
+)pbdoc" )
+        .def( "get_num_overlay_prefix_sums", &sps::Index<type_defs>::getNumOverlayPrefixSums,
+              pybind11::arg( "dataset_id" ),
+              R"pbdoc(
+    Count the number of overlay prefix sums stored in the dataset with id dataset_id.
+
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+
+    :return: number of overlay prefix sums.
+    :rtype: int
+)pbdoc" )
+        .def( "get_num_internal_sparse_coords", &sps::Index<type_defs>::getNumInternalSparseCoords,
+              pybind11::arg( "dataset_id" ),
+              R"pbdoc(
+    Count the number of internal sparse coordinates stored in the dataset with id dataset_id.
+
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+
+    :return: number of internal sparse coordinates.
+    :rtype: int
+)pbdoc" )
+        .def( "get_num_overlay_sparse_coords", &sps::Index<type_defs>::getNumOverlaySparseCoords,
+              pybind11::arg( "dataset_id" ),
+              R"pbdoc(
+    Count the number of overlay sparse coordinates stored in the dataset with id dataset_id.
+
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+
+    :return: number of overlay sparse coordinates.
+    :rtype: int
+)pbdoc" )
+        .def( "get_num_global_sparse_coords", &sps::Index<type_defs>::getNumGlobalSparseCoords,
+              pybind11::arg( "dataset_id" ),
+              R"pbdoc(
+    Count the number of global sparse coordinates stored in the dataset with id dataset_id.
+
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+
+    :return: number of global sparse coordinates.
+    :rtype: int
+)pbdoc" )
+
 
         ;
     return "    " + sName + "\n";
