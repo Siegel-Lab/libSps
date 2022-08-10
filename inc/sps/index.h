@@ -26,7 +26,7 @@
 #endif
 
 #if DO_PROFILE
-#include <gperftools/profiler.h>
+#include <profiler.h>
 #endif
 
 namespace sps

@@ -17,16 +17,16 @@ option(WO_DEPENDENT_DIM "Build datastructures without dependent dimension." ON)
 option(W_UNIFORM_OVERLAY_GRID "Build datastructures with a uniform olerlay grid." OFF)
 option(WO_UNIFORM_OVERLAY_GRID "Build datastructures without a uniform olerlay grid." ON)
 
-option(W_CUBES "" OFF)
-option(W_RECTANGLES "" OFF)
-option(W_INTERVALS "" OFF)
-option(W_POINTS "" ON)
+option(W_CUBES "Build datastructures with cubes as data-elements" OFF)
+option(W_RECTANGLES "Build datastructures with rectangles as data-elements" OFF)
+option(W_INTERVALS "Build datastructures with intervals as data-elements" OFF)
+option(W_POINTS "Build datastructures with points as data-elements" ON)
 
 option(DISK "Build disk based datastructures (IO on load & unload)." OFF)
 option(CACHED "Build cached datastructures (IO during runtime)." ON)
 option(RAM "Build ram datastructures (Non-persistent)." ON)
 
-option(DO_PROFILE "Add profileing code to the llibrary. Uses gperftools." Off)
+option(DO_PROFILE "Add profileing code to the llibrary. Uses gperftools." OFF)
 
 # disallow in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -95,6 +95,9 @@ if(WITH_PYTHON)
     target_compile_definitions( Sps PRIVATE NUM_DIMENSIONS_D=${NUM_DIMENSIONS_D} )
 
     if(${DO_PROFILE})
+        message(STATUS "Linking to profiling library.")
+        # expecting conda install
+        target_include_directories( Sps PUBLIC $ENV{CONDA_PREFIX}/include/gperftools )
         target_compile_definitions( Sps PRIVATE DO_PROFILE )
         target_link_libraries( Sps PUBLIC profiler )
     endif()
@@ -138,7 +141,6 @@ if(WITH_PYTHON)
     target_link_libraries( Sps PUBLIC stxxl )
     target_include_directories( Sps PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
     add_dependencies(Sps config_version)
-    #target_link_libraries( Sps PUBLIC -lpthread )
 endif()
 
 # build a cpp only test project (this wll show any linker errors that might be hidden with the python build)
@@ -148,10 +150,9 @@ target_include_directories( test SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
 target_link_libraries(test PUBLIC stxxl )
 target_include_directories( test PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
 add_dependencies(test config_version config_build_time)
-#target_link_libraries(test PUBLIC -lpthread )
+
 
 # Documentation setup
-
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake) 
 find_package(Doxygen)
 find_package(Sphinx)
