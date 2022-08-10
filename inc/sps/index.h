@@ -444,7 +444,7 @@ template <typename type_defs> class Index : public AbstractIndex
 
     std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
     estimateDataStructureElements( double fFac, coordinate_t uiFrom = 0,
-                                             coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+                                   coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
 
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
@@ -456,7 +456,7 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
     uint64_t estimateDataStructureSize( double fFac, coordinate_t uiFrom = 0,
-                                                  coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+                                        coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
 
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
@@ -467,8 +467,7 @@ template <typename type_defs> class Index : public AbstractIndex
         return dataset_t::estimateDataStructureSize( vPoints, xPoints, fFac );
     }
 
-    uint64_t pickNumOverlays( coordinate_t uiFrom = 0,
-                                        coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    uint64_t pickNumOverlays( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
@@ -479,7 +478,7 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
     double toFactor( uint64_t uiNumOverlays, coordinate_t uiFrom = 0,
-                                      coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+                     coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
@@ -800,11 +799,58 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               "Return the maximal stored prefix sum. Intended for storage space optimization purposes." )
         .def( "__len__", &sps::Index<type_defs>::numPoints, "Total number of points (among all datasets)." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
-        .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo )
+        .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo,
+              "Clear the index, but keep the stored points." )
         .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
-        .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, "" )
-        .def( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, "" )
+        .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, pybind11::arg( "f" ),
+              pybind11::arg( "from_points" ) = 0,
+              pybind11::arg( "to_points" ) = std::numeric_limits<coordinate_t>::max( ),
+              R"pbdoc(
+    Predict the number of data structure elements stored in a dataset.
+
+    Here f is proportional to the number of boxes used in the data structure.
+    For any dataset, there is an optimal value for f that leads to the minimal data structure size.
+    Since the data structure size is proportional to the time required to build the datastructure this also minimizes construction time.
+
+    The purpose of this function is to find the optimal value for f.
+
+    Uses a statistical approach to predict the number of elements.
+    For details see the corresponding github page or our manuscript.
+
+    There are four values predicted:
+    - The number of internal prefix sums
+    - The number of overlay prefix sums
+    - The number of internal sparse coordinates
+    - The number of overlay sparse coordinates
+
+    :param f: factor that is proportional to the number of boxes within the data structure
+    :type f: float
+
+    :param from_points: index of first point that shall be included in the dataset
+    :type f: int
+
+    :param to_points: index of first point that shall not be included in the dataset anymore
+    :type f: int
+)pbdoc" )
+        .def( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, pybind11::arg( "f" ),
+              pybind11::arg( "from_points" ) = 0,
+              pybind11::arg( "to_points" ) = std::numeric_limits<coordinate_t>::max( ),
+              R"pbdoc(
+    Predict the size of the data structure.
+
+    See estimate_num_elements for a detailed description. 
+    This merely adds the predicted values together and converts to storage size in bytes.
+
+    :param f: factor that is proportional to the number of boxes within the data structure
+    :type f: float
+
+    :param from_points: index of first point that shall be included in the dataset
+    :type f: int
+
+    :param to_points: index of first point that shall not be included in the dataset anymore
+    :type f: int
+)pbdoc" )
         .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays )
         .def( "to_factor", &sps::Index<type_defs>::toFactor )
         .def( "get_num_internal_prefix_sums", &sps::Index<type_defs>::getNumInternalPrefixSums )

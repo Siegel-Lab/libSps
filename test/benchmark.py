@@ -96,12 +96,17 @@ def fill(n, index, name, dims, is_ort, density, distrib, asp_ratio, offset):
                     histo[x] = 0
                 print(x, "\t", histo[x], "\t", "*"*histo[x])
 
+    ret = 1
+    for r in [max(p[d] for p in pts) - min(p[d] for p in pts) for d in range(dims)]:
+        ret = ret * r
+    return ret
+
 def make_indices():
     indices = []
     index_names = []
     params = []
-    for dims in [2]: #[2, 3]:
-        for ort_dim in [False]: #[False, True]:
+    for dims in [2, 3]:
+        for ort_dim in [False, True]:
             num_ort_dims = dims if ort_dim else 0
             for storage in ["Disk"]: #["Disk", "Cached"]:
                 for uniform_overlay_grid in [True]: #[False, True]:
@@ -137,9 +142,9 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
     for _n in range(MIN_FILL, MAX_FILL):
         n = 10**_n
         for offset in [0, 100]:
-            for density in [1]: #[0.1, 1, 10]:
-                for asp_ratio in [1]: #[1, 10]:
-                    for distrib in ["even"]: #["even", "dist_dep_dec", "diagonal", "log_norm"]:
+            for density in [0.1, 1, 10]:
+                for asp_ratio in [1, 10]:
+                    for distrib in ["even", "dist_dep_dec", "diagonal", "log_norm"]:
                         for index_params, name, param in zip(indices, index_names, params):
                             ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps = ([], [], [], [], [], [], 
                                                                                             [], [], [], [], [], [], [])
@@ -150,25 +155,23 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                             for _fac in range(0, 10):
                                 fac = fac_base ** _fac - 1
                                 index = make_sps_index(*index_params)
-                                fill(n, index, name if _n == MIN_FILL else [""]*6, *param, density, distrib, asp_ratio,
-                                     offset)
+                                num_cells = fill(n, index, name if _n == MIN_FILL else [""]*6, *param, 
+                                                 density, distrib, asp_ratio, offset)
 
                                 if _fac == 0:
                                     picked_num = index.pick_num_overlays(0, len(index))
                                     picked_size = index.estimate_size( 
-                                                                index.to_factor(picked_num, 0, len(index)),
-                                                                0, len(index)) / 10**9 # in GB
+                                            index.to_factor(picked_num, 0, len(index)),
+                                            0, len(index)) / 10**9 # in GB
                                     picked_size_s = index.estimate_size( 
-                                                        index.to_factor(int(n ** ( 1/(param[0]+param[1])) ),
-                                                                                    0, len(index)),
-                                                        0, len(index)) / 10**9 # in GB
+                                            index.to_factor(int(num_cells ** ( 1/(param[0]+param[1])) ), 0, len(index)),
+                                            0, len(index)) / 10**9 # in GB
                                     picked_size_g = index.estimate_size( 
-                                                                        index.to_factor(int(n ** ( 1/2 )),
-                                                                                                    0, len(index)),
-                                                                        0, len(index)) / 10**9 # in GB
+                                            index.to_factor(int(num_cells ** ( 1/2 )), 0, len(index)),
+                                            0, len(index)) / 10**9 # in GB
 
                                 file_size_estimate = index.estimate_size(fac, 0, 
-                                                                            len(index)) / 10**9 # in GB
+                                                                         len(index)) / 10**9 # in GB
                                 fsp.append(file_size_estimate)
 
                                 if file_size_estimate < max_pred_file_size:
@@ -243,7 +246,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     plot_ls.circle(x=xs, y=las, fill_color="green", line_color=None, size=8)
                                     plot_ls.circle(x=xs, y=lps, fill_color=None, line_color="red", size=8)
                                 
-                                    plot_fs = figure(x_axis_type=axis_type)
+                                    plot_fs = figure(x_axis_type=axis_type, y_axis_type="log")
                                     act = plot_fs.circle(x=xs, y=fsa, fill_color="green", line_color=None, size=8)
                                     pred = plot_fs.circle(x=xs, y=fsp, fill_color=None, line_color="red", size=8)
                                     
@@ -253,14 +256,14 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     plot_fs.add_layout(Label(x=picked_num + 1, y=230, y_units='screen', text="libSps",
                                                             background_fill_color="white", background_fill_alpha=1.0,
                                                             level="overlay"))
-                                    x_pos = n ** ( 1/(param[0]+param[1]) )
+                                    x_pos = num_cells ** ( 1/(param[0]+param[1]) )
                                     plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_s,
                                                                     line_color='black', fill_color=None,
                                                                     line_dash='dotted', line_width=1, line_alpha=1))
                                     plot_fs.add_layout(Label(x=x_pos + 1, y=210, y_units='screen', text="Shekelyan et al.",
                                                             background_fill_color="white", background_fill_alpha=1.0,
                                                                                     level="overlay"))
-                                    x_pos = n ** ( 1/2 )
+                                    x_pos = num_cells ** ( 1/2 )
                                     plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_g,
                                                                     line_color='black', fill_color=None,
                                                                     line_dash='dashed', line_width=1, line_alpha=1))
