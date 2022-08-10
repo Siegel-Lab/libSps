@@ -42,24 +42,24 @@ def enumerate_all_combinations(a, b):
     else:
         yield []
 
-def fill(n, index, name, dims, is_ort, density, distrib, asp_ratio):
+def fill(n, index, name, dims, is_ort, density, distrib, asp_ratio, offset):
     index.clear()
     t1 = time.perf_counter()
     pts = []
     for _ in range(n):
         if distrib == "log_norm":
-            x = int(random.lognormvariate(0, 1)* density / asp_ratio)
+            x = int(random.lognormvariate(0, 1)* density / asp_ratio) + offset
         else:
-            x = random.randrange(int(n * density / asp_ratio))
+            x = random.randrange(int(n * density / asp_ratio)) + offset
 
         if distrib == "diagonal":
             y = x
         elif distrib == "dist_dep_dec":
             y = min(max(0, int(abs(random.normalvariate(0, 10))) + x), int(n * density * asp_ratio))
         elif distrib == "log_norm":
-            y = int(random.lognormvariate(0, 1) * density * asp_ratio)
+            y = int(random.lognormvariate(0, 1) * density * asp_ratio) + offset
         else:
-            y = random.randrange(int(n * density * asp_ratio))
+            y = random.randrange(int(n * density * asp_ratio)) + offset
         pos_s = [x, y]
         for _ in range(2, dims):
             pos_s.append(random.randrange(int(n * density * asp_ratio)))
@@ -100,11 +100,11 @@ def make_indices():
     indices = []
     index_names = []
     params = []
-    for dims in [2, 3]:
-        for ort_dim in [False, True]:
+    for dims in [2]: #[2, 3]:
+        for ort_dim in [False]: #[False, True]:
             num_ort_dims = dims if ort_dim else 0
             for storage in ["Disk"]: #["Disk", "Cached"]:
-                for uniform_overlay_grid in [False, True]:
+                for uniform_overlay_grid in [True]: #[False, True]:
                     for dep_dim in ([False] if uniform_overlay_grid else [False, True]):
                         xs = [
                             str(dims) + "d", 
@@ -136,161 +136,163 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                   Div(text="<b>total file size error</b>", align="center")])
     for _n in range(MIN_FILL, MAX_FILL):
         n = 10**_n
-        for density in [0.1, 1, 10]:
-            for asp_ratio in [1, 10]:
-                for distrib in ["even", "dist_dep_dec", "diagonal", "log_norm"]:
-                    for index_params, name, param in zip(indices, index_names, params):
-                        ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps = ([], [], [], [], [], [], 
-                                                                                        [], [], [], [], [], [], [])
-                        xs = []
-                        actual_left = float('inf')
-                        actual_right = 0
-                        print(*name, "n=", n, "s=", int(n*density), distrib, "a=", asp_ratio)
-                        for _fac in range(0, 10):
-                            fac = fac_base ** _fac - 1
-                            index = make_sps_index(*index_params)
-                            fill(n, index, name if _n == MIN_FILL else [""]*6, *param, density, distrib, asp_ratio)
+        for offset in [0, 100]:
+            for density in [1]: #[0.1, 1, 10]:
+                for asp_ratio in [1]: #[1, 10]:
+                    for distrib in ["even"]: #["even", "dist_dep_dec", "diagonal", "log_norm"]:
+                        for index_params, name, param in zip(indices, index_names, params):
+                            ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps = ([], [], [], [], [], [], 
+                                                                                            [], [], [], [], [], [], [])
+                            xs = []
+                            actual_left = float('inf')
+                            actual_right = 0
+                            print(*name, "n=", n, "s=", int(n*density), distrib, "a=", asp_ratio, "o=", offset)
+                            for _fac in range(0, 10):
+                                fac = fac_base ** _fac - 1
+                                index = make_sps_index(*index_params)
+                                fill(n, index, name if _n == MIN_FILL else [""]*6, *param, density, distrib, asp_ratio,
+                                     offset)
 
-                            if _fac == 0:
-                                picked_num = index.pick_num_overlays(0, len(index))
-                                picked_size = index.estimate_size( 
-                                                            index.to_factor(picked_num, 0, len(index)),
-                                                            0, len(index)) / 10**9 # in GB
-                                picked_size_s = index.estimate_size( 
-                                                    index.to_factor(int(n ** ( 1/(param[0]+param[1])) ),
-                                                                                0, len(index)),
-                                                    0, len(index)) / 10**9 # in GB
-                                picked_size_g = index.estimate_size( 
-                                                                    index.to_factor(int(n ** ( 1/2 )),
-                                                                                                0, len(index)),
-                                                                    0, len(index)) / 10**9 # in GB
+                                if _fac == 0:
+                                    picked_num = index.pick_num_overlays(0, len(index))
+                                    picked_size = index.estimate_size( 
+                                                                index.to_factor(picked_num, 0, len(index)),
+                                                                0, len(index)) / 10**9 # in GB
+                                    picked_size_s = index.estimate_size( 
+                                                        index.to_factor(int(n ** ( 1/(param[0]+param[1])) ),
+                                                                                    0, len(index)),
+                                                        0, len(index)) / 10**9 # in GB
+                                    picked_size_g = index.estimate_size( 
+                                                                        index.to_factor(int(n ** ( 1/2 )),
+                                                                                                    0, len(index)),
+                                                                        0, len(index)) / 10**9 # in GB
 
-                            file_size_estimate = index.estimate_size(fac, 0, 
-                                                                        len(index)) / 10**9 # in GB
-                            fsp.append(file_size_estimate)
+                                file_size_estimate = index.estimate_size(fac, 0, 
+                                                                            len(index)) / 10**9 # in GB
+                                fsp.append(file_size_estimate)
 
-                            if file_size_estimate < max_pred_file_size:
-                                id = index.generate(0, len(index), fac, verbosity=0)
-                                query(index, id, param[0], n)
-                                ipsa = index.get_num_internal_prefix_sums(id)
-                                ipsas.append(ipsa)
-                                opsa = index.get_num_overlay_prefix_sums(id)
-                                opsas.append(opsa)
-                                isca = index.get_num_internal_sparse_coords(id)
-                                iscas.append(isca)
-                                osca = index.get_num_overlay_sparse_coords(id)
-                                oscas.append(osca)
-                                la = index.get_num_global_sparse_coords(id)
-                                las.append(la)
-                            else:
-                                ipsas.append(float('NaN'))
-                                opsas.append(float('NaN'))
-                                iscas.append(float('NaN'))
-                                oscas.append(float('NaN'))
-                                las.append(float('NaN'))
-                            
-                            opsp, ipsp, oscp, iscp, num_overlays, lp = index.estimate_num_elements(
-                                                                                fac, 0, len(index))
-                            opsps.append(opsp)
-                            ipsps.append(ipsp)
-                            oscps.append(oscp)
-                            iscps.append(iscp)
-                            lps.append(lp)
-                            xs.append(num_overlays)
-                            del index
-                            if file_size_estimate < max_pred_file_size:
-                                actual_left = min(actual_left, num_overlays)
-                                actual_right = max(actual_right, num_overlays)
-                                file_size = sum(os.path.getsize("test/benchmark_index" + f) for f in files)  / 10**9 # in GB
-                                fsa.append(file_size)
-                                eps.append(file_size_estimate/file_size)
-                            else:
-                                fsa.append(float('NaN'))
-                                eps.append(float('NaN'))
-                            
-                            #print(file_size / 10**9, file_size_estimate / 10**9, (file_size - file_size_estimate) / 10**9, sep="\t")
-                            for f in files_full:
-                                os.remove("test/benchmark_index" + f)
-                            if file_size_estimate < max_pred_file_size:
-                                print(".", end="", flush=True)
-                            else:
-                                print("!", end="", flush=True)
-                        print()
-                        if plot:
-                            for axis_type in ["log"]: #["linear", "log"]:
-                                plot_ips = figure(x_axis_type=axis_type)
-                                plot_ips.circle(x=xs, y=ipsas, legend_label="actual", fill_color="green", 
-                                                line_color=None, size=8)
-                                plot_ips.circle(x=xs, y=ipsps, legend_label="predicted", fill_color=None, 
-                                                line_color="red", size=8)
+                                if file_size_estimate < max_pred_file_size:
+                                    id = index.generate(0, len(index), fac, verbosity=0)
+                                    query(index, id, param[0], n)
+                                    ipsa = index.get_num_internal_prefix_sums(id)
+                                    ipsas.append(ipsa)
+                                    opsa = index.get_num_overlay_prefix_sums(id)
+                                    opsas.append(opsa)
+                                    isca = index.get_num_internal_sparse_coords(id)
+                                    iscas.append(isca)
+                                    osca = index.get_num_overlay_sparse_coords(id)
+                                    oscas.append(osca)
+                                    la = index.get_num_global_sparse_coords(id)
+                                    las.append(la)
+                                else:
+                                    ipsas.append(float('NaN'))
+                                    opsas.append(float('NaN'))
+                                    iscas.append(float('NaN'))
+                                    oscas.append(float('NaN'))
+                                    las.append(float('NaN'))
                                 
-
-                                plot_ops = figure(x_axis_type=axis_type)
-                                plot_ops.circle(x=xs, y=opsas, fill_color="green", line_color=None, size=8)
-                                plot_ops.circle(x=xs, y=opsps, fill_color=None, line_color="red", size=8)
-
-                                plot_isc = figure(x_axis_type=axis_type)
-                                plot_isc.circle(x=xs, y=iscas, fill_color="green", line_color=None, size=8)
-                                plot_isc.circle(x=xs, y=iscps, fill_color=None, line_color="red", size=8)
-
-                                plot_osc = figure(x_axis_type=axis_type)
-                                plot_osc.circle(x=xs, y=oscas, fill_color="green", line_color=None, size=8)
-                                plot_osc.circle(x=xs, y=oscps, fill_color=None, line_color="red", size=8)
-
-                                plot_ls = figure(x_axis_type=axis_type)
-                                plot_ls.circle(x=xs, y=las, fill_color="green", line_color=None, size=8)
-                                plot_ls.circle(x=xs, y=lps, fill_color=None, line_color="red", size=8)
-                            
-                                plot_fs = figure(x_axis_type=axis_type)
-                                act = plot_fs.circle(x=xs, y=fsa, fill_color="green", line_color=None, size=8)
-                                pred = plot_fs.circle(x=xs, y=fsp, fill_color=None, line_color="red", size=8)
+                                opsp, ipsp, oscp, iscp, num_overlays, lp = index.estimate_num_elements(
+                                                                                    fac, 0, len(index))
+                                opsps.append(opsp)
+                                ipsps.append(ipsp)
+                                oscps.append(oscp)
+                                iscps.append(iscp)
+                                lps.append(lp)
+                                xs.append(num_overlays)
+                                del index
+                                if file_size_estimate < max_pred_file_size:
+                                    actual_left = min(actual_left, num_overlays)
+                                    actual_right = max(actual_right, num_overlays)
+                                    file_size = sum(os.path.getsize("test/benchmark_index" + f) for f in files)  / 10**9 # in GB
+                                    fsa.append(file_size)
+                                    eps.append(file_size_estimate/file_size)
+                                else:
+                                    fsa.append(float('NaN'))
+                                    eps.append(float('NaN'))
                                 
-                                plot_fs.add_layout(BoxAnnotation(right=picked_num, bottom=picked_size,
-                                                                line_color='black', fill_color=None,
-                                                                line_dash='solid', line_width=1, line_alpha=1))
-                                plot_fs.add_layout(Label(x=picked_num + 1, y=230, y_units='screen', text="libSps",
-                                                        background_fill_color="white", background_fill_alpha=1.0,
-                                                        level="overlay"))
-                                x_pos = n ** ( 1/(param[0]+param[1]) )
-                                plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_s,
-                                                                line_color='black', fill_color=None,
-                                                                line_dash='dotted', line_width=1, line_alpha=1))
-                                plot_fs.add_layout(Label(x=x_pos + 1, y=210, y_units='screen', text="Shekelyan et al.",
-                                                        background_fill_color="white", background_fill_alpha=1.0,
-                                                                                level="overlay"))
-                                x_pos = n ** ( 1/2 )
-                                plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_g,
-                                                                line_color='black', fill_color=None,
-                                                                line_dash='dashed', line_width=1, line_alpha=1))
-                                plot_fs.add_layout(Label(x=x_pos + 1, y=190, y_units='screen', text="Geffner et al.",
-                                                        background_fill_color="white", background_fill_alpha=1.0,
-                                                                                level="overlay"))
-                                                                            
-                                plot_ep = figure(x_axis_type=axis_type, y_axis_type="log", y_range=(0.09,11))
-                                plot_ep.line(x=xs, y=eps, line_color="black")
-                                plot_ep.circle(x=xs, y=eps, fill_color="black", line_color=None, size=8)
-                                plot_ep.yaxis[0].ticker.base = 10
-                                plot_ep.yaxis[0].formatter.ticker = plot_ep.yaxis[0].ticker
+                                #print(file_size / 10**9, file_size_estimate / 10**9, (file_size - file_size_estimate) / 10**9, sep="\t")
+                                for f in files_full:
+                                    os.remove("test/benchmark_index" + f)
+                                if file_size_estimate < max_pred_file_size:
+                                    print(".", end="", flush=True)
+                                else:
+                                    print("!", end="", flush=True)
+                            print()
+                            if plot:
+                                for axis_type in ["log"]: #["linear", "log"]:
+                                    plot_ips = figure(x_axis_type=axis_type)
+                                    plot_ips.circle(x=xs, y=ipsas, legend_label="actual", fill_color="green", 
+                                                    line_color=None, size=8)
+                                    plot_ips.circle(x=xs, y=ipsps, legend_label="predicted", fill_color=None, 
+                                                    line_color="red", size=8)
+                                    
 
-                                for p in [plot_ips, plot_ops, plot_isc, plot_osc, plot_ls, plot_fs, plot_ep]:
-                                    p.yaxis.axis_label = "amount"
-                                    p.xaxis.axis_label = "num overlays"
-                                    p.background_fill_color = "lightgrey"
-                                    if actual_right > actual_left:
-                                        actual_box = BoxAnnotation(left=actual_left, right=actual_right, fill_color='white',
-                                                                level='image', fill_alpha=1)
-                                        p.add_layout(actual_box)
-                                plot_fs.yaxis.axis_label = "size [GB]"
-                                plot_ep.yaxis.axis_label = "Log10(predicted / actual) filesize"
+                                    plot_ops = figure(x_axis_type=axis_type)
+                                    plot_ops.circle(x=xs, y=opsas, fill_color="green", line_color=None, size=8)
+                                    plot_ops.circle(x=xs, y=opsps, fill_color=None, line_color="red", size=8)
+
+                                    plot_isc = figure(x_axis_type=axis_type)
+                                    plot_isc.circle(x=xs, y=iscas, fill_color="green", line_color=None, size=8)
+                                    plot_isc.circle(x=xs, y=iscps, fill_color=None, line_color="red", size=8)
+
+                                    plot_osc = figure(x_axis_type=axis_type)
+                                    plot_osc.circle(x=xs, y=oscas, fill_color="green", line_color=None, size=8)
+                                    plot_osc.circle(x=xs, y=oscps, fill_color=None, line_color="red", size=8)
+
+                                    plot_ls = figure(x_axis_type=axis_type)
+                                    plot_ls.circle(x=xs, y=las, fill_color="green", line_color=None, size=8)
+                                    plot_ls.circle(x=xs, y=lps, fill_color=None, line_color="red", size=8)
+                                
+                                    plot_fs = figure(x_axis_type=axis_type)
+                                    act = plot_fs.circle(x=xs, y=fsa, fill_color="green", line_color=None, size=8)
+                                    pred = plot_fs.circle(x=xs, y=fsp, fill_color=None, line_color="red", size=8)
+                                    
+                                    plot_fs.add_layout(BoxAnnotation(right=picked_num, bottom=picked_size,
+                                                                    line_color='black', fill_color=None,
+                                                                    line_dash='solid', line_width=1, line_alpha=1))
+                                    plot_fs.add_layout(Label(x=picked_num + 1, y=230, y_units='screen', text="libSps",
+                                                            background_fill_color="white", background_fill_alpha=1.0,
+                                                            level="overlay"))
+                                    x_pos = n ** ( 1/(param[0]+param[1]) )
+                                    plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_s,
+                                                                    line_color='black', fill_color=None,
+                                                                    line_dash='dotted', line_width=1, line_alpha=1))
+                                    plot_fs.add_layout(Label(x=x_pos + 1, y=210, y_units='screen', text="Shekelyan et al.",
+                                                            background_fill_color="white", background_fill_alpha=1.0,
+                                                                                    level="overlay"))
+                                    x_pos = n ** ( 1/2 )
+                                    plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_g,
+                                                                    line_color='black', fill_color=None,
+                                                                    line_dash='dashed', line_width=1, line_alpha=1))
+                                    plot_fs.add_layout(Label(x=x_pos + 1, y=190, y_units='screen', text="Geffner et al.",
+                                                            background_fill_color="white", background_fill_alpha=1.0,
+                                                                                    level="overlay"))
+                                                                                
+                                    plot_ep = figure(x_axis_type=axis_type, y_axis_type="log", y_range=(0.09,11))
+                                    plot_ep.line(x=xs, y=eps, line_color="black")
+                                    plot_ep.circle(x=xs, y=eps, fill_color="black", line_color=None, size=8)
+                                    plot_ep.yaxis[0].ticker.base = 10
+                                    plot_ep.yaxis[0].formatter.ticker = plot_ep.yaxis[0].ticker
+
+                                    for p in [plot_ips, plot_ops, plot_isc, plot_osc, plot_ls, plot_fs, plot_ep]:
+                                        p.yaxis.axis_label = "amount"
+                                        p.xaxis.axis_label = "num overlays"
+                                        p.background_fill_color = "lightgrey"
+                                        if actual_right > actual_left:
+                                            actual_box = BoxAnnotation(left=actual_left, right=actual_right, fill_color='white',
+                                                                    level='image', fill_alpha=1)
+                                            p.add_layout(actual_box)
+                                    plot_fs.yaxis.axis_label = "size [GB]"
+                                    plot_ep.yaxis.axis_label = "Log10(predicted / actual) filesize"
 
 
-                                plots.append([Div(text="<b>" + "<br>".join(name) + "<br>n=" + str(n) + "<br>s=" + 
-                                                str(int(density * n)) + "<br>" + distrib + "<br>a=" + str(asp_ratio) + 
-                                                "</b>", 
-                                                width=50, sizing_mode="stretch_height",
-                                                align="center"),
-                                            plot_ips, plot_ops, plot_isc, plot_osc, plot_ls, plot_fs, plot_ep])
-                                #plots.append([plot_fs])
+                                    plots.append([Div(text="<b>" + "<br>".join(name) + "<br>n=" + str(n) + "<br>s=" + 
+                                                    str(int(density * n)) + "<br>" + distrib + "<br>a=" + str(asp_ratio) + "<br>o=" + str(offset) + 
+                                                    "</b>", 
+                                                    width=50, sizing_mode="stretch_height",
+                                                    align="center"),
+                                                plot_ips, plot_ops, plot_isc, plot_osc, plot_ls, plot_fs, plot_ep])
+                                    #plots.append([plot_fs])
 
     if plot:
         print("saving plots")
