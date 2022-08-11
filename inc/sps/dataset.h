@@ -922,7 +922,7 @@ template <typename type_defs> class Dataset
         uint64_t uiSizeOverlaysOverhead = std::get<4>( uiR ) * sizeof( overlay_t );
 
         // full
-        return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead;
+        return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead + sizeof( Dataset );
     }
 
     static uint64_t estimateDataStructureSize( points_t& vPoints, const typename points_t::Entry xPoints,
@@ -1491,13 +1491,13 @@ template <typename type_defs> class Dataset
                                 sizeof( sps_t );
 
         uint64_t uiNumLookupTotal = ( getNumInternalSparseCoords( rOverlays ) + getNumOverlaySparseCoords( rOverlays ) +
-                                      getNumGlobalSparseCoords( rOverlays ) ) *
+                                      getNumGlobalSparseCoords( ) ) *
                                     sizeof( coordinate_t );
 
         uint64_t uiSizeOverlaysOverhead = getNumOverlays( ) * sizeof( overlay_t );
 
         // full
-        return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead;
+        return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead + sizeof( Dataset );
     }
 
     friend std::ostream& operator<<( std::ostream& os, const Dataset& rDataset )

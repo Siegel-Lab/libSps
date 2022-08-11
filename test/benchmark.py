@@ -105,8 +105,8 @@ def make_indices():
     indices = []
     index_names = []
     params = []
-    for dims in [2, 3]:
-        for ort_dim in [False, True]:
+    for dims in [2]: #[2, 3]:
+        for ort_dim in [False]: #[False, True]:
             num_ort_dims = dims if ort_dim else 0
             for storage in ["Disk"]: #["Disk", "Cached"]:
                 for uniform_overlay_grid in [True]: #[False, True]:
@@ -142,12 +142,12 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
     for _n in range(MIN_FILL, MAX_FILL):
         n = 10**_n
         for offset in [0]: #[0, 100]:
-            for density in [0.1, 1, 10]:
-                for asp_ratio in [1, 10]:
-                    for distrib in ["even", "dist_dep_dec", "diagonal", "log_norm"]:
+            for density in [1]: #[0.1, 1, 10]:
+                for asp_ratio in [1]:# [1, 10]:
+                    for distrib in ["even"]: #["even", "dist_dep_dec", "diagonal", "log_norm"]:
                         for index_params, name, param in zip(indices, index_names, params):
-                            ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps = ([], [], [], [], [], [], 
-                                                                                            [], [], [], [], [], [], [])
+                            ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps,gcs = ([], [], [], 
+                                    [], [], [], [], [], [], [], [], [], [], [])
                             xs = []
                             actual_left = float('inf')
                             actual_right = 0
@@ -187,12 +187,14 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     oscas.append(osca)
                                     la = index.get_num_global_sparse_coords(id)
                                     las.append(la)
+                                    gcs.append(index.get_size(id)/ 10**9) # in GB
                                 else:
                                     ipsas.append(float('NaN'))
                                     opsas.append(float('NaN'))
                                     iscas.append(float('NaN'))
                                     oscas.append(float('NaN'))
                                     las.append(float('NaN'))
+                                    gcs.append(float('NaN'))
                                 
                                 opsp, ipsp, oscp, iscp, num_overlays, lp = index.estimate_num_elements(
                                                                                     fac, 0, len(index))
@@ -215,7 +217,8 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                 
                                 #print(file_size / 10**9, file_size_estimate / 10**9, (file_size - file_size_estimate) / 10**9, sep="\t")
                                 for f in files_full:
-                                    os.remove("test/benchmark_index" + f)
+                                    pass
+                                    #os.remove("test/benchmark_index" + f)
                                 if file_size_estimate < max_pred_file_size:
                                     print(".", end="", flush=True)
                                 else:
@@ -248,6 +251,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                 
                                     plot_fs = figure(x_axis_type=axis_type, y_axis_type="log")
                                     act = plot_fs.circle(x=xs, y=fsa, fill_color="green", line_color=None, size=8)
+                                    plot_fs.circle(x=xs, y=gcs, fill_color=None, line_color="blue", size=9)
                                     pred = plot_fs.circle(x=xs, y=fsp, fill_color=None, line_color="red", size=8)
                                     
                                     plot_fs.add_layout(BoxAnnotation(right=picked_num, bottom=picked_size,

@@ -147,12 +147,14 @@ template <typename type_defs> class Index : public AbstractIndex
 
     void popDataset( )
     {
-        vSparseCoord.resize( vSparseCoord.size( ) - ( getNumInternalSparseCoords( vDataSets.size( ) - 1 ) +
-                                                      getNumGlobalSparseCoords( vDataSets.size( ) - 1 ) +
-                                                      getNumOverlaySparseCoords( vDataSets.size( ) - 1 ) ) );
-        vPrefixSumGrid.resize( vPrefixSumGrid.size( ) - ( getNumInternalPrefixSums( vDataSets.size( ) - 1 ) +
-                                                          getNumOverlayPrefixSums( vDataSets.size( ) - 1 ) ) );
-        vOverlayGrid.resize( vOverlayGrid.size( ) - ( getNumOverlays( vDataSets.size( ) - 1 ) ) );
+        vSparseCoord.vData.resize( vSparseCoord.vData.size( ) -
+                                   ( getNumInternalSparseCoords( vDataSets.size( ) - 1 ) +
+                                     getNumGlobalSparseCoords( vDataSets.size( ) - 1 ) +
+                                     getNumOverlaySparseCoords( vDataSets.size( ) - 1 ) ) );
+        vPrefixSumGrid.vData.resize(
+            vPrefixSumGrid.vData.size( ) -
+            ( getNumInternalPrefixSums( vDataSets.size( ) - 1 ) + getNumOverlayPrefixSums( vDataSets.size( ) - 1 ) ) );
+        vOverlayGrid.vData.resize( vOverlayGrid.vData.size( ) - ( getNumOverlays( vDataSets.size( ) - 1 ) ) );
         vDataSets.pop_back( );
     }
 
@@ -434,7 +436,6 @@ template <typename type_defs> class Index : public AbstractIndex
         return vRet;
     }
 
-  private:
     val_t maxPrefixSumValue( ) const
     {
         val_t uiMax = 0;
@@ -449,7 +450,6 @@ template <typename type_defs> class Index : public AbstractIndex
         return uiMax;
     }
 
-  public:
     /**
      * @brief Count the number of internal prefix sums stored in the dataset with id dataset_id.
      *
@@ -514,6 +514,17 @@ template <typename type_defs> class Index : public AbstractIndex
     coordinate_t getNumOverlays( class_key_t xDatasetId ) const
     {
         return vDataSets[ xDatasetId ].getNumOverlays( );
+    }
+
+    /**
+     * @brief Returns the size of the dataset in bytes.
+     *
+     * @param xDatasetId id of the queried dataset
+     * @return coordinate_t size in bytes
+     */
+    coordinate_t getSize( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getSize( vOverlayGrid, vSparseCoord );
     }
 
     /**
@@ -960,15 +971,16 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
         .def( "clear_keep_points", &sps::Index<type_defs>::clearKeepPoints,
               "Clear the index datasets, but keep the points." )
-        .def( "pop_dataset", &sps::Index<type_defs>::popDataset,
-              "Remove the last dataset." )
+        .def( "pop_dataset", &sps::Index<type_defs>::popDataset, "Remove the last dataset." )
         .def( "__get_overlay_info", &sps::Index<type_defs>::getOverlayInfo,
               "Return information about the overlay boxes." )
         .def( "get_overlay_grid", &sps::Index<type_defs>::getOverlayGrid, pybind11::arg( "dataset_id" ),
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
+        .def( "get_size", &sps::Index<type_defs>::getSize, pybind11::arg( "dataset_id" ),
+              "Returns the size of the dataset in bytes." )
         .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, pybind11::arg( "f" ),
               pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<coordinate_t>::max( ),
+              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               R"pbdoc(
     Predict the number of data structure elements stored in a dataset.
 
@@ -1002,7 +1014,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 )pbdoc" )
         .def( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, pybind11::arg( "f" ),
               pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<coordinate_t>::max( ),
+              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               R"pbdoc(
     Predict the size of the data structure.
 
@@ -1022,7 +1034,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :rtype: int
 )pbdoc" )
         .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays, pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<coordinate_t>::max( ),
+              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               R"pbdoc(
     Predict the best f.
 
@@ -1040,7 +1052,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 )pbdoc" )
         .def( "to_factor", &sps::Index<type_defs>::toFactor, pybind11::arg( "num_overlays" ),
               pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<coordinate_t>::max( ),
+              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               R"pbdoc(
     Convert a given number of overlay blocks to the factor f.
 
