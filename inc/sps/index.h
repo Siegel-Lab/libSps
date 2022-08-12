@@ -56,6 +56,9 @@ enum IntersectionType
     slice,
 };
 
+#define DEFAULT_NUM_OVERLAY_SAMPLES 10000
+#define DEFAULT_NUM_POINT_SAMPLES 1000
+
 /**
  * @brief The main sparse prefix sum index class.
  *
@@ -248,7 +251,9 @@ template <typename type_defs> class Index : public AbstractIndex
     class_key_t generate( coordinate_t uiFrom = 0,
                           coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
                           double fFac = -1,
-                          size_t uiVerbosity = 1 )
+                          size_t uiVerbosity = 1,
+                          const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES, 
+                          const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
 #ifdef DO_PROFILE
         ProfilerStart( "gperftools.generate.prof" );
@@ -263,7 +268,8 @@ template <typename type_defs> class Index : public AbstractIndex
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, fFac, xProg );
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, fFac, xProg,
+                        uiNumOverlaySamples, uiNumPointSamples );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
 
@@ -558,7 +564,9 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
     estimateDataStructureElements( double fFac, coordinate_t uiFrom = 0,
-                                   coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+                                   coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
+                                   const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES, 
+                                   const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
 
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
@@ -566,7 +574,8 @@ template <typename type_defs> class Index : public AbstractIndex
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::estimateDataStructureElements( vPoints, xPoints, fFac );
+        return dataset_t::estimateDataStructureElements( vPoints, xPoints, fFac, 
+                                                         uiNumOverlaySamples, uiNumPointSamples );
     }
 
     /**
@@ -583,7 +592,9 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return uint64_t The predicted size of the datastructure in bytes
      */
     uint64_t estimateDataStructureSize( double fFac, coordinate_t uiFrom = 0,
-                                        coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+                                        coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
+                                        const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES, 
+                                        const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
 
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
@@ -591,7 +602,7 @@ template <typename type_defs> class Index : public AbstractIndex
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::estimateDataStructureSize( vPoints, xPoints, fFac );
+        return dataset_t::estimateDataStructureSize( vPoints, xPoints, fFac, uiNumOverlaySamples, uiNumPointSamples );
     }
 
     /**
@@ -606,14 +617,15 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param uiTo index of first point that shall not be included in the dataset anymore
      * @return uint64_t The predicted best value for f
      */
-    uint64_t pickNumOverlays( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    uint64_t pickNumOverlays( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
+                              const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES, const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::pickNumOverlays( vPoints, xPoints );
+        return dataset_t::pickNumOverlays( vPoints, xPoints, uiNumOverlaySamples, uiNumPointSamples );
     }
 
     /**
@@ -856,8 +868,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               &sps::Index<type_defs>::generate,
               pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
-              pybind11::arg( "factor" ) = 0,
+              pybind11::arg( "factor" ) = -1,
               pybind11::arg( "verbosity" ) = 1,
+              pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
+              pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
               R"pbdoc(
     Generate a new dataset.
     
@@ -981,6 +995,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, pybind11::arg( "f" ),
               pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
+              pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
+              pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
               R"pbdoc(
     Predict the number of data structure elements stored in a dataset.
 
@@ -1015,6 +1031,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, pybind11::arg( "f" ),
               pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
+              pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
+              pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
               R"pbdoc(
     Predict the size of the data structure.
 
@@ -1035,6 +1053,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 )pbdoc" )
         .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays, pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
+              pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
+              pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
               R"pbdoc(
     Predict the best f.
 

@@ -47,14 +47,27 @@ parser.add_argument('-a','--actual', metavar='A',
 parser.add_argument('-m','--max_size', metavar='M',
                     help="If the prediction predicts the datastructure to be smaller than M, compute the datastructures actual size, defaults to %(default)s.", 
                     default=0, type=float)
+parser.add_argument('-q','--quality_overlays', metavar='M',
+                    help="If the prediction predicts the datastructure to be smaller than M, compute the datastructures actual size, defaults to %(default)s.", 
+                    default=10000, type=int)
+parser.add_argument('-Q','--quality_points', metavar='M',
+                    help="If the prediction predicts the datastructure to be smaller than M, compute the datastructures actual size, defaults to %(default)s.", 
+                    default=1000, type=int)
 
 
 args = parser.parse_args()
 
 
-print("LibSps Version:", VERSION)
-print(args.filepath_prefix, args.num_dimension, args.with_dependent_dimension, args.with_uniform_overlay_boxes, 
-      args.num_orthotope_dimensions, args.storage_type, False)
+for name, param in [
+            ("LibSps Version", VERSION),
+            ("prefix", args.filepath_prefix),
+            ("no. dimensions", args.num_dimension),
+            ("w/ dependent dimension", args.with_dependent_dimension),
+            ("w/ uniform overlay boxes", args.with_uniform_overlay_boxes),
+            ("no. orthotope dimensions", args.num_orthotope_dimensions),
+            ("storage type", args.storage_type),
+        ]:
+    print(name + ":", param, sep=" "*(30-len(name)))
 
 FILES = [".prefix_sums", ".coords", ".overlays", ".datsets"]
 # load index
@@ -62,15 +75,21 @@ index = make_sps_index(args.filepath_prefix, args.num_dimension, args.with_depen
                        args.with_uniform_overlay_boxes, args.num_orthotope_dimensions, args.storage_type, False )
 if args.to_points < 0:
     args.to_points = len(index)
+fac_list = sorted([args.exp_base ** _fac for _fac in range(args.exp_from, args.exp_to)] + args.actual)
 
+print("predicting index size for the points", args.from_points, "-", args.to_points,
+      "and factors", *fac_list, ".")
 
 ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps = ([], [], [], [], [], [], 
                                                                        [], [], [], [], [], [], [])
 xs = []
 actual_left = float('inf')
 actual_right = 0
-for fac in sorted([args.exp_base ** _fac for _fac in range(args.exp_from, args.exp_to)] + args.actual):
-    opsp, ipsp, oscp, iscp, num_overlays, lp = index.estimate_num_elements(fac, args.from_points, args.to_points)
+print("predicting size", end="", flush=True)
+
+for fac in fac_list:
+    opsp, ipsp, oscp, iscp, num_overlays, lp = index.estimate_num_elements(fac, args.from_points, args.to_points,
+                                                                           args.quality_overlays, args.quality_points)
     opsps.append(opsp)
     ipsps.append(ipsp)
     oscps.append(oscp)
@@ -81,11 +100,12 @@ for fac in sorted([args.exp_base ** _fac for _fac in range(args.exp_from, args.e
     else:
         xs.append(num_overlays)
 
-    file_size_estimate = index.estimate_size(fac, args.from_points, args.to_points) / 10**9 # in GB
+    file_size_estimate = index.estimate_size(fac, args.from_points, args.to_points,
+                                             args.quality_overlays, args.quality_points) / 10**9 # in GB
     fsp.append(file_size_estimate)
 
     if fac in args.actual or file_size_estimate < args.max_size:
-        id = index.generate(args.from_points, args.to_points, fac, verbosity=0)
+        id = index.generate(args.from_points, args.to_points, fac, 0, args.quality_overlays, args.quality_points)
         ipsa = index.get_num_internal_prefix_sums(id)
         ipsas.append(ipsa)
         opsa = index.get_num_overlay_prefix_sums(id)
@@ -119,6 +139,7 @@ for fac in sorted([args.exp_base ** _fac for _fac in range(args.exp_from, args.e
     
     print(".", end="", flush=True)
 print()
+print("generating and saving plot...")
 
 
 picked_num = index.pick_num_overlays(args.from_points, args.to_points)
@@ -187,3 +208,6 @@ output_file(args.filepath_prefix + ".size_prediction.html", title="Size predicti
 
 save(gridplot([[plot_ips, plot_ops, plot_isc, plot_osc, plot_ls], [plot_fs, plot_ep, None, None, None]], 
             sizing_mode="scale_width", merge_tools=False))
+
+
+print("done saving plot; closing index...")
