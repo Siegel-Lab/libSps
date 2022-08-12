@@ -11,10 +11,12 @@ from bokeh.plotting import figure, save, reset_output
 from bokeh.layouts import gridplot
 from bokeh.models import Div
 
-MIN_FILL = 2# 1
+MIN_FILL = 3# 1
 MAX_FILL = 4# 8
 N_QUERY = 10000 #100k
 #N_QUERY = 10000000 #10,000k
+QUAL_OVERLAY = 1000
+QUAL_PTS = 1000
 
 files = [".prefix_sums", ".coords", ".overlays", ".datsets"]
 files_full = files + [".desc", ".points"]
@@ -105,7 +107,7 @@ def make_indices():
     indices = []
     index_names = []
     params = []
-    for dims in [2]: #[2, 3]:
+    for dims in [2, 3]:
         for ort_dim in [False]: #[False, True]:
             num_ort_dims = dims if ort_dim else 0
             for storage in ["Disk"]: #["Disk", "Cached"]:
@@ -144,7 +146,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
         for offset in [0]: #[0, 100]:
             for density in [1]: #[0.1, 1, 10]:
                 for asp_ratio in [1]:# [1, 10]:
-                    for distrib in ["even"]: #["even", "dist_dep_dec", "diagonal", "log_norm"]:
+                    for distrib in ["even", "diagonal", "log_norm"]: #["even", "dist_dep_dec", "diagonal", "log_norm"]:
                         for index_params, name, param in zip(indices, index_names, params):
                             ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps,gcs = ([], [], [], 
                                     [], [], [], [], [], [], [], [], [], [], [])
@@ -159,23 +161,23 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                                  density, distrib, asp_ratio, offset)
 
                                 if _fac == 0:
-                                    picked_num = index.pick_num_overlays(0, len(index))
+                                    picked_num = index.pick_num_overlays(0, len(index), QUAL_OVERLAY, QUAL_PTS)
                                     picked_size = index.estimate_size( 
                                             index.to_factor(picked_num, 0, len(index)),
-                                            0, len(index)) / 10**9 # in GB
+                                            0, len(index), QUAL_OVERLAY, QUAL_PTS) / 10**9 # in GB
                                     picked_size_s = index.estimate_size( 
                                             index.to_factor(int(num_cells ** ( 1/(param[0]+param[1])) ), 0, len(index)),
-                                            0, len(index)) / 10**9 # in GB
+                                            0, len(index), QUAL_OVERLAY, QUAL_PTS) / 10**9 # in GB
                                     picked_size_g = index.estimate_size( 
                                             index.to_factor(int(num_cells ** ( 1/2 )), 0, len(index)),
-                                            0, len(index)) / 10**9 # in GB
+                                            0, len(index), QUAL_OVERLAY, QUAL_PTS) / 10**9 # in GB
 
-                                file_size_estimate = index.estimate_size(fac, 0, 
-                                                                         len(index)) / 10**9 # in GB
+                                file_size_estimate = index.estimate_size(fac, 0, len(index), 
+                                                                         QUAL_OVERLAY, QUAL_PTS) / 10**9 # in GB
                                 fsp.append(file_size_estimate)
 
                                 if file_size_estimate < max_pred_file_size:
-                                    id = index.generate(0, len(index), fac, verbosity=0)
+                                    id = index.generate(0, len(index), fac, 0, QUAL_OVERLAY, QUAL_PTS)
                                     query(index, id, param[0], n)
                                     ipsa = index.get_num_internal_prefix_sums(id)
                                     ipsas.append(ipsa)
@@ -197,7 +199,8 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     gcs.append(float('NaN'))
                                 
                                 opsp, ipsp, oscp, iscp, num_overlays, lp = index.estimate_num_elements(
-                                                                                    fac, 0, len(index))
+                                                                                    fac, 0, len(index), 
+                                                                                    QUAL_OVERLAY, QUAL_PTS)
                                 opsps.append(opsp)
                                 ipsps.append(ipsp)
                                 oscps.append(oscp)
@@ -217,8 +220,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                 
                                 #print(file_size / 10**9, file_size_estimate / 10**9, (file_size - file_size_estimate) / 10**9, sep="\t")
                                 for f in files_full:
-                                    pass
-                                    #os.remove("test/benchmark_index" + f)
+                                    os.remove("test/benchmark_index" + f)
                                 if file_size_estimate < max_pred_file_size:
                                     print(".", end="", flush=True)
                                 else:
