@@ -626,8 +626,42 @@ template <typename type_defs> class Dataset
 
             uiNumDraws += uiNumDrawsRequired;
         }
-        return uiNumDraws;
+        // now uiNumDraws is set to the minimal amount of draws we expect to need to get uiNumDistinct distinct coupons
+
+        if( uiNumDistinct >= uiNumCouponsTotal )
+            return uiNumDraws;
+
+        // adjust uiNumDraws for the amount of draws we can expect to make while not drawing the uiNumDistinct+1'th
+        // coupon
+        std::geometric_distribution<int> xDist( ( (double)( uiNumCouponsTotal - uiNumDistinct ) ) /
+                                                ( (double)( uiNumCouponsTotal ) ) );
+        // half the result of xDist( xGen ) to return the average number of draws we expect
+        // (min_expectation + max_expectation) / 2
+        return uiNumDraws + ( xDist( xGen ) - 1 ) / 2;
     }
+
+#if 0
+        static uint64_t sampleNumDraws( uint64_t uiNumCouponsTotal, uint64_t uiNumDistinct )
+        {
+            uint64_t uiNumDrawsNow = 0;
+            uint64_t uiNumDrawsStart = 1;
+            std::set<uint64_t> xValuesHit;
+
+            std::uniform_int_distribution<size_t> xDist( 1, uiNumCouponsTotal );
+            while( xValuesHit.size( ) <= uiNumDistinct )
+            {
+                if( xValuesHit.size( ) >= uiNumCouponsTotal )
+                    return uiNumDrawsNow;
+
+                uint64_t uiCurrDraw = xDist( xGen );
+                xValuesHit.insert( uiCurrDraw );
+                ++uiNumDrawsNow;
+                if( xValuesHit.size( ) < uiNumDistinct )
+                    uiNumDrawsStart = uiNumDrawsNow + 1;
+            }
+            return ( uiNumDrawsNow - 1 + uiNumDrawsStart ) / 2;
+        }
+#endif
 
     /**
      * @brief probability that n points randomly distributed in an interval of size s span an interval of size x or less
@@ -753,38 +787,52 @@ template <typename type_defs> class Dataset
     static pos_t sampleNumPoints( const points_t& vPoints, typename points_t::Entry xPoints, pos_t uiFrom, pos_t uiTo,
                                   uint64_t /*uiCorrectedNumPoints*/, const uint64_t uiNumPointSamples )
     {
-        std::vector<pos_t> vPts;
-        // @todo @fixme use this set to find the next value that is not given yet
-        std::set<size_t> xPicked;
+        std::map<size_t, size_t> xPointers;
 
-        for( size_t uiI = 0; uiI < std::min( uiNumPointSamples, xPoints.size( ) ); uiI++ )
+        const size_t uiN = std::min( uiNumPointSamples, xPoints.size( ) );
+        /*
+         *  shuffle the vector of points
+         *  then always pick the first uiNumPointSamples points
+         */
+        std::uniform_int_distribution<size_t> xDist( 0, xPoints.size( ) - 1 );
+        for( size_t uiFrom = 0; uiFrom < uiN; uiFrom++ )
+        {
+            if( xPointers.count( uiFrom ) == 0 )
+                xPointers[ uiFrom ] = uiFrom;
+
+            size_t uiTo = xDist( xGen );
+
+            if( xPointers.count( uiTo ) == 0 )
+                xPointers[ uiTo ] = uiTo;
+
+            // swap uiFrom and uiTo //
+
+            size_t uiTmp = xPointers[ uiFrom ];
+            xPointers[ uiFrom ] = uiTo;
+            xPointers[ uiTo ] = uiTmp;
+        }
+
+#ifndef NDEBUG
+        // sanity check: every (relevant) value in xPointers exists only once
+        std::set<size_t> xCheck;
+        for( size_t uiFrom = 0; uiFrom < uiN; uiFrom++ )
+        {
+            assert( xPointers.count( uiFrom ) == 1 );
+            assert( xCheck.count( xPointers[ uiFrom ] ) == 0 );
+            xCheck.insert( xPointers[ uiFrom ] )
+        }
+#endif
+
+        std::vector<pos_t> vPts;
+        for( size_t uiI = 0; uiI < uiN; uiI++ )
         {
             bool bInside = true;
-            std::uniform_int_distribution<size_t> xDist( xPoints.uiStartIndex,
-                                                         xPoints.uiEndIndex - 1 - uiI );
-            size_t uiX = xDist( xGen );
-            // make sure we do not pick the same value twice @todo @fixme @continue_here
-            /* idea
-             *  shuffle the vector of points
-             *  then always pick the first uiNumPointSamples points
-             * 
-             * for shuffling, us a pointer dictionary
-             *  -> index not in dict, value un-shuffled
-             *  -> index in dict, value shuffled according to pointer
-             * (after dict has size xxx, i.e. dict was used n times reset by clearing)
-             * always start by shuffeling that 
-             * if we start this way do we need to keep dict?
-             * we only need to shuffle the uiNumPointSamples first points to the remainder of the array
-             */
-            
-            uiX += std::distance( xPicked.begin( ), xPicked.upper_bound( uiX ) ) - 1;
-            xPicked.insert( uiX );
+            pos_t vPos = vPoints.vData[ uiI + xPoints.uiStartIndex ].vPos;
 
             for( size_t uiD = 0; uiD < D; uiD++ )
-                bInside = bInside && vPoints.vData[ uiX ].vPos[ uiD ] >= uiFrom[ uiD ] &&
-                          vPoints.vData[ uiX ].vPos[ uiD ] < uiTo[ uiD ];
+                bInside = bInside && vPos[ uiD ] >= uiFrom[ uiD ] && vPos[ uiD ] < uiTo[ uiD ];
             if( bInside )
-                vPts.push_back( vPoints.vData[ uiX ].vPos );
+                vPts.push_back( vPos );
         }
 
         pos_t uiCorrectedNumPts;
@@ -798,8 +846,8 @@ template <typename type_defs> class Dataset
                 uiDistinct += vP[ uiD ] != uiLast;
                 uiLast = vP[ uiD ];
             }
-            uiCorrectedNumPts[ uiD ] = ( xPoints.size( ) * drawNumDraws( uiTo[ uiD ] - uiFrom[ uiD ], uiDistinct ) ) /
-                                       std::min( uiNumPointSamples, xPoints.size( ) );
+            uiCorrectedNumPts[ uiD ] =
+                ( xPoints.size( ) * drawNumDraws( uiTo[ uiD ] - uiFrom[ uiD ], uiDistinct ) ) / uiN;
             // std::cout << "uiD: " << uiD << " uiDistinct: " << uiDistinct << " uiNumPointSamples: " <<
             // uiNumPointSamples
             //           << " vPts.size(): " << vPts.size( )
