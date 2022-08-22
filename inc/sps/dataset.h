@@ -617,12 +617,12 @@ template <typename type_defs> class Dataset
     {
         uint64_t uiNumDraws = 0;
 
-        for( uint64_t uiI = 0; uiI < uiNumDistinct; uiI++ )
+        for( uint64_t uiI = 1; uiI <= uiNumDistinct; uiI++ )
         {
             // time (draws) required to draw the uiI'th different coupon
-            std::geometric_distribution<int> xDist( ( (double)( uiNumCouponsTotal - uiI ) ) /
+            std::geometric_distribution<int> xDist( ( (double)( uiNumCouponsTotal - uiI + 1 ) ) /
                                                     ( (double)( uiNumCouponsTotal ) ) );
-            uint64_t uiNumDrawsRequired = xDist( xGen );
+            uint64_t uiNumDrawsRequired = xDist( xGen ) + 1;
 
             uiNumDraws += uiNumDrawsRequired;
         }
@@ -639,29 +639,6 @@ template <typename type_defs> class Dataset
         // (min_expectation + max_expectation) / 2
         return uiNumDraws + ( xDist( xGen ) - 1 ) / 2;
     }
-
-#if 0
-        static uint64_t sampleNumDraws( uint64_t uiNumCouponsTotal, uint64_t uiNumDistinct )
-        {
-            uint64_t uiNumDrawsNow = 0;
-            uint64_t uiNumDrawsStart = 1;
-            std::set<uint64_t> xValuesHit;
-
-            std::uniform_int_distribution<size_t> xDist( 1, uiNumCouponsTotal );
-            while( xValuesHit.size( ) <= uiNumDistinct )
-            {
-                if( xValuesHit.size( ) >= uiNumCouponsTotal )
-                    return uiNumDrawsNow;
-
-                uint64_t uiCurrDraw = xDist( xGen );
-                xValuesHit.insert( uiCurrDraw );
-                ++uiNumDrawsNow;
-                if( xValuesHit.size( ) < uiNumDistinct )
-                    uiNumDrawsStart = uiNumDrawsNow + 1;
-            }
-            return ( uiNumDrawsNow - 1 + uiNumDrawsStart ) / 2;
-        }
-#endif
 
     /**
      * @brief probability that n points randomly distributed in an interval of size s span an interval of size x or less
