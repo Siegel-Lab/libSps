@@ -1,7 +1,4 @@
 import sys,os
-sys.path.append(os.getcwd())
-
-from libSps import VERSION, make_sps_index
 import argparse
 from bokeh.models import Legend, Span, Label, BoxAnnotation
 from bokeh.plotting import figure, save, reset_output
@@ -53,9 +50,21 @@ parser.add_argument('-q','--quality_overlays', metavar='M',
 parser.add_argument('-Q','--quality_points', metavar='M',
                     help="If the prediction predicts the datastructure to be smaller than M, compute the datastructures actual size, defaults to %(default)s.", 
                     default=1000, type=int)
+parser.add_argument('-l','--lib_sps_path', metavar='P',
+                    help="Path to libSps' folder in case it is located outside of the current working directory, defaults to %(default)s.", default=".")
+parser.add_argument('-O','--skip_optimum', 
+                    help="Skip computing and displaying the automatically determined optimum", 
+                    action='store_true', default=False)
 
 
 args = parser.parse_args()
+
+sys.path.append(args.lib_sps_path)
+try:
+    from libSps import VERSION, make_sps_index
+except:
+    print("Could not load libSps.")
+    print("Please provide a path to libSps via the -l <path/to/folder> parameter.")
 
 
 for name, param in [
@@ -139,14 +148,18 @@ for fac in fac_list:
     
     print(".", end="", flush=True)
 print()
+
+if not args.skip_optimum:
+    print("searching for optimum...")
+
+    picked_num = index.pick_num_overlays(args.from_points, args.to_points)
+    picked_size = index.estimate_size(index.to_factor(picked_num, args.from_points, args.to_points), 
+                                    args.from_points, args.to_points) / 10**9 # in GB
+    if args.factor_as_x_axis:
+        picked_num = index.to_factor(picked_num, args.from_points, args.to_points)
+
 print("generating and saving plot...")
 
-
-picked_num = index.pick_num_overlays(args.from_points, args.to_points)
-picked_size = index.estimate_size(index.to_factor(picked_num, args.from_points, args.to_points), 
-                                  args.from_points, args.to_points) / 10**9 # in GB
-if args.factor_as_x_axis:
-    picked_num = index.to_factor(picked_num, args.from_points, args.to_points)
 
 axis_type = "log"
 
@@ -177,12 +190,13 @@ plot_fs = figure(x_axis_type=axis_type, y_axis_type="log", title="total file siz
 act = plot_fs.circle(x=xs, y=fsa, fill_color="green", line_color=None, size=8)
 pred = plot_fs.circle(x=xs, y=fsp, fill_color=None, line_color="red", size=8)
 
-plot_fs.add_layout(BoxAnnotation(right=picked_num, top=picked_size,
-                                line_color='black', fill_color=None,
-                                line_dash='solid', line_width=1, line_alpha=1))
-plot_fs.add_layout(Label(x=picked_num + 1, y=0, y_units='screen', text="predicted minimum",
-                        background_fill_color="white", background_fill_alpha=1.0,
-                        level="overlay"))
+if not args.skip_optimum:
+    plot_fs.add_layout(BoxAnnotation(right=picked_num, top=picked_size,
+                                    line_color='black', fill_color=None,
+                                    line_dash='solid', line_width=1, line_alpha=1))
+    plot_fs.add_layout(Label(x=picked_num + 1, y=0, y_units='screen', text="predicted minimum",
+                            background_fill_color="white", background_fill_alpha=1.0,
+                            level="overlay"))
 
 plot_ep = figure(x_axis_type=axis_type, y_axis_type="log", title="total file size error")
 plot_ep.line(x=xs, y=eps, line_color="black")
@@ -209,5 +223,5 @@ output_file(args.filepath_prefix + ".size_prediction.html", title="Size predicti
 save(gridplot([[plot_ips, plot_ops, plot_isc, plot_osc, plot_ls], [plot_fs, plot_ep, None, None, None]], 
             sizing_mode="scale_width", merge_tools=False))
 
-
-print("done saving plot; closing index...")
+print("saved plot at", args.filepath_prefix + ".size_prediction.html")
+print("closing index...")

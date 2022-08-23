@@ -617,12 +617,12 @@ template <typename type_defs> class Dataset
     {
         uint64_t uiNumDraws = 0;
 
-        for( uint64_t uiI = 0; uiI < uiNumDistinct; uiI++ )
+        for( uint64_t uiI = 1; uiI <= uiNumDistinct; uiI++ )
         {
             // time (draws) required to draw the uiI'th different coupon
-            std::geometric_distribution<int> xDist( ( (double)( uiNumCouponsTotal - uiI ) ) /
+            std::geometric_distribution<int> xDist( ( (double)( uiNumCouponsTotal - uiI + 1 ) ) /
                                                     ( (double)( uiNumCouponsTotal ) ) );
-            uint64_t uiNumDrawsRequired = xDist( xGen );
+            uint64_t uiNumDrawsRequired = xDist( xGen ) + 1;
 
             uiNumDraws += uiNumDrawsRequired;
         }
