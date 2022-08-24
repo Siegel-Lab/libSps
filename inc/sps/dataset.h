@@ -785,7 +785,7 @@ template <typename type_defs> class Dataset
             // swap uiFrom and uiTo //
 
             size_t uiTmp = xPointers[ uiFrom ];
-            xPointers[ uiFrom ] = uiTo;
+            xPointers[ uiFrom ] = xPointers[ uiTo ];
             xPointers[ uiTo ] = uiTmp;
         }
 
@@ -804,7 +804,7 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < uiN; uiI++ )
         {
             bool bInside = true;
-            pos_t vPos = vPoints.vData[ uiI + xPoints.uiStartIndex ].vPos;
+            pos_t vPos = vPoints.vData[ xPointers[ uiI + xPoints.uiStartIndex ] ].vPos;
 
             for( size_t uiD = 0; uiD < D; uiD++ )
                 bInside = bInside && vPos[ uiD ] >= uiFrom[ uiD ] && vPos[ uiD ] < uiTo[ uiD ];
@@ -820,19 +820,12 @@ template <typename type_defs> class Dataset
             uint64_t uiDistinct = 0;
             for( pos_t vP : vPts )
             {
-                uiDistinct += vP[ uiD ] != uiLast;
+                if( vP[ uiD ] != uiLast )
+                    ++uiDistinct;
                 uiLast = vP[ uiD ];
             }
             uiCorrectedNumPts[ uiD ] =
-                ( xPoints.size( ) * drawNumDraws( uiTo[ uiD ] - uiFrom[ uiD ], uiDistinct ) ) / uiN;
-            // std::cout << "uiD: " << uiD << " uiDistinct: " << uiDistinct << " uiNumPointSamples: " <<
-            // uiNumPointSamples
-            //           << " vPts.size(): " << vPts.size( )
-            //           << " uiTo[ uiD ] - uiFrom[ uiD ]: " << uiTo[ uiD ] - uiFrom[ uiD ]
-            //           << " xPoints.size( ): " << xPoints.size( ) << " (xPoints.size( )*uiDistinct)/uiNumPointSamples:
-            //           "
-            //           << ( xPoints.size( ) * uiDistinct ) / uiNumPointSamples
-            //           << " uiCorrectedNumPts: " << uiCorrectedNumPts[ uiD ] << std::endl;
+                std::round( ( xPoints.size( ) * drawNumDraws( uiTo[ uiD ] - uiFrom[ uiD ], uiDistinct ) ) / uiN );
         }
         return uiCorrectedNumPts;
     }
