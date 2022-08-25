@@ -59,6 +59,37 @@ template <typename type_defs> class Points
     };
     typename type_defs::template points_sort_func_t<points_it_t, PointsComperator> sort_points =
         typename type_defs::template points_sort_func_t<points_it_t, PointsComperator>( );
+    struct PointsComperator2
+    {
+        const size_t uiDim1, uiDim2;
+
+        PointsComperator2( size_t uiDim1, size_t uiDim2 ) : uiDim1( uiDim1 ), uiDim2( uiDim2 )
+        {}
+
+        bool operator( )( const point_t& a, const point_t& b ) const
+        {
+            if( a.vPos[ uiDim1 ] < b.vPos[ uiDim1 ] )
+                return true;
+            if( a.vPos[ uiDim1 ] > b.vPos[ uiDim1 ] )
+                return false;
+            return a.vPos[ uiDim2 ] < b.vPos[ uiDim2 ];
+        }
+
+        point_t min_value( ) const
+        {
+            return point_t( );
+        };
+
+        point_t max_value( ) const
+        {
+            point_t xRet{ };
+            xRet.vPos[ uiDim1 ] = std::numeric_limits<coordinate_t>::max( );
+            xRet.vPos[ uiDim2 ] = std::numeric_limits<coordinate_t>::max( );
+            return xRet;
+        };
+    };
+    typename type_defs::template points_sort_func_t<points_it_t, PointsComperator2> sort_points2 =
+        typename type_defs::template points_sort_func_t<points_it_t, PointsComperator2>( );
 
   public:
     points_file_t xFile;
@@ -222,9 +253,11 @@ template <typename type_defs> class Points
         }
         assert( !fBefore( vData[ uiStartIdx ] ) );
 
-        // @note side effects in while condition! (fDo)
-        while( uiStartIdx < rEntry.uiEndIndex && !fAfter( vData[ uiStartIdx ] ) && fDo( vData[ uiStartIdx ] ) )
+        while( uiStartIdx < rEntry.uiEndIndex && !fAfter( vData[ uiStartIdx ] ) )
+        {
+            fDo( vData[ uiStartIdx ] );
             ++uiStartIdx;
+        }
     }
 
     bool popEntry( const Entry& rEntry )
@@ -236,10 +269,25 @@ template <typename type_defs> class Points
         return true;
     }
 
+    Entry copyEntry( const Entry& rEntry )
+    {
+        Entry xRet;
+        xRet.uiStartIndex = vData.size( );
+        iterate( [ & ]( const point_t& rP ) { vData.push_back( rP ); }, rEntry );
+        xRet.uiEndIndex = vData.size( );
+        return xRet;
+    }
+
     void sortByDim( size_t uiDim, const Entry& rEntry )
     {
         sort_points( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
                      PointsComperator( uiDim ) );
+    }
+
+    void sortByDim( size_t uiDim1, size_t uiDim2, const Entry& rEntry )
+    {
+        sort_points2( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
+                     PointsComperator2( uiDim1, uiDim2 ) );
     }
 
     size_t size( ) const
