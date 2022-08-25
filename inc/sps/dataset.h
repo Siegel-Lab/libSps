@@ -799,6 +799,93 @@ template <typename type_defs> class Dataset
             fDo( xPointers[ uiI ] );
     }
 
+    static coordinate_t sampleInterval( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
+                                        typename points_t::Entry& xSortedPoints, size_t uiD, bool bStart )
+    {
+        coordinate_t uiPos = bStart ? uiFrom[ uiD ] : uiTo[ uiD ];
+        while( ( bStart && uiPos < uiTo[ uiD ] ) || ( !bStart && uiPos > uiFrom[ uiD ] ) )
+        {
+            if( !bStart ) // doing this here to avoid unsigned integer underflow after zero
+                --uiPos;
+            const size_t uiD2 = uiD != 0 ? 0 : 1;
+            bool bFound = false;
+            vPoints.forEqualRange(
+                // fBefore
+                [ & ]( const point_t& rP ) {
+                    // ignore all points before the picked coordinate
+                    if( rP.vPos[ uiD ] < uiPos )
+                        return true;
+                    if( rP.vPos[ uiD ] > uiPos )
+                        return false;
+
+                    // ignore all points before and after the box in the second dimensions
+                    if( rP.vPos[ uiD2 ] < uiFrom[ uiD2 ] )
+                        return true;
+                    if( rP.vPos[ uiD2 ] >= uiTo[ uiD2 ] )
+                        return false;
+
+                    // point should be considered
+                    return false;
+                },
+                // fAfter
+                [ & ]( const point_t& rP ) {
+                    // once we have found a single point we can stop
+                    if( bFound )
+                        return true;
+
+                    // once we reached a point not on the picked coordinate we can stop (due to sorting order)
+                    if( rP.vPos[ uiD ] != uiPos )
+                        return true;
+
+                    // once we have reached a point past the box in the second coordinate we can stop (due to
+                    // sorting order)
+                    if( rP.vPos[ uiD2 ] >= uiTo[ uiD2 ] )
+                        return true;
+
+                    // point should be considered
+                    return false;
+                },
+                // fDo
+                [ & ]( const point_t& rP ) {
+                    // check if considered point is fully inside
+                    for( size_t uiD = 0; uiD < D; uiD++ )
+                        if( rP.vPos[ uiD ] < uiFrom[ uiD ] && rP.vPos[ uiD ] >= uiTo[ uiD ] )
+                            return; // point not inside -> abort
+                    // point inside
+                    bFound = true;
+                }, //
+                xSortedPoints );
+            if( bFound )
+                break; // found the first index
+            if( bStart )
+                ++uiPos;
+        }
+        return uiPos;
+    }
+
+    static coordinate_t sampleIntervalSizeZero( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
+                                                typename points_t::Entry& xSortedPoints, size_t uiD )
+    {
+        coordinate_t uiEnd = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints, uiD, false );
+        return uiEnd - uiFrom[ uiD ];
+    }
+
+    static pos_t sampleIntervalSize( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
+                                     std::array<typename points_t::Entry, D> xSortedPoints )
+    {
+        pos_t uiNumDistinct;
+        for( size_t uiD = 0; uiD < D; uiD++ )
+        {
+            coordinate_t uiEnd = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints[ uiD ], uiD, false );
+            if( uiEnd == uiFrom[ uiD ] )
+                uiNumDistinct[ uiD ] = 0;
+            else
+                uiNumDistinct[ uiD ] = uiEnd - sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints[ uiD ], uiD, true );
+        }
+
+        return uiNumDistinct;
+    }
+
     static coordinate_t sampleNumDistinct( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
                                            const uint64_t uiNumSamples, typename points_t::Entry& xSortedPoints,
                                            size_t uiD )
@@ -898,13 +985,17 @@ template <typename type_defs> class Dataset
             uiTo[ uiI ] =
                 ( uiP[ uiI ] + 1 ) * ( 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlays[ uiI ] ) + uiMinPos[ uiI ];
         }
-        pos_t uiNumDistinctInOverlay;
+        pos_t uiNumDistinctInOverlay, uiSampledIntervalSize;
 
         if constexpr( UNIFORM_OVERLAY_GRID )
+        {
             uiNumDistinctInOverlay = sampleNumDistinct( vPoints, uiFrom, uiTo, uiNumPointSamples, xSortedPoints );
+            uiSampledIntervalSize = sampleIntervalSize( vPoints, uiFrom, uiTo, xSortedPoints );
+        }
         else
         {
             uiNumDistinctInOverlay = pos_t{ };
+            uiSampledIntervalSize = pos_t{ };
             // @todo @fixme outdated
             // std::binomial_distribution<int> xDist( xPoints.size( ), 1.0 / toAmount( uiNumOverlays ) );
             // for( size_t uiI = 0; uiI < D; uiI++ )
@@ -932,21 +1023,18 @@ template <typename type_defs> class Dataset
                                     uiP[ uiK ] * ( 1 + ( uiCoordinateSizes[ uiK ] - 1 ) / uiNumOverlays[ uiK ] ) +
                                     uiMinPos[ uiK ];
                         }
-                        coordinate_t uiNumDistinct =
+                        uiNumPSOverlayCurr *=
+                            ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
                             sampleNumDistinct( vPoints, uiFrom, uiTo, uiNumPointSamples, xSortedPoints[ uiJ ], uiJ );
-
-                        coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiJ ] - 1 ) / uiNumOverlays[ uiJ ];
-                        uiNumPSOverlayCurr *= ( uiP[ uiJ ] > 0 ? 1 : 0 ) + uiNumDistinct;
 
                         uiNumLookUpTablesOverlay +=
                             ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
                             // @todo @fixme drawIntervalSize*Zero* -> not required (separately stored value for bottom
                             //              left postion of each box would be better)
-                            drawIntervalSizeZero( uiOverlaySize, drawNumDraws( uiOverlaySize, uiNumDistinct ) );
+                            sampleIntervalSizeZero( vPoints, uiFrom, uiTo, xSortedPoints[ uiJ ], uiJ );
                     }
                 uiNumPSOverlay += uiNumPSOverlayCurr;
             }
-            coordinate_t uiOverlaySize = 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlays[ uiI ];
 
             // prefix sums in overlay
             // use the coupons collectors problem to adjust for several points lying in the same row or column of
@@ -957,8 +1045,7 @@ template <typename type_defs> class Dataset
             // coupons we have drawn, which correspons to the number of rows that actually have at least one point.
             uiNumPSInternal *= uiNumDistinctInOverlay[ uiI ];
 
-            uiNumLookUpTablesInternal +=
-                drawIntervalSize( uiOverlaySize, drawNumDraws( uiOverlaySize, uiNumDistinctInOverlay[ uiI ] ) );
+            uiNumLookUpTablesInternal += uiSampledIntervalSize[ uiI ];
         }
         return std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>(
             uiNumPSOverlay, uiNumPSInternal, uiNumLookUpTablesOverlay, uiNumLookUpTablesInternal );
