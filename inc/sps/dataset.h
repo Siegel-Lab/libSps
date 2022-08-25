@@ -791,7 +791,7 @@ template <typename type_defs> class Dataset
         {
             assert( xPointers.count( uiFrom ) == 1 );
             assert( xCheck.count( xPointers[ uiFrom ] ) == 0 );
-            xCheck.insert( xPointers[ uiFrom ] )
+            xCheck.insert( xPointers[ uiFrom ] );
         }
 #endif
 

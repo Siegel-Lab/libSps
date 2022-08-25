@@ -273,6 +273,8 @@ template <typename type_defs> class Points
     {
         Entry xRet;
         xRet.uiStartIndex = vData.size( );
+        // make sure no new space needs to be allocated during copy operation (this allocation could lead to segfaults)
+        vData.reserve(vData.size() + rEntry.size());
         iterate( [ & ]( const point_t& rP ) { vData.push_back( rP ); }, rEntry );
         xRet.uiEndIndex = vData.size( );
         return xRet;

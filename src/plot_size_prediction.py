@@ -81,7 +81,7 @@ for name, param in [
 FILES = [".prefix_sums", ".coords", ".overlays", ".datsets"]
 # load index
 index = make_sps_index(args.filepath_prefix, args.num_dimension, args.with_dependent_dimension, 
-                       args.with_uniform_overlay_boxes, args.num_orthotope_dimensions, args.storage_type, False )
+                       args.with_uniform_overlay_boxes, args.num_orthotope_dimensions, args.storage_type, True )
 if args.to_points < 0:
     args.to_points = len(index)
 fac_list = sorted([args.exp_base ** _fac for _fac in range(args.exp_from, args.exp_to)] + args.actual)

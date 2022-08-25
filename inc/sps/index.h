@@ -291,7 +291,12 @@ template <typename type_defs> class Index : public AbstractIndex
     countSizeLimitedInvariant( size_t uiD, pos_t vPos, size_t uiDistToTo, IntersectionType xInterType,
                                const dataset_vec_t& vDataSets, const sparse_coord_t& vSparseCoord,
                                const prefix_sum_grid_t& vPrefixSumGrid, const overlay_grid_t& vOverlayGrid,
-                               const class_key_t xDatasetId, val_t& uiRet )
+                               const class_key_t xDatasetId, val_t& uiRet
+#if GET_PROG_PRINTS
+                                ,
+                                progress_stream_t& xProg
+#endif
+                                )
     {
         for( size_t uiI = 0; uiI < D; uiI++ )
             --vPos[ uiI ];
@@ -382,7 +387,12 @@ template <typename type_defs> class Index : public AbstractIndex
 // uiD unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
         forAllCombinationsTmpl<pos_t>( vFrom, vTo, countSizeLimitedInvariant, countSizeLimitedInvariantCond, xInterType,
-                                       vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid, xDatasetId, uiRet );
+                                       vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid, xDatasetId, uiRet
+#if GET_PROG_PRINTS
+                                       ,
+                                       xProg
+#endif
+                                        );
 #pragma GCC diagnostic pop
         return uiRet;
     }
