@@ -252,7 +252,7 @@ template <typename type_defs> class Index : public AbstractIndex
                           coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
                           double fFac = -1,
                           size_t uiVerbosity = 1,
-                          const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES, 
+                          const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
                           const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
 #ifdef DO_PROFILE
@@ -268,8 +268,8 @@ template <typename type_defs> class Index : public AbstractIndex
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, fFac, xProg,
-                        uiNumOverlaySamples, uiNumPointSamples );
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, fFac, xProg, uiNumOverlaySamples,
+                        uiNumPointSamples );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
 
@@ -554,18 +554,19 @@ template <typename type_defs> class Index : public AbstractIndex
      * - The number of internal sparse coordinates
      * - The number of overlay sparse coordinates
      * - The number of global sparse coordinates
+     * - The total size in bytes
      *
      *
-     * @param fFac factor that is proportional to the number of boxes within the data structure
+     * @param fFac list of factors that are proportional to the number of boxes within the data structure
      * @param uiFrom index of first point that shall be included in the dataset
      * @param uiTo ndex of first point that shall not be included in the dataset anymore
-     * @return std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t> The predicted number of dataset
-     * structure elements
+     * @return std:vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>> 
+     *         The predicted number of dataset structure elements for each factor
      */
-    std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
-    estimateDataStructureElements( double fFac, coordinate_t uiFrom = 0,
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
+    estimateDataStructureElements( std::vector<double> vFac, coordinate_t uiFrom = 0,
                                    coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
-                                   const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES, 
+                                   const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
                                    const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
 
@@ -574,35 +575,8 @@ template <typename type_defs> class Index : public AbstractIndex
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::estimateDataStructureElements( vPoints, xPoints, fFac, 
-                                                         uiNumOverlaySamples, uiNumPointSamples );
-    }
-
-    /**
-     * @brief Predict the size of the data structure.
-     *
-     * @details
-     *
-     * See estimate_num_elements for a detailed description.
-     * This merely adds the predicted values together and converts to storage size in bytes.
-     *
-     * @param fFac factor that is proportional to the number of boxes within the data structure
-     * @param uiFrom index of first point that shall be included in the dataset
-     * @param uiTo index of first point that shall not be included in the dataset anymore
-     * @return uint64_t The predicted size of the datastructure in bytes
-     */
-    uint64_t estimateDataStructureSize( double fFac, coordinate_t uiFrom = 0,
-                                        coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
-                                        const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES, 
-                                        const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
-    {
-
-        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
-            uiTo = numPoints( );
-        typename points_t::Entry xPoints;
-        xPoints.uiStartIndex = uiFrom;
-        xPoints.uiEndIndex = uiTo;
-        return dataset_t::estimateDataStructureSize( vPoints, xPoints, fFac, uiNumOverlaySamples, uiNumPointSamples );
+        return dataset_t::estimateDataStructureElements( vPoints, xPoints, vFac, uiNumOverlaySamples,
+                                                         uiNumPointSamples );
     }
 
     /**
@@ -618,7 +592,8 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return uint64_t The predicted best value for f
      */
     uint64_t pickNumOverlays( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
-                              const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES, const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
+                              const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
+                              const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
@@ -1015,32 +990,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     - The number of internal sparse coordinates
     - The number of overlay sparse coordinates
     - The number of global sparse coordinates
+    - Total size of the datastructure
 
-    :param f: factor that is proportional to the number of boxes within the data structure
-    :type f: float
-
-    :param from_points: index of first point that shall be included in the dataset
-    :type f: int
-
-    :param to_points: index of first point that shall not be included in the dataset anymore
-    :type f: int
-
-    :return: The predicted number of dataset structure elements
-    :rtype: list[int[int]]
-)pbdoc" )
-        .def( "estimate_size", &sps::Index<type_defs>::estimateDataStructureSize, pybind11::arg( "f" ),
-              pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
-              pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
-              pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
-              R"pbdoc(
-    Predict the size of the data structure.
-
-    See estimate_num_elements for a detailed description. 
-    This merely adds the predicted values together and converts to storage size in bytes.
-
-    :param f: factor that is proportional to the number of boxes within the data structure
-    :type f: float
+    :param f: list of factors that are proportional to the number of boxes within the data structure
+    :type f: list[float]
 
     :param from_points: index of first point that shall be included in the dataset
     :type f: int
@@ -1048,8 +1001,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :param to_points: index of first point that shall not be included in the dataset anymore
     :type f: int
 
-    :return: The predicted size of the datastructure in bytes
-    :rtype: int
+    :return: The predicted number of dataset structure elements for each factor
+    :rtype: list[tuple[int]]
 )pbdoc" )
         .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays, pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),

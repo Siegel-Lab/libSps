@@ -94,11 +94,14 @@ ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps = ([], [], [
 xs = []
 actual_left = float('inf')
 actual_right = 0
-print("predicting size", end="", flush=True)
 
-for fac in fac_list:
-    opsp, ipsp, oscp, iscp, num_overlays, lp = index.estimate_num_elements(fac, args.from_points, args.to_points,
-                                                                           args.quality_overlays, args.quality_points)
+print("predicting sizes...")
+size_estimates = index.estimate_num_elements(fac_list, args.from_points, args.to_points, args.quality_overlays, 
+                                             args.quality_points)
+
+print("checking sizes", end="", flush=True)
+for fac, (opsp, ipsp, oscp, iscp, num_overlays, lp, file_size_estimate) in zip(fac_list, size_estimates):
+    file_size_estimate = file_size_estimate / 10**9 # in GB
     opsps.append(opsp)
     ipsps.append(ipsp)
     oscps.append(oscp)
@@ -109,8 +112,6 @@ for fac in fac_list:
     else:
         xs.append(num_overlays)
 
-    file_size_estimate = index.estimate_size(fac, args.from_points, args.to_points,
-                                             args.quality_overlays, args.quality_points) / 10**9 # in GB
     fsp.append(file_size_estimate)
 
     if fac in args.actual or file_size_estimate < args.max_size:
@@ -153,8 +154,8 @@ if not args.skip_optimum:
     print("searching for optimum...")
 
     picked_num = index.pick_num_overlays(args.from_points, args.to_points)
-    picked_size = index.estimate_size(index.to_factor(picked_num, args.from_points, args.to_points), 
-                                    args.from_points, args.to_points) / 10**9 # in GB
+    picked_size = index.estimate_num_elements([index.to_factor(picked_num, args.from_points, args.to_points)], 
+                                    args.from_points, args.to_points)[0][-1] / 10**9 # in GB
     if args.factor_as_x_axis:
         picked_num = index.to_factor(picked_num, args.from_points, args.to_points)
 

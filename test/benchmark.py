@@ -158,26 +158,18 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                             actual_left = float('inf')
                             actual_right = 0
                             print(*name, "n=", n, "s=", int(n*density), distrib, "a=", asp_ratio, "o=", offset)
-                            for _fac in range(0, 10):
-                                fac = fac_base ** _fac - 1
-                                index = make_sps_index(*index_params)
-                                num_cells = fill(n, index, name if _n == MIN_FILL else [""]*6, *param, 
-                                                 density, distrib, asp_ratio, offset)
 
-                                if _fac == 0:
-                                    picked_num = index.pick_num_overlays(0, len(index), QUAL_OVERLAY, QUAL_PTS)
-                                    picked_size = index.estimate_size( 
-                                            index.to_factor(picked_num, 0, len(index)),
-                                            0, len(index), QUAL_OVERLAY, QUAL_PTS) / 10**9 # in GB
-                                    picked_size_s = index.estimate_size( 
-                                            index.to_factor(int(num_cells ** ( 1/(param[0]+param[1])) ), 0, len(index)),
-                                            0, len(index), QUAL_OVERLAY, QUAL_PTS) / 10**9 # in GB
-                                    picked_size_g = index.estimate_size( 
-                                            index.to_factor(int(num_cells ** ( 1/2 )), 0, len(index)),
-                                            0, len(index), QUAL_OVERLAY, QUAL_PTS) / 10**9 # in GB
+                            index = make_sps_index(*index_params)
+                            num_cells = fill(n, index, name if _n == MIN_FILL else [""]*6, *param, 
+                                                density, distrib, asp_ratio, offset)
 
-                                file_size_estimate = index.estimate_size(fac, 0, len(index), 
-                                                                         QUAL_OVERLAY, QUAL_PTS) / 10**9 # in GB
+                            size_estimates = index.estimate_num_elements(
+                                    [fac_base ** _fac - 1 for _fac in range(0, 10)],
+                                                                      0, len(index), QUAL_OVERLAY, QUAL_PTS) 
+                            
+                            for fac, (opsp, ipsp, oscp, iscp, num_overlays, lp, file_size_estimate) in zip(
+                                            [fac_base ** _fac - 1 for _fac in range(0, 10)], size_estimates):
+                                file_size_estimate = file_size_estimate / 10**9 # in Gb
                                 fsp.append(file_size_estimate)
 
                                 if file_size_estimate < max_pred_file_size:
@@ -202,9 +194,6 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     las.append(float('NaN'))
                                     gcs.append(float('NaN'))
                                 
-                                opsp, ipsp, oscp, iscp, num_overlays, lp = index.estimate_num_elements(
-                                                                                    fac, 0, len(index), 
-                                                                                    QUAL_OVERLAY, QUAL_PTS)
                                 opsps.append(opsp)
                                 ipsps.append(ipsp)
                                 oscps.append(oscp)
@@ -220,7 +209,10 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     eps.append(file_size_estimate/file_size)
                                 else:
                                     fsa.append(float('NaN'))
-                                    eps.append(float('NaN'))
+                                    eps.append(float('NaN'))                            
+                                index = make_sps_index(*index_params)
+                                num_cells = fill(n, index, name if _n == MIN_FILL else [""]*6, *param, 
+                                                    density, distrib, asp_ratio, offset)
                                 
                                 #print(file_size / 10**9, file_size_estimate / 10**9, (file_size - file_size_estimate) / 10**9, sep="\t")
                                 for f in files_full:
@@ -229,7 +221,23 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     print(".", end="", flush=True)
                                 else:
                                     print("!", end="", flush=True)
-                            print()
+
+                            print(" ", end="", flush=True)
+                            picked_num = index.pick_num_overlays(0, len(index), QUAL_OVERLAY, QUAL_PTS)
+                            print(".", end="", flush=True)
+                            picked_size = index.estimate_num_elements( 
+                                    [index.to_factor(picked_num, 0, len(index))],
+                                    0, len(index), QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                            print(".", end="", flush=True)
+                            picked_size_s = index.estimate_num_elements( 
+                                    [index.to_factor(int(num_cells ** ( 1/(param[0]+param[1])) ), 0, len(index))],
+                                    0, len(index), QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                            print(".", end="", flush=True)
+                            picked_size_g = index.estimate_num_elements( 
+                                    [index.to_factor(int(num_cells ** ( 1/2 )), 0, len(index))],
+                                    0, len(index), QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                            print(".")
+                            del index
                             if plot:
                                 for axis_type in ["log"]: #["linear", "log"]:
                                     plot_ips = figure(x_axis_type=axis_type)
