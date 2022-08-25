@@ -188,14 +188,6 @@ template <typename type_defs> class Points
             vStart, vEnd );
     }
 
-    Entry getEntry( ) const
-    {
-        Entry xRet{ };
-        xRet.uiStartIndex = 0;
-        xRet.uiEndIndex = vData.size( );
-        return xRet;
-    }
-
     EntryIterator cbegin( const Entry& rInfo ) const
     {
         return EntryIterator( *this, rInfo );
@@ -213,6 +205,35 @@ template <typename type_defs> class Points
         auto itEnd = vData.cbegin( ) + rEntry.uiEndIndex;
         for( auto cIter = vData.cbegin( ) + rEntry.uiStartIndex; cIter != itEnd; cIter++ )
             fDo( *cIter );
+    }
+
+    void forEqualRange( std::function<bool( const point_t& )> fBefore, std::function<bool( const point_t& )> fAfter,
+                        std::function<void( const point_t& )> fDo, const Entry& rEntry ) const
+    {
+        size_t uiStartIdx = rEntry.uiStartIndex;
+        size_t uiEndIdx = rEntry.uiEndIndex;
+        while( uiStartIdx < uiEndIdx )
+        {
+            size_t uiMid = ( uiStartIdx + uiEndIdx ) / 2;
+            if( fBefore( vData[ uiMid ] ) )
+                uiStartIdx = uiMid + 1;
+            else
+                uiEndIdx = uiMid;
+        }
+        assert( !fBefore( vData[ uiStartIdx ] ) );
+
+        // @note side effects in while condition! (fDo)
+        while( uiStartIdx < rEntry.uiEndIndex && !fAfter( vData[ uiStartIdx ] ) && fDo( vData[ uiStartIdx ] ) )
+            ++uiStartIdx;
+    }
+
+    bool popEntry( const Entry& rEntry )
+    {
+        if( rEntry.uiEndIndex != vData.size( ) )
+            return false;
+
+        vData.resize( rEntry.uiStartIndex );
+        return true;
     }
 
     void sortByDim( size_t uiDim, const Entry& rEntry )

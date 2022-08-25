@@ -760,18 +760,10 @@ template <typename type_defs> class Dataset
         return correctNumPoints( uiDistinct, uiNumGridCells );
     }
 
-
-    static pos_t sampleNumPoints( const points_t& vPoints, typename points_t::Entry xPoints, pos_t uiFrom, pos_t uiTo,
-                                  uint64_t /*uiCorrectedNumPoints*/, const uint64_t uiNumPointSamples )
+    static void pickRandomDistinct( size_t uiN, size_t uiMax, std::function<void( size_t )> fDo )
     {
         std::map<size_t, size_t> xPointers;
-
-        const size_t uiN = std::min( uiNumPointSamples, xPoints.size( ) );
-        /*
-         *  shuffle the vector of points
-         *  then always pick the first uiNumPointSamples points
-         */
-        std::uniform_int_distribution<size_t> xDist( 0, xPoints.size( ) - 1 );
+        std::uniform_int_distribution<size_t> xDist( 0, uiMax - 1 );
         for( size_t uiFrom = 0; uiFrom < uiN; uiFrom++ )
         {
             if( xPointers.count( uiFrom ) == 0 )
@@ -800,21 +792,44 @@ template <typename type_defs> class Dataset
         }
 #endif
 
-        std::vector<pos_t> vPts;
         for( size_t uiI = 0; uiI < uiN; uiI++ )
-        {
+            fDo( xPointers[ uiI ] );
+    }
+
+    /*
+     * Strategy:
+        for each overlay
+            sample num distinct coordinates per axis
+            use inverse coupons collectors problem to get number of points
+
+     */
+
+
+    static pos_t sampleNumPoints( const points_t& vPoints, typename points_t::Entry xPoints, pos_t uiFrom, pos_t uiTo,
+                                  uint64_t /*uiCorrectedNumPoints*/, const uint64_t uiNumPointSamples,
+                                  std::array<typename points_t::Entry, D> xSortedPoints,
+                                  std::array<coordinate_t, D> xCoords )
+    {
+
+        const size_t uiN = std::min( uiNumPointSamples, xPoints.size( ) );
+
+        std::vector<pos_t> vPts;
+        pickRandomDistinct( uiN, xPoints.size( ), [ & ]( size_t uiI ) {
             bool bInside = true;
-            pos_t vPos = vPoints.vData[ xPointers[ uiI + xPoints.uiStartIndex ] ].vPos;
+            pos_t vPos = vPoints.vData[ uiI + xPoints.uiStartIndex ].vPos;
 
             for( size_t uiD = 0; uiD < D; uiD++ )
                 bInside = bInside && vPos[ uiD ] >= uiFrom[ uiD ] && vPos[ uiD ] < uiTo[ uiD ];
             if( bInside )
                 vPts.push_back( vPos );
-        }
+        } );
 
         pos_t uiCorrectedNumPts;
         for( size_t uiD = 0; uiD < D; uiD++ )
         {
+#if 0
+            uiCorrectedNumPts[ uiD ] = ( xPoints.size( ) * vPts.size( ) ) / uiN;
+#else
             std::sort( vPts.begin( ), vPts.end( ), [ & ]( pos_t vA, pos_t vB ) { return vA[ uiD ] < vB[ uiD ]; } );
             coordinate_t uiLast = std::numeric_limits<coordinate_t>::max( );
             uint64_t uiDistinct = 0;
@@ -825,7 +840,8 @@ template <typename type_defs> class Dataset
                 uiLast = vP[ uiD ];
             }
             uiCorrectedNumPts[ uiD ] =
-                std::round( ( xPoints.size( ) * drawNumDraws( uiTo[ uiD ] - uiFrom[ uiD ], uiDistinct ) ) / uiN );
+                ( xPoints.size( ) * drawNumDraws( uiTo[ uiD ] - uiFrom[ uiD ], uiDistinct ) ) / uiN;
+#endif
         }
         return uiCorrectedNumPts;
     }
