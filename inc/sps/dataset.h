@@ -694,6 +694,17 @@ template <typename type_defs> class Dataset
         return uiNumDistinct;
     }
 
+    static coordinate_t sampleIntervalSize( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
+                                     typename points_t::Entry& xSortedPoints, size_t uiD )
+    {
+        coordinate_t uiEnd = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints, uiD, false );
+        coordinate_t uiStart = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints, uiD, true );
+        if( uiEnd < uiStart )
+            return 0;
+        else
+            return uiEnd - uiStart;
+    }
+
     static coordinate_t sampleNumDistinct( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
                                            const uint64_t uiNumSamples, typename points_t::Entry& xSortedPoints,
                                            size_t uiD )
@@ -865,7 +876,7 @@ template <typename type_defs> class Dataset
                             ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
                             // @todo @fixme drawIntervalSize*Zero* -> not required (separately stored value for bottom
                             //              left postion of each box would be better)
-                            sampleIntervalSizeZero( vPoints, uiFrom, uiTo, xSortedPoints[ uiJ ], uiJ );
+                            sampleIntervalSize( vPoints, uiFrom, uiTo, xSortedPoints[ uiJ ], uiJ );
                     }
                 uiNumPSOverlay += uiNumPSOverlayCurr;
             }

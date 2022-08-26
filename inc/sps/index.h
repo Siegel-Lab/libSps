@@ -153,7 +153,7 @@ template <typename type_defs> class Index : public AbstractIndex
         size_t uiRmSp = getNumInternalSparseCoords( vDataSets.size( ) - 1 ) +
                         getNumGlobalSparseCoords( vDataSets.size( ) - 1 ) +
                         getNumOverlaySparseCoords( vDataSets.size( ) - 1 );
-        vSparseCoord.vData.resize( vSparseCoord.vData.size( ) >= uiRmSp : vSparseCoord.vData.size( ) - uiRmSp : 0 );
+        vSparseCoord.vData.resize( vSparseCoord.vData.size( ) >= uiRmSp ? vSparseCoord.vData.size( ) - uiRmSp : 0 );
 
         size_t uiRmPs =
             getNumInternalPrefixSums( vDataSets.size( ) - 1 ) + getNumOverlayPrefixSums( vDataSets.size( ) - 1 );

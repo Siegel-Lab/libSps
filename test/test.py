@@ -199,12 +199,12 @@ random.seed(6846854546132)
 #test(CachedDependantDimPrefixSum_4D("test/blub3", True), 4)
 
 
-test(CachedUniformOverlayGridPointsPrefixSum_2D("test/blub2", True), 2)
+test(DiskUniformOverlayGridPointsPrefixSum_2D("test/blub2", True), 2)
 #test(DiskDependantDimPointsPrefixSum_5D("test/blub4", True), 5)
 
 #test(DiskDependantDimPointsPrefixSum_2D("test/blub5", True), 2)
 
-test(CachedUniformOverlayGridRectanglesPrefixSum_2D("test/blub6", True), 2, area=True)
+test(DiskUniformOverlayGridRectanglesPrefixSum_2D("test/blub6", True), 2, area=True)
 #test(CachedDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, enforce_wide_queries=False)
 
 

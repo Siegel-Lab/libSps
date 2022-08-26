@@ -227,6 +227,7 @@ template <typename type_defs> class Overlay
     std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D> vOverlayEntries;
     typename prefix_sum_grid_t::template Entry<D> xInternalEntires;
     typename points_t::Entry xPoints;
+    sps_t uiBottomLeftPrefixSum;
 
     Overlay( ) : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, xPoints{ }
     {}
@@ -253,8 +254,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -442,6 +443,7 @@ template <typename type_defs> class Overlay
                 while( xBegin != xEnd && *xBegin < vMyBottomLeft[ uiJAct ] )
                     ++xBegin;
 
+                // @fixme do not use vMyBottomLeft[ uiJAct ] - 1 here
                 if( vPredecessors[ uiJAct ].size( ) > 0 )
                     vSparseCoordsOverlay[ uiI ][ uiJ ] =
                         rSparseCoords.addStartEnd( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
@@ -550,6 +552,8 @@ template <typename type_defs> class Overlay
         xProg << Verbosity( 1 ) << "constructing overlay sum grid\n";
 #endif
 
+        uiBottomLeftPrefixSum = pDataset->getAll( rOverlays, rSparseCoords, rPrefixSums, vMyBottomLeft, xProg );
+
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vPredecessors[ uiI ].size( ) > 0 )
             {
@@ -595,7 +599,7 @@ template <typename type_defs> class Overlay
                               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
                               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
                               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
-                              size_t uiCornerIdx
+                              size_t uiCornerIdx, sps_t uiBottomLeftPrefixSum
 #if GET_PROG_PRINTS
                               ,
                               progress_stream_t& xProg
@@ -618,6 +622,10 @@ template <typename type_defs> class Overlay
         red_pos_t vRelevant = relevant( vPos, uiI );
         red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiI ] );
 
+        bool bValid = true;
+        for( size_t uiI = 0; uiI < D - 1; uiI++ )
+            bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
+
 #if GET_PROG_PRINTS
         xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
 #endif
@@ -625,10 +633,20 @@ template <typename type_defs> class Overlay
         sps_t uiCurrArr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
 
         val_t uiCurr;
-        if constexpr( IS_ORTHOTOPE )
-            uiCurr = uiCurrArr[ uiCornerIdx ];
+        if( bValid )
+        {
+            if constexpr( IS_ORTHOTOPE )
+                uiCurr = uiCurrArr[ uiCornerIdx ];
+            else
+                uiCurr = uiCurrArr;
+        }
         else
-            uiCurr = uiCurrArr;
+        {
+            if constexpr( IS_ORTHOTOPE )
+                uiCurr = uiBottomLeftPrefixSum[ uiCornerIdx ];
+            else
+                uiCurr = uiBottomLeftPrefixSum;
+        }
 
 #if GET_PROG_PRINTS
         xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
@@ -643,6 +661,7 @@ template <typename type_defs> class Overlay
         const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
         const prefix_sum_grid_t& rPrefixSums,
         const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+        sps_t uiBottomLeftPrefixSum,
         progress_stream_t&
 #if GET_PROG_PRINTS
             xProg
@@ -665,11 +684,19 @@ template <typename type_defs> class Overlay
         red_pos_t vRelevant = relevant( vPos, uiI );
         red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiI ] );
 
+        bool bValid = true;
+        for( size_t uiI = 0; uiI < D - 1; uiI++ )
+            bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
+
 #if GET_PROG_PRINTS
         xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
 #endif
-        // in release mode query with sanity=false to avoid sanity checks
-        sps_t uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
+        sps_t uiCurr;
+        if( bValid )
+            // in release mode query with sanity=false to avoid sanity checks
+            uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
+        else
+            uiCurr = uiBottomLeftPrefixSum;
 
 #if GET_PROG_PRINTS
         xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
@@ -706,7 +733,7 @@ template <typename type_defs> class Overlay
 
         forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariant, getCombinationsCond, uiRet,
                                        vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
-                                       uiCornerIdx
+                                       uiCornerIdx, uiBottomLeftPrefixSum
 #if GET_PROG_PRINTS
                                        ,
                                        xProg
@@ -755,7 +782,7 @@ template <typename type_defs> class Overlay
 #endif
         forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariantAll, getCombinationsCond, uiRet,
                                        vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
-                                       xProg
+                                       uiBottomLeftPrefixSum, xProg
 
         );
 
