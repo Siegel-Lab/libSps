@@ -238,6 +238,13 @@ template <typename type_defs> class Points
             fDo( *cIter );
     }
 
+    void iterate( std::function<void( point_t& )> fDo, const Entry& rEntry )
+    {
+        auto itEnd = vData.begin( ) + rEntry.uiEndIndex;
+        for( auto cIter = vData.begin( ) + rEntry.uiStartIndex; cIter != itEnd; cIter++ )
+            fDo( *cIter );
+    }
+
     void forEqualRange( std::function<bool( const point_t& )> fBefore, std::function<bool( const point_t& )> fAfter,
                         std::function<void( const point_t& )> fDo, const Entry& rEntry ) const
     {

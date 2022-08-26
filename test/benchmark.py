@@ -12,7 +12,7 @@ from bokeh.layouts import gridplot
 from bokeh.models import Div
 
 MIN_FILL = 3# 1
-MAX_FILL = 5# 8
+MAX_FILL = 4# 8
 N_QUERY = 10000 #100k
 #N_QUERY = 10000000 #10,000k
 QUAL_OVERLAY = 1000
@@ -112,10 +112,10 @@ def make_indices():
     index_names = []
     params = []
     for dims in [2]: #[2, 3]:
-        for ort_dim in [False, True]:
+        for ort_dim in [False]: #[False, True]:
             num_ort_dims = dims if ort_dim else 0
             for storage in ["Disk"]: #["Disk", "Cached"]:
-                for uniform_overlay_grid in [True]: #[False, True]:
+                for uniform_overlay_grid in [False, True]:
                     for dep_dim in ([False] if uniform_overlay_grid else [False, True]):
                         xs = [
                             str(dims) + "d", 
@@ -150,7 +150,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
         for offset in [0]: #[0, 100]:
             for density in [1]: #[0.1, 1, 10]:
                 for asp_ratio in [1]:# [1, 10]:
-                    for distrib in ["even", "dist_dep_dec", "diagonal", "log_norm", "dup"]:
+                    for distrib in ["dist_dep_dec"]:#["even", "dist_dep_dec", "diagonal", "log_norm", "dup"]:
                         for index_params, name, param in zip(indices, index_names, params):
                             ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps,gcs = ([], [], [], 
                                     [], [], [], [], [], [], [], [], [], [], [])
