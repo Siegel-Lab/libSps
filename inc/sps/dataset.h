@@ -1105,7 +1105,8 @@ template <typename type_defs> class Dataset
 
     static double pickOverlayFactor( points_t& vPoints, const typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
                                      size_t uiNumPoints, pos_t uiMinPos, const uint64_t uiNumOverlaySamples,
-                                     const uint64_t uiNumPointSamples )
+                                     const uint64_t uiNumPointSamples,
+                                     progress_stream_t xProg )
     {
         std::array<typename points_t::Entry, D> xSortedPoints;
         std::array<std::vector<coordinate_t>, D> vvCoords;
@@ -1128,10 +1129,13 @@ template <typename type_defs> class Dataset
         std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
 
         double fEnd = 100;
+        double fStart = 0;
+        
 
         // make sure to place end past the minimum
         while( true )
         {
+            xProg << Verbosity( 0 ) << "searching factors [" << fStart << ", " << fEnd << ")\n";
             uint64_t uiEnd = std::get<6>( estimateDataStructureElements(
                 vPoints, xSortedPoints, vvCoords, toNumbers( vNumRatios, fEnd ), uiCoordinateSizes, uiNumPoints,
                 uiMinPos, uiNumOverlaySamples, uiNumPointSamples ) );
@@ -1144,12 +1148,13 @@ template <typename type_defs> class Dataset
         }
 
         // fund the minumum between 0 and fEnd
-        double fStart = 0;
         const double fSampleSteps = 10;
+        uint64_t uiMin = std::numeric_limits<uint64_t>::max( );
         while( toAmount( toNumbers( vNumRatios, fStart ) ) != toAmount( toNumbers( vNumRatios, fEnd ) ) )
         {
+            xProg << Verbosity( 0 ) << "searching factors [" << fStart << ", " << fEnd << ")\n";
             double fMin = 0;
-            uint64_t uiMin = std::numeric_limits<uint64_t>::max( );
+            uiMin = std::numeric_limits<uint64_t>::max( );
             for( double fPos = fStart; fPos <= fEnd; fPos += ( fEnd - fStart ) / fSampleSteps )
             {
                 uint64_t uiCurr = std::get<6>( estimateDataStructureElements(
@@ -1169,41 +1174,47 @@ template <typename type_defs> class Dataset
         // remove additional entries again
         for( size_t uiI = 0; uiI < D; uiI++ )
             vPoints.popEntry( xSortedPoints[ D - uiI - 1 ] );
+        
+        xProg << Verbosity( 0 ) << "picked factor " << fStart << "-> expected index size is " 
+              << uiMin / (double)std::pow(10, 9) << "Gb\n";
 
         return fStart;
     }
 
     static coordinate_t pickNumOverlays( points_t& vPoints, const typename points_t::Entry xPoints,
                                          pos_t uiCoordinateSizes, size_t uiNumPoints, pos_t uiMinPos,
-                                         const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
+                                         const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples,
+                                         progress_stream_t xProg )
     {
         auto vNums = toNumbers( toNumRatios( uiCoordinateSizes ),
                                 pickOverlayFactor( vPoints, xPoints, uiCoordinateSizes, uiNumPoints, uiMinPos,
-                                                   uiNumOverlaySamples, uiNumPointSamples ) );
+                                                   uiNumOverlaySamples, uiNumPointSamples, xProg ) );
 
         return toAmount( vNums );
     }
 
     static coordinate_t pickNumOverlays( points_t& vPoints, const typename points_t::Entry xPoints,
-                                         const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
+                                         const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples,
+                                         progress_stream_t xProg )
     {
         auto xA = generateCoordSizes( vPoints, xPoints );
         pos_t uiCoordinateSizes = xA[ 0 ];
         pos_t uiMinPos = xA[ 2 ];
         return pickNumOverlays( vPoints, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex,
-                                uiMinPos, uiNumOverlaySamples, uiNumPointSamples );
+                                uiMinPos, uiNumOverlaySamples, uiNumPointSamples, xProg );
     }
 
     static pos_t pickOverlayNumbers( points_t& vPoints, const typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
                                      size_t uiNumPoints, pos_t uiMinPos, double fFac,
-                                     const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
+                                     const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples,
+                                     progress_stream_t xProg )
     {
         std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
         if( fFac >= 0 )
             return toNumbers( vNumRatios, fFac );
         return toNumbers( vNumRatios,
                           pickOverlayFactor( vPoints, xPoints, uiCoordinateSizes, uiNumPoints, uiMinPos,
-                                             uiNumOverlaySamples, uiNumPointSamples ) );
+                                             uiNumOverlaySamples, uiNumPointSamples, xProg ) );
     }
 
     static std::array<pos_t, 3> generateCoordSizes( points_t& vPoints, const typename points_t::Entry xPoints )
@@ -1244,9 +1255,12 @@ template <typename type_defs> class Dataset
         uiMaxCoords = xA[ 1 ];
         uiMinCoords = xA[ 2 ];
 
+        xProg << Verbosity( 0 ) << "picking number of overlay boxes.\n";
         pos_t uiNumOverlaysPerDim =
             pickOverlayNumbers( vPoints, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex,
-                                uiMinCoords, fFac, uiNumOverlaySamples, uiNumPointSamples );
+                                uiMinCoords, fFac, uiNumOverlaySamples, uiNumPointSamples, xProg );
+
+        xProg << Verbosity( 0 ) << "generating overlay grid.\n";
         if constexpr( UNIFORM_OVERLAY_GRID )
         {
             for( size_t uiI = 0; uiI < D; uiI++ )
@@ -1365,7 +1379,6 @@ template <typename type_defs> class Dataset
         if( xPoints.uiEndIndex == xPoints.uiStartIndex )
             return;
         // generate the overall sparse coordinates
-        xProg << Verbosity( 0 ) << "generating overlay grid.\n";
         generateOverlayCoords( rOverlays, rSparseCoords, vPoints, xPoints, fFac, xProg, uiNumOverlaySamples,
                                uiNumPointSamples );
 

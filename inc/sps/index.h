@@ -56,8 +56,8 @@ enum IntersectionType
     slice,
 };
 
-#define DEFAULT_NUM_OVERLAY_SAMPLES 1000
-#define DEFAULT_NUM_POINT_SAMPLES 5000
+#define DEFAULT_NUM_OVERLAY_SAMPLES 10000
+#define DEFAULT_NUM_POINT_SAMPLES 10000
 
 /**
  * @brief The main sparse prefix sum index class.
@@ -617,14 +617,16 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     uint64_t pickNumOverlays( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
                               const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
-                              const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
+                              const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES,
+                                   size_t uiVerbosity = 0 )
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::pickNumOverlays( vPoints, xPoints, uiNumOverlaySamples, uiNumPointSamples );
+        progress_stream_t xProg( uiVerbosity );
+        return dataset_t::pickNumOverlays( vPoints, xPoints, uiNumOverlaySamples, uiNumPointSamples, xProg );
     }
 
     /**
@@ -1032,6 +1034,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
               pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
+              pybind11::arg( "verbosity" ) = 0,
               R"pbdoc(
     Predict the best f.
 
