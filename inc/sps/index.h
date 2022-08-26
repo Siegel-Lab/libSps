@@ -150,14 +150,18 @@ template <typename type_defs> class Index : public AbstractIndex
 
     void popDataset( )
     {
-        vSparseCoord.vData.resize( vSparseCoord.vData.size( ) -
-                                   ( getNumInternalSparseCoords( vDataSets.size( ) - 1 ) +
-                                     getNumGlobalSparseCoords( vDataSets.size( ) - 1 ) +
-                                     getNumOverlaySparseCoords( vDataSets.size( ) - 1 ) ) );
-        vPrefixSumGrid.vData.resize(
-            vPrefixSumGrid.vData.size( ) -
-            ( getNumInternalPrefixSums( vDataSets.size( ) - 1 ) + getNumOverlayPrefixSums( vDataSets.size( ) - 1 ) ) );
-        vOverlayGrid.vData.resize( vOverlayGrid.vData.size( ) - ( getNumOverlays( vDataSets.size( ) - 1 ) ) );
+        size_t uiRmSp = getNumInternalSparseCoords( vDataSets.size( ) - 1 ) +
+                        getNumGlobalSparseCoords( vDataSets.size( ) - 1 ) +
+                        getNumOverlaySparseCoords( vDataSets.size( ) - 1 );
+        vSparseCoord.vData.resize( vSparseCoord.vData.size( ) >= uiRmSp : vSparseCoord.vData.size( ) - uiRmSp : 0 );
+
+        size_t uiRmPs =
+            getNumInternalPrefixSums( vDataSets.size( ) - 1 ) + getNumOverlayPrefixSums( vDataSets.size( ) - 1 );
+        vPrefixSumGrid.vData.resize( vPrefixSumGrid.vData.size( ) >= uiRmPs ? vPrefixSumGrid.vData.size( ) - uiRmPs
+                                                                            : 0 );
+
+        size_t uiRmOG = getNumOverlays( vDataSets.size( ) - 1 );
+        vOverlayGrid.vData.resize( vOverlayGrid.vData.size( ) >= uiRmOG ? vOverlayGrid.vData.size( ) - uiRmOG : 0 );
         vDataSets.pop_back( );
     }
 
@@ -293,10 +297,10 @@ template <typename type_defs> class Index : public AbstractIndex
                                const prefix_sum_grid_t& vPrefixSumGrid, const overlay_grid_t& vOverlayGrid,
                                const class_key_t xDatasetId, val_t& uiRet
 #if GET_PROG_PRINTS
-                                ,
-                                progress_stream_t& xProg
+                               ,
+                               progress_stream_t& xProg
 #endif
-                                )
+    )
     {
         for( size_t uiI = 0; uiI < D; uiI++ )
             --vPos[ uiI ];
@@ -392,7 +396,7 @@ template <typename type_defs> class Index : public AbstractIndex
                                        ,
                                        xProg
 #endif
-                                        );
+        );
 #pragma GCC diagnostic pop
         return uiRet;
     }
@@ -570,7 +574,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param fFac list of factors that are proportional to the number of boxes within the data structure
      * @param uiFrom index of first point that shall be included in the dataset
      * @param uiTo ndex of first point that shall not be included in the dataset anymore
-     * @return std:vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>> 
+     * @return std:vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
      *         The predicted number of dataset structure elements for each factor
      */
     std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
@@ -588,7 +592,7 @@ template <typename type_defs> class Index : public AbstractIndex
                                                          uiNumPointSamples );
     }
 
-    
+
     pos_t gridSize( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
@@ -596,7 +600,7 @@ template <typename type_defs> class Index : public AbstractIndex
         typename points_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::generateCoordSizes( vPoints, xPoints )[0];
+        return dataset_t::generateCoordSizes( vPoints, xPoints )[ 0 ];
     }
 
     /**
@@ -1064,8 +1068,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :return: f.
     :rtype: float
 )pbdoc" )
-        .def( "grid_size", &sps::Index<type_defs>::gridSize,
-              pybind11::arg( "from_points" ) = 0,
+        .def( "grid_size", &sps::Index<type_defs>::gridSize, pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               R"pbdoc(
     Get the axis sizes of the area spanned by the given points.

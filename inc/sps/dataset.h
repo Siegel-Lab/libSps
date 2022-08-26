@@ -804,7 +804,7 @@ template <typename type_defs> class Dataset
             {
                 if( DEPENDANT_DIMENSION && uiI == 1 )
                 {
-                    if(uiP[ 0 ] >= vvDepDim.size())
+                    if( uiP[ 0 ] >= vvDepDim.size( ) )
                     {
                         uiFromGlob[ 1 ] = 0;
                         uiToGlob[ 1 ] = 0;
@@ -895,7 +895,6 @@ template <typename type_defs> class Dataset
         uint64_t uiNumOverlaysTotal = 1;
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
-        std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         std::vector<std::vector<coordinate_t>> vvDepDim;
         if constexpr( !UNIFORM_OVERLAY_GRID && DEPENDANT_DIMENSION )
         {
@@ -917,11 +916,10 @@ template <typename type_defs> class Dataset
 
             vPoints.sortByDim( 0, 1, xTmp );
 
-            coordinate_t uiLastX = std::numeric_limits<coordinate_t>::max();
+            coordinate_t uiLastX = std::numeric_limits<coordinate_t>::max( );
             vPoints.iterate(
                 [ & ]( const point_t& rP ) {
-                    if( vvDepDim.size( ) == 0 ||
-                        ( vvDepDim.back( ).size( ) > 0 && uiLastX != rP.vPos[ 0 ] ) )
+                    if( vvDepDim.size( ) == 0 || ( vvDepDim.back( ).size( ) > 0 && uiLastX != rP.vPos[ 0 ] ) )
                         vvDepDim.emplace_back( );
                     uiLastX = rP.vPos[ 0 ];
                     if( vvDepDim.back( ).size( ) == 0 || rP.vPos[ 1 ] != vvDepDim.back( ).back( ) )
@@ -931,22 +929,34 @@ template <typename type_defs> class Dataset
 
             vPoints.popEntry( xTmp );
         }
-        for( size_t uiI = 0; uiI < uiNumOverlaySamples; uiI++ )
-        {
-            pos_t uiP{ };
-            for( size_t uiI = 0; uiI < D; uiI++ )
-            {
-                std::uniform_int_distribution<uint64_t> xDis( 0, uiNumOverlays[ uiI ] - 1 );
-                uiP[ uiI ] = xDis( xGen );
-            }
-            auto tCurr = estimateOverlay( vPoints, xSortedPoints, vvCoords, vvDepDim, uiNumPoints, uiCoordinateSizes,
-                                          uiNumOverlays, uiNumOverlaysTotal, uiP, uiMinPos, uiNumPointSamples );
 
-            std::get<0>( tTotal ) += std::get<0>( tCurr );
-            std::get<1>( tTotal ) += std::get<1>( tCurr );
-            std::get<2>( tTotal ) += std::get<2>( tCurr );
-            std::get<3>( tTotal ) += std::get<3>( tCurr );
-        }
+        std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
+        {
+            ThreadPool xPool( vPoints.THREADSAVE ? std::thread::hardware_concurrency( ) : 0 );
+
+            std::mutex xResMutex;
+
+            for( size_t uiI = 0; uiI < uiNumOverlaySamples; uiI++ )
+                xPool.enqueue( [ & ]( size_t ) {
+                    pos_t uiP{ };
+                    for( size_t uiI = 0; uiI < D; uiI++ )
+                    {
+                        std::uniform_int_distribution<uint64_t> xDis( 0, uiNumOverlays[ uiI ] - 1 );
+                        uiP[ uiI ] = xDis( xGen );
+                    }
+                    auto tCurr =
+                        estimateOverlay( vPoints, xSortedPoints, vvCoords, vvDepDim, uiNumPoints, uiCoordinateSizes,
+                                         uiNumOverlays, uiNumOverlaysTotal, uiP, uiMinPos, uiNumPointSamples );
+
+
+                    std::lock_guard<std::mutex> xGuard( xResMutex );
+                    std::get<0>( tTotal ) += std::get<0>( tCurr );
+                    std::get<1>( tTotal ) += std::get<1>( tCurr );
+                    std::get<2>( tTotal ) += std::get<2>( tCurr );
+                    std::get<3>( tTotal ) += std::get<3>( tCurr );
+                } );
+        } // scope for xPool
+
 
         uint64_t uiNumBlockLookup = 0;
         if constexpr( !UNIFORM_OVERLAY_GRID )
