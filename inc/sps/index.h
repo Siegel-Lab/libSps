@@ -56,8 +56,8 @@ enum IntersectionType
     slice,
 };
 
-#define DEFAULT_NUM_OVERLAY_SAMPLES 10000
-#define DEFAULT_NUM_POINT_SAMPLES 1000
+#define DEFAULT_NUM_OVERLAY_SAMPLES 1000
+#define DEFAULT_NUM_POINT_SAMPLES 5000
 
 /**
  * @brief The main sparse prefix sum index class.
@@ -579,7 +579,6 @@ template <typename type_defs> class Index : public AbstractIndex
                                    const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
                                    const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
-
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
         typename points_t::Entry xPoints;
@@ -587,6 +586,17 @@ template <typename type_defs> class Index : public AbstractIndex
         xPoints.uiEndIndex = uiTo;
         return dataset_t::estimateDataStructureElements( vPoints, xPoints, vFac, uiNumOverlaySamples,
                                                          uiNumPointSamples );
+    }
+
+    
+    pos_t gridSize( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    {
+        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
+            uiTo = numPoints( );
+        typename points_t::Entry xPoints;
+        xPoints.uiStartIndex = uiFrom;
+        xPoints.uiEndIndex = uiTo;
+        return dataset_t::generateCoordSizes( vPoints, xPoints )[0];
     }
 
     /**
@@ -1053,6 +1063,21 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 
     :return: f.
     :rtype: float
+)pbdoc" )
+        .def( "grid_size", &sps::Index<type_defs>::gridSize,
+              pybind11::arg( "from_points" ) = 0,
+              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
+              R"pbdoc(
+    Get the axis sizes of the area spanned by the given points.
+
+    :param from_points: index of first point that shall be included
+    :type f: int
+
+    :param to_points: index of first point that shall not be included anymore
+    :type f: int
+
+    :return: a.
+    :rtype: list[int]
 )pbdoc" )
         .def( "get_num_internal_prefix_sums", &sps::Index<type_defs>::getNumInternalPrefixSums,
               pybind11::arg( "dataset_id" ),

@@ -46,13 +46,16 @@ parser.add_argument('-m','--max_size', metavar='M',
                     default=0, type=float)
 parser.add_argument('-q','--quality_overlays', metavar='M',
                     help="If the prediction predicts the datastructure to be smaller than M, compute the datastructures actual size, defaults to %(default)s.", 
-                    default=10000, type=int)
+                    default=1000, type=int)
 parser.add_argument('-Q','--quality_points', metavar='M',
                     help="If the prediction predicts the datastructure to be smaller than M, compute the datastructures actual size, defaults to %(default)s.", 
-                    default=1000, type=int)
+                    default=5000, type=int)
 parser.add_argument('-l','--lib_sps_path', metavar='P',
                     help="Path to libSps' folder in case it is located outside of the current working directory, defaults to %(default)s.", default=".")
 parser.add_argument('-O','--skip_optimum', 
+                    help="Skip computing and displaying the automatically determined optimum", 
+                    action='store_true', default=False)
+parser.add_argument('-U','--show_update_optimum', 
                     help="Skip computing and displaying the automatically determined optimum", 
                     action='store_true', default=False)
 
@@ -159,6 +162,21 @@ if not args.skip_optimum:
     if args.factor_as_x_axis:
         picked_num = index.to_factor(picked_num, args.from_points, args.to_points)
 
+if args.show_update_optimum:
+    print("computing update optima...")
+    grid_sizes = index.grid_size(args.from_points, args.to_points)
+    num_cells = 1
+    for x in grid_sizes:
+        num_cells *= x
+    
+    picked_size_s = index.estimate_num_elements( 
+            [index.to_factor(int(num_cells ** ( 1/(args.num_dimension + args.num_orthotope_dimensions)) ), 
+            args.from_points, args.to_points)],
+            args.from_points, args.to_points, args.quality_overlays, args.quality_points)[0][-1] / 10**9 # in GB
+    picked_size_g = index.estimate_num_elements( 
+            [index.to_factor(int(num_cells ** ( 1/2 )), args.from_points, args.to_points)],
+            args.from_points, args.to_points, args.quality_overlays, args.quality_points)[0][-1] / 10**9 # in GB
+
 print("generating and saving plot...")
 
 
@@ -198,6 +216,19 @@ if not args.skip_optimum:
     plot_fs.add_layout(Label(x=picked_num + 1, y=0, y_units='screen', text="predicted minimum",
                             background_fill_color="white", background_fill_alpha=1.0,
                             level="overlay"))
+if args.show_update_optimum:                                    
+    x_pos = num_cells ** ( 1/(args.num_dimension + args.num_orthotope_dimensions) )
+    plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_s,
+                                    line_color='black', fill_color=None,
+                                    line_dash='dotted', line_width=1, line_alpha=1))
+    plot_fs.add_layout(Label(x=x_pos + 1, y=30, y_units='screen', text="Shekelyan et al.",
+                            background_fill_color="white", background_fill_alpha=1.0, level="overlay"))
+    x_pos = num_cells ** ( 1/2 )
+    plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_g,
+                                    line_color='black', fill_color=None,
+                                    line_dash='dashed', line_width=1, line_alpha=1))
+    plot_fs.add_layout(Label(x=x_pos + 1, y=60, y_units='screen', text="Geffner et al.",
+                            background_fill_color="white", background_fill_alpha=1.0, level="overlay"))
 
 plot_ep = figure(x_axis_type=axis_type, y_axis_type="log", title="total file size error")
 plot_ep.line(x=xs, y=eps, line_color="black")

@@ -849,7 +849,7 @@ template <typename type_defs> class Dataset
                 [ & ]( const point_t& rP ) {
                     // check if considered point is fully inside
                     for( size_t uiD = 0; uiD < D; uiD++ )
-                        if( rP.vPos[ uiD ] < uiFrom[ uiD ] && rP.vPos[ uiD ] >= uiTo[ uiD ] )
+                        if( rP.vPos[ uiD ] < uiFrom[ uiD ] || rP.vPos[ uiD ] >= uiTo[ uiD ] )
                             return; // point not inside -> abort
                     // point inside
                     bFound = true;
@@ -877,10 +877,11 @@ template <typename type_defs> class Dataset
         for( size_t uiD = 0; uiD < D; uiD++ )
         {
             coordinate_t uiEnd = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints[ uiD ], uiD, false );
-            if( uiEnd == uiFrom[ uiD ] )
+            coordinate_t uiStart = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints[ uiD ], uiD, true );
+            if( uiEnd < uiStart )
                 uiNumDistinct[ uiD ] = 0;
             else
-                uiNumDistinct[ uiD ] = uiEnd - sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints[ uiD ], uiD, true );
+                uiNumDistinct[ uiD ] = uiEnd - uiStart;
         }
 
         return uiNumDistinct;
@@ -939,7 +940,7 @@ template <typename type_defs> class Dataset
                     [ & ]( const point_t& rP ) {
                         // check if considered point is fully inside
                         for( size_t uiD = 0; uiD < D; uiD++ )
-                            if( rP.vPos[ uiD ] < uiFrom[ uiD ] && rP.vPos[ uiD ] >= uiTo[ uiD ] )
+                            if( rP.vPos[ uiD ] < uiFrom[ uiD ] || rP.vPos[ uiD ] >= uiTo[ uiD ] )
                                 return; // point not inside -> abort
                         // point inside
                         bFound = true;
