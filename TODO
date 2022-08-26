@@ -4,3 +4,24 @@
 - remove vector sorter in favour of adding sort method to the vectors
 - make columns of overlays share same sparse coords lookup array?
     - or is this alleviated with the dependent dimension?
+
+
+
+
+
+    === summary before vacation ===
+
+- size estimation now works 
+    - it now actually samples the required values instead of predicting them
+    - caveat: dependant dim size estimation still broken because position of overlays is determined wrongly
+
+- dependant dim makes file smaller from 1.75Gb to 1.2Gb
+    - worth the effort? :/
+    - thinking of dropping it
+
+- shekalyan et. al's. size prediction seems to hit the optimum actually
+    - at least for Hi-C data
+    - for own distributions i can make examples where he is suboptimal
+
+ - sparse coordinates vector should be cached instead of disk based
+ - right now: fixing zero value of overlays

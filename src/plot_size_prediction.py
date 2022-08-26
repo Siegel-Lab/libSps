@@ -218,13 +218,13 @@ if not args.skip_optimum:
                             level="overlay"))
 if args.show_update_optimum:                                    
     x_pos = num_cells ** ( 1/(args.num_dimension + args.num_orthotope_dimensions) )
-    plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_s,
+    plot_fs.add_layout(BoxAnnotation(right=x_pos, top=picked_size_s,
                                     line_color='black', fill_color=None,
                                     line_dash='dotted', line_width=1, line_alpha=1))
     plot_fs.add_layout(Label(x=x_pos + 1, y=30, y_units='screen', text="Shekelyan et al.",
                             background_fill_color="white", background_fill_alpha=1.0, level="overlay"))
     x_pos = num_cells ** ( 1/2 )
-    plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_g,
+    plot_fs.add_layout(BoxAnnotation(right=x_pos, top=picked_size_g,
                                     line_color='black', fill_color=None,
                                     line_dash='dashed', line_width=1, line_alpha=1))
     plot_fs.add_layout(Label(x=x_pos + 1, y=60, y_units='screen', text="Geffner et al.",
