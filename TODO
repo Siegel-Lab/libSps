@@ -23,5 +23,3 @@
     - at least for Hi-C data
     - for own distributions i can make examples where he is suboptimal
 
- - sparse coordinates vector should be cached instead of disk based
- - right now: fixing zero value of overlays

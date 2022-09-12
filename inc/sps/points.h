@@ -57,8 +57,8 @@ template <typename type_defs> class Points
             return xRet;
         };
     };
-    typename type_defs::template points_sort_func_t<points_it_t, PointsComperator> sort_points =
-        typename type_defs::template points_sort_func_t<points_it_t, PointsComperator>( );
+    points_sort_func_t<points_it_t, PointsComperator> sort_points =
+        points_sort_func_t<points_it_t, PointsComperator>( );
     struct PointsComperator2
     {
         const size_t uiDim1, uiDim2;
@@ -88,8 +88,8 @@ template <typename type_defs> class Points
             return xRet;
         };
     };
-    typename type_defs::template points_sort_func_t<points_it_t, PointsComperator2> sort_points2 =
-        typename type_defs::template points_sort_func_t<points_it_t, PointsComperator2>( );
+    points_sort_func_t<points_it_t, PointsComperator2> sort_points2 =
+        points_sort_func_t<points_it_t, PointsComperator2>( );
 
   public:
     points_file_t xFile;
@@ -281,7 +281,7 @@ template <typename type_defs> class Points
         Entry xRet;
         xRet.uiStartIndex = vData.size( );
         // make sure no new space needs to be allocated during copy operation (this allocation could lead to segfaults)
-        vData.reserve(vData.size() + rEntry.size());
+        vData.reserve( vData.size( ) + rEntry.size( ) );
         iterate( [ & ]( const point_t& rP ) { vData.push_back( rP ); }, rEntry );
         xRet.uiEndIndex = vData.size( );
         return xRet;
@@ -296,7 +296,7 @@ template <typename type_defs> class Points
     void sortByDim( size_t uiDim1, size_t uiDim2, const Entry& rEntry )
     {
         sort_points2( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
-                     PointsComperator2( uiDim1, uiDim2 ) );
+                      PointsComperator2( uiDim1, uiDim2 ) );
     }
 
     size_t size( ) const

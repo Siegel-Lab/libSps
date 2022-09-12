@@ -13,7 +13,7 @@ using namespace sps;
 /**
  * @brief Catches all print output.
  *
- * Purpose is the be able to direct printed output into a file, to std::cout or somewhere else.
+ * Purpose is to be able to direct printed output into a file, to std::cout or somewhere else.
  * StdOutProgressStream directs the prints to std::cout.
  *
  */
@@ -88,25 +88,6 @@ struct StdOutProgressStream
     {}
 };
 
-
-template <typename val_t> struct RamVecGenerator
-{
-    using file_t = size_t;
-    using vec_t = std::vector<val_t>;
-    static const bool THREADSAVE = true;
-
-    vec_t vec( file_t& )
-    {
-        return vec_t( );
-    }
-
-    file_t file( std::string, bool )
-    {
-        return 0;
-    }
-};
-
-
 /**
  * @brief Sorter for a std::vector
  *
@@ -127,6 +108,31 @@ template <typename it_t, typename cmp_t> struct RamVectorSorter
         std::sort( xBegin, xEnd, xComp );
     }
 };
+
+template <typename val_t> struct RamVecGenerator
+{
+    using file_t = size_t;
+    using vec_t = std::vector<val_t>;
+    static const bool THREADSAVE = true;
+
+    template <typename it_t, typename cmp_t> using sorter_t = RamVectorSorter<it_t, cmp_t>;
+
+    vec_t vec( file_t& )
+    {
+        return vec_t( );
+    }
+
+    void try_shrink_to_fit( vec_t& rVec )
+    {
+        rVec.shrink_to_fit( );
+    }
+
+    file_t file( std::string, bool )
+    {
+        return 0;
+    }
+};
+
 
 using default_coordinate_t = uint64_t;
 using default_val_t = uint32_t;
@@ -149,17 +155,11 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               D, //
                               default_class_key_t, //
                               RamVecGenerator, //
-                              RamVectorSorter, //
                               RamVecGenerator, //
-                              RamVectorSorter, //
                               RamVecGenerator, //
-                              RamVectorSorter, //
                               RamVecGenerator, //
-                              RamVectorSorter, //
                               RamVecGenerator, //
-                              RamVectorSorter, //
                               RamVecGenerator, //
-                              RamVectorSorter, //
                               dependant_dim, //
                               uniform_overlay_grid, //
                               orthope, //
@@ -188,6 +188,14 @@ struct CacheVec : public stxxl::VECTOR_GENERATOR<val_t, PageSize, CachePages, Bl
     }
 };
 
+template <typename it_t, typename cmp_t> struct CachedVectorSorter
+{
+    void operator( )( it_t xBegin, it_t xEnd, cmp_t xComp ) const
+    {
+        stxxl::sort( xBegin, xEnd, xComp, 1024 * 1024 * 1024 );
+    }
+};
+
 template <typename val_t> struct CachedVecGenerator
 {
     using file_t = stxxl::syscall_file;
@@ -195,9 +203,16 @@ template <typename val_t> struct CachedVecGenerator
 
     static const bool THREADSAVE = false;
 
+    template <typename it_t, typename cmp_t> using sorter_t = CachedVectorSorter<it_t, cmp_t>;
+
     vec_t vec( file_t& rFile )
     {
         return vec_t( &rFile );
+    }
+
+    void try_shrink_to_fit( vec_t& rVec )
+    {
+        rVec.resize( rVec.size( ), true );
     }
 
     file_t file( std::string sPath, bool bOpenInWriteMode )
@@ -205,14 +220,6 @@ template <typename val_t> struct CachedVecGenerator
         return file_t( sPath, ( bOpenInWriteMode ? stxxl::file::open_mode::RDWR | stxxl::file::open_mode::CREAT
                                                  : stxxl::file::open_mode::RDONLY | stxxl::file::open_mode::NO_LOCK ) |
                                   stxxl::file::open_mode::DIRECT );
-    }
-};
-
-template <typename it_t, typename cmp_t> struct CachedVectorSorter
-{
-    void operator( )( it_t xBegin, it_t xEnd, cmp_t xComp ) const
-    {
-        stxxl::sort( xBegin, xEnd, xComp, 1024 * 1024 * 1024 );
     }
 };
 
@@ -281,6 +288,12 @@ template <typename val_t> struct DiskVecGenerator
     static const bool THREADSAVE = true;
 
     /**
+     * @brief defines a sorter object for the generated vector
+     */
+    template <typename it_t, typename cmp_t> using sorter_t = RamVectorSorter<it_t, cmp_t>;
+
+
+    /**
      * @brief generate a vector for a given file.
      *
      * @param rFile the file.
@@ -289,6 +302,16 @@ template <typename val_t> struct DiskVecGenerator
     vec_t vec( file_t& rFile )
     {
         return vec_t( &rFile );
+    }
+
+    /**
+     * @brief shrink the capacity of the given vector to fit it's content
+     *
+     * @param rVec the vector.
+     */
+    void try_shrink_to_fit( vec_t& rVec )
+    {
+        rVec.shrink_to_fit( );
     }
 
     /**
@@ -321,17 +344,11 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              D, //
                              default_class_key_t, //
                              DiskVecGenerator, //
-                             RamVectorSorter, //
                              DiskVecGenerator, //
-                             RamVectorSorter, //
                              DiskVecGenerator, //
-                             RamVectorSorter, //
                              DiskVecGenerator, //
-                             RamVectorSorter, //
                              DiskVecGenerator, //
-                             RamVectorSorter, //
                              DiskVecGenerator, //
-                             RamVectorSorter, //
                              dependant_dim, //
                              uniform_overlay_grid, //
                              orthope, //
@@ -357,17 +374,11 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                D, //
                                default_class_key_t, //
                                DiskVecGenerator, //
-                               RamVectorSorter, //
-                               DiskVecGenerator, //
-                               RamVectorSorter, //
-                               DiskVecGenerator, //
-                               RamVectorSorter, //
-                               DiskVecGenerator, //
-                               RamVectorSorter, //
-                               DiskVecGenerator, //
-                               RamVectorSorter, //
                                CachedVecGenerator, //
-                               CachedVectorSorter, //
+                               DiskVecGenerator, //
+                               DiskVecGenerator, //
+                               DiskVecGenerator, //
+                               CachedVecGenerator, //
                                dependant_dim, //
                                uniform_overlay_grid, //
                                orthope, //

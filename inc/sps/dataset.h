@@ -136,8 +136,8 @@ template <typename type_defs> class Dataset
             return point_t( vActPos, std::numeric_limits<size_t>::max( ) );
         };
     };
-    points_sort_func_t<points_it_t, PointsBinComperator> sort_points_bin =
-        points_sort_func_t<points_it_t, PointsBinComperator>( );
+    typename points_t::template points_sort_func_t<points_it_t, PointsBinComperator> sort_points_bin =
+        typename points_t::template points_sort_func_t<points_it_t, PointsBinComperator>( );
 
     struct PointsComperator
     {
@@ -164,8 +164,8 @@ template <typename type_defs> class Dataset
             return xRet;
         };
     };
-    points_sort_func_t<points_it_t, PointsComperator> sort_points =
-        points_sort_func_t<points_it_t, PointsComperator>( );
+    typename points_t::template points_sort_func_t<points_it_t, PointsComperator> sort_points =
+        typename points_t::template points_sort_func_t<points_it_t, PointsComperator>( );
 
     struct PointsComperatorDistinct
     {
@@ -196,7 +196,10 @@ template <typename type_defs> class Dataset
             return xRet;
         };
     };
-    static points_sort_func_t<points_it_t, PointsComperatorDistinct> sort_points_distinct;
+
+    using points_sort_func_t = typename points_t::template points_sort_func_t<points_it_t, PointsComperatorDistinct>;
+
+    static points_sort_func_t sort_points_distinct;
 
   public:
     Dataset( ) : vSparseCoords( ), xSparseCoordsDependantDimension( )
@@ -215,7 +218,6 @@ template <typename type_defs> class Dataset
                      PointsComperator( uiDim ) );
         vPoints.iterate(
             [ & ]( const point_t& xPoint ) {
-                // @todo consider all coordinates of point
                 coordinate_t uiCurr = xPoint.vPos[ uiDim ];
                 if( uiFirst == std::numeric_limits<coordinate_t>::max( ) )
                     uiFirst = uiCurr;
@@ -347,8 +349,7 @@ template <typename type_defs> class Dataset
         } // end of scope for xPool
 
 
-        // @todo might not work with all vec implementations
-        rSparseCoords.vData.shrink_to_fit( );
+        rSparseCoords.shrink_to_fit( );
 
         coordinate_t uiRet = 0;
         for( coordinate_t uiX : vPrefixSumSize )
@@ -427,8 +428,7 @@ template <typename type_defs> class Dataset
             vPrefixSumSize[ uiTid ] += rOverlays.vData[ uiOverlayId ].generateOverlaySparseCoords(
                 rOverlays, rSparseCoords, vPoints, vPredecessors, vPosBottomLeftActual, vPosTopRightActual, xProg );
         } );
-        // @todo might not work with all vec implementations
-        rSparseCoords.vData.shrink_to_fit( );
+        rSparseCoords.shrink_to_fit( );
 
         coordinate_t uiRet = 0;
         for( coordinate_t uiX : vPrefixSumSize )
@@ -670,13 +670,6 @@ template <typename type_defs> class Dataset
         return uiPos;
     }
 
-    static coordinate_t sampleIntervalSizeZero( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
-                                                typename points_t::Entry& xSortedPoints, size_t uiD )
-    {
-        coordinate_t uiEnd = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints, uiD, false );
-        return uiEnd - uiFrom[ uiD ];
-    }
-
     static pos_t sampleIntervalSize( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
                                      std::array<typename points_t::Entry, D> xSortedPoints )
     {
@@ -695,7 +688,7 @@ template <typename type_defs> class Dataset
     }
 
     static coordinate_t sampleIntervalSize( const points_t& vPoints, pos_t uiFrom, pos_t uiTo,
-                                     typename points_t::Entry& xSortedPoints, size_t uiD )
+                                            typename points_t::Entry& xSortedPoints, size_t uiD )
     {
         coordinate_t uiEnd = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints, uiD, false );
         coordinate_t uiStart = sampleInterval( vPoints, uiFrom, uiTo, xSortedPoints, uiD, true );
@@ -874,8 +867,6 @@ template <typename type_defs> class Dataset
 
                         uiNumLookUpTablesOverlay +=
                             ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
-                            // @todo @fixme drawIntervalSize*Zero* -> not required (separately stored value for bottom
-                            //              left postion of each box would be better)
                             sampleIntervalSize( vPoints, uiFrom, uiTo, xSortedPoints[ uiJ ], uiJ );
                     }
                 uiNumPSOverlay += uiNumPSOverlayCurr;
@@ -1105,8 +1096,7 @@ template <typename type_defs> class Dataset
 
     static double pickOverlayFactor( points_t& vPoints, const typename points_t::Entry xPoints, pos_t uiCoordinateSizes,
                                      size_t uiNumPoints, pos_t uiMinPos, const uint64_t uiNumOverlaySamples,
-                                     const uint64_t uiNumPointSamples,
-                                     progress_stream_t xProg )
+                                     const uint64_t uiNumPointSamples, progress_stream_t xProg )
     {
         std::array<typename points_t::Entry, D> xSortedPoints;
         std::array<std::vector<coordinate_t>, D> vvCoords;
@@ -1130,7 +1120,7 @@ template <typename type_defs> class Dataset
 
         double fEnd = 100;
         double fStart = 0;
-        
+
 
         // make sure to place end past the minimum
         while( true )
@@ -1174,9 +1164,9 @@ template <typename type_defs> class Dataset
         // remove additional entries again
         for( size_t uiI = 0; uiI < D; uiI++ )
             vPoints.popEntry( xSortedPoints[ D - uiI - 1 ] );
-        
-        xProg << Verbosity( 0 ) << "picked factor " << fStart << "-> expected index size is " 
-              << uiMin / (double)std::pow(10, 9) << "Gb\n";
+
+        xProg << Verbosity( 0 ) << "picked factor " << fStart << "-> expected index size is "
+              << uiMin / (double)std::pow( 10, 9 ) << "Gb\n";
 
         return fStart;
     }
@@ -1644,7 +1634,6 @@ template <typename type_defs> class Dataset
         return overlay_grid_t::sizeOf( xOverlays );
     }
 
-    // @todo @continue_here export this function in index.h and then use it!
     coordinate_t getSize( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords ) const
     {
         uint64_t uiNumPSTotal = ( getNumInternalPrefixSums( rOverlays, rSparseCoords ) +
@@ -1701,10 +1690,7 @@ template <typename type_defs> class Dataset
 template <typename type_defs> std::mt19937 Dataset<type_defs>::xGen = std::mt19937( std::random_device( )( ) );
 
 template <typename type_defs>
-Dataset<type_defs>::points_sort_func_t<typename Dataset<type_defs>::points_it_t,
-                                       typename Dataset<type_defs>::PointsComperatorDistinct>
-    Dataset<type_defs>::sort_points_distinct =
-        Dataset<type_defs>::points_sort_func_t<typename Dataset<type_defs>::points_it_t, //
-                                               typename Dataset<type_defs>::PointsComperatorDistinct>( );
+typename Dataset<type_defs>::points_sort_func_t
+    Dataset<type_defs>::sort_points_distinct = typename Dataset<type_defs>::points_sort_func_t( );
 
 } // namespace sps

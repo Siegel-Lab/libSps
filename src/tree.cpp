@@ -168,7 +168,8 @@ std::unique_ptr<AbstractIndex> factoryHelper( std::string sStorageType, std::str
             return factoryHelperFinal<D, dependant_dim, uniform_overlay_grid, orthope, CachedTypeDef>( sPrefix, bWrite,
                                                                                                        bSimpleVec );
 
-        std::ifstream::pos_type uiTotalSize = filesize( ( sPrefix + ".prefix_sums" ).c_str( ) );
+        std::ifstream::pos_type uiTotalSize = filesize( ( sPrefix + ".prefix_sums" ).c_str( ) ) + //
+                                              filesize( ( sPrefix + ".coords" ).c_str( ) );
 
         if( (size_t)uiTotalSize * 2 < getTotalSystemMemory( ) ) // Disk
             return factoryHelperFinal<D, dependant_dim, uniform_overlay_grid, orthope, DiskTypeDef>( sPrefix, bWrite,

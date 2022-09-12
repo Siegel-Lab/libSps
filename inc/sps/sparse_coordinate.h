@@ -137,6 +137,11 @@ template <typename type_defs> class SparseCoord
         : xFile( coord_vec_generator.file( sPrefix + ".coords", bWrite ) ), vData( coord_vec_generator.vec( xFile ) )
     {}
 
+    void shrink_to_fit( )
+    {
+        coord_vec_generator.try_shrink_to_fit( vData );
+    }
+
     static void append( EntryArray& rArr, const Entry& rE )
     {
         if( rArr.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
