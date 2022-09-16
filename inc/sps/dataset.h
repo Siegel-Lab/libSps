@@ -445,7 +445,7 @@ template <typename type_defs> class Dataset
         size_t uiFrom = xOverlays.uiStartIndex;
         size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
-            ThreadPool xPool( rOverlays.THREADSAVE && vPoints.THREADSAVE ? std::thread::hardware_concurrency( ) : 0 );
+            ThreadPool xPool( rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vPoints.THREADSAVE ? std::thread::hardware_concurrency( ) : 0 );
 
             for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
@@ -1165,7 +1165,7 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             vPoints.popEntry( xSortedPoints[ D - uiI - 1 ] );
 
-        xProg << Verbosity( 0 ) << "picked factor " << fStart << "-> expected index size is "
+        xProg << Verbosity( 0 ) << "picked factor " << fStart << " -> expected index size is "
               << uiMin / (double)std::pow( 10, 9 ) << "Gb\n";
 
         return fStart;

@@ -14,6 +14,7 @@
 - size estimation now works 
     - it now actually samples the required values instead of predicting them
     - caveat: dependant dim size estimation still broken because position of overlays is determined wrongly
+        - no? i think i fixed this?
 
 - dependant dim makes file smaller from 1.75Gb to 1.2Gb
     - worth the effort? :/

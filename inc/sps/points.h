@@ -258,7 +258,9 @@ template <typename type_defs> class Points
             else
                 uiEndIdx = uiMid;
         }
-        assert( !fBefore( vData[ uiStartIdx ] ) );
+
+        while( uiStartIdx < rEntry.uiEndIndex && fBefore( vData[ uiStartIdx ] ) )
+            ++uiStartIdx;
 
         while( uiStartIdx < rEntry.uiEndIndex && !fAfter( vData[ uiStartIdx ] ) )
         {
