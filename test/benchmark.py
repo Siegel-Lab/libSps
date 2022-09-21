@@ -10,7 +10,7 @@ import time
 
 N_QUERY = 100000
 REPEAT_QUERY = 1000
-FILLS = [1000, 100000] # 1K and 100K
+FILLS = [100, 1000] # 1H and 1K
 AREAS = [100, 1000] # 1H and 1K
 
 print("#VERSION", VERSION)
