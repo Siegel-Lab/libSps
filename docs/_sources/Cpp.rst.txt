@@ -26,6 +26,8 @@ Documentation for the C++ Library
       - Catches all print output.
     * - :doc:`SimpleVector<./SimpleVector>`
       - A naive, iteration-based index implementation for benchmarking.
+    * - :doc:`SimpleValVector<./SimpleValVector>`
+      - A simple vector to benchmark query time for individual numbers.
 
 .. toctree::
     :maxdepth: 2
@@ -42,3 +44,4 @@ Documentation for the C++ Library
     RamVectorSorter
     StdOutProgressStream
     SimpleVector
+    SimpleValVector

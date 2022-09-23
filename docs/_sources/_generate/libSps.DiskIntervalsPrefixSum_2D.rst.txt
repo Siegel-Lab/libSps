@@ -16,10 +16,24 @@
       ~DiskIntervalsPrefixSum_2D.__init__
       ~DiskIntervalsPrefixSum_2D.add_point
       ~DiskIntervalsPrefixSum_2D.clear
+      ~DiskIntervalsPrefixSum_2D.clear_keep_points
       ~DiskIntervalsPrefixSum_2D.count
+      ~DiskIntervalsPrefixSum_2D.count_multiple
       ~DiskIntervalsPrefixSum_2D.count_size_limited
+      ~DiskIntervalsPrefixSum_2D.estimate_num_elements
       ~DiskIntervalsPrefixSum_2D.generate
+      ~DiskIntervalsPrefixSum_2D.get_num_global_sparse_coords
+      ~DiskIntervalsPrefixSum_2D.get_num_internal_prefix_sums
+      ~DiskIntervalsPrefixSum_2D.get_num_internal_sparse_coords
+      ~DiskIntervalsPrefixSum_2D.get_num_overlay_prefix_sums
+      ~DiskIntervalsPrefixSum_2D.get_num_overlay_sparse_coords
       ~DiskIntervalsPrefixSum_2D.get_overlay_grid
+      ~DiskIntervalsPrefixSum_2D.get_size
+      ~DiskIntervalsPrefixSum_2D.grid_size
+      ~DiskIntervalsPrefixSum_2D.max_prefix_value
+      ~DiskIntervalsPrefixSum_2D.pick_num_overlays
+      ~DiskIntervalsPrefixSum_2D.pop_dataset
+      ~DiskIntervalsPrefixSum_2D.to_factor
    
    
 

@@ -8,10 +8,10 @@ import os
 import time
 
 
-N_QUERY = 100000
+N_QUERY = 10000 # 10K
 REPEAT_QUERY = 1000
-FILLS = [100, 1000] # 1H and 1K
-AREAS = [100, 1000] # 1H and 1K
+FILLS = [100000, 1000000] # 100K and 1G
+AREAS = [100000, 10000000] # 100K and 10G
 
 print("#VERSION", VERSION)
 print("#N_QUERY", N_QUERY)
@@ -40,7 +40,7 @@ def query(index, id, dims, genome_size, n=N_QUERY):
     # querytime
     print( ( n * REPEAT_QUERY / (t2-t1) ) / 1000, end="\t")
 
-def fill(n, index, name, dims, is_ort, area):
+def fill(n, index, name, dims, is_ort, area, _area):
     index.clear()
     t1 = time.perf_counter()
     for _ in range(n):
@@ -65,7 +65,7 @@ def fill(n, index, name, dims, is_ort, area):
     id = index.generate(0, len(index), verbosity=0)
     t3 = time.perf_counter()
     # index_name, filltime, generatetime
-    print(*name, area, n, (t2-t1), (t3-t2), sep="\t", end="\t")
+    print(*name, _area, n, (t2-t1), (t3-t2), sep="\t", end="\t")
     return id
 
 def make_indices():
@@ -90,16 +90,17 @@ def test():
     indices, index_names, params = make_indices()
     print("dims", "ort", "storage", "area", "n", "filltime [s]", "generatetime [s]", "speed [queries / ms]", 
           "filesize [gb]", sep="\t")
-    
+
     for index_params, name, param in zip(indices, index_names, params):
         index = make_sps_index(*index_params)
-        for area in AREAS:
+        for _area in AREAS:
+            area = int(_area ** ( 1 / (param[0] + param[1])))
             for n in FILLS:
-                id = fill(n, index, name if n == FILLS[0] and area == AREAS[0] else [""]*3, *param, area)
+                id = fill(n, index, name if n == FILLS[0] and _area == AREAS[0] else [""]*3, *param, area, _area)
                 query(index, id, param[0], area)
                 # filesize
                 print(index.get_size(id)/ 10**9) # in GB
-                index.pop_dataset()
+                index.clear()
 
         del index
         for file_suff in files:

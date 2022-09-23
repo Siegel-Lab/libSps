@@ -16,10 +16,24 @@
       ~DiskRectanglesPrefixSum_3D.__init__
       ~DiskRectanglesPrefixSum_3D.add_point
       ~DiskRectanglesPrefixSum_3D.clear
+      ~DiskRectanglesPrefixSum_3D.clear_keep_points
       ~DiskRectanglesPrefixSum_3D.count
+      ~DiskRectanglesPrefixSum_3D.count_multiple
       ~DiskRectanglesPrefixSum_3D.count_size_limited
+      ~DiskRectanglesPrefixSum_3D.estimate_num_elements
       ~DiskRectanglesPrefixSum_3D.generate
+      ~DiskRectanglesPrefixSum_3D.get_num_global_sparse_coords
+      ~DiskRectanglesPrefixSum_3D.get_num_internal_prefix_sums
+      ~DiskRectanglesPrefixSum_3D.get_num_internal_sparse_coords
+      ~DiskRectanglesPrefixSum_3D.get_num_overlay_prefix_sums
+      ~DiskRectanglesPrefixSum_3D.get_num_overlay_sparse_coords
       ~DiskRectanglesPrefixSum_3D.get_overlay_grid
+      ~DiskRectanglesPrefixSum_3D.get_size
+      ~DiskRectanglesPrefixSum_3D.grid_size
+      ~DiskRectanglesPrefixSum_3D.max_prefix_value
+      ~DiskRectanglesPrefixSum_3D.pick_num_overlays
+      ~DiskRectanglesPrefixSum_3D.pop_dataset
+      ~DiskRectanglesPrefixSum_3D.to_factor
    
    
 

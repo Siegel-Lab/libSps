@@ -16,10 +16,24 @@
       ~CachedRectanglesPrefixSum_3D.__init__
       ~CachedRectanglesPrefixSum_3D.add_point
       ~CachedRectanglesPrefixSum_3D.clear
+      ~CachedRectanglesPrefixSum_3D.clear_keep_points
       ~CachedRectanglesPrefixSum_3D.count
+      ~CachedRectanglesPrefixSum_3D.count_multiple
       ~CachedRectanglesPrefixSum_3D.count_size_limited
+      ~CachedRectanglesPrefixSum_3D.estimate_num_elements
       ~CachedRectanglesPrefixSum_3D.generate
+      ~CachedRectanglesPrefixSum_3D.get_num_global_sparse_coords
+      ~CachedRectanglesPrefixSum_3D.get_num_internal_prefix_sums
+      ~CachedRectanglesPrefixSum_3D.get_num_internal_sparse_coords
+      ~CachedRectanglesPrefixSum_3D.get_num_overlay_prefix_sums
+      ~CachedRectanglesPrefixSum_3D.get_num_overlay_sparse_coords
       ~CachedRectanglesPrefixSum_3D.get_overlay_grid
+      ~CachedRectanglesPrefixSum_3D.get_size
+      ~CachedRectanglesPrefixSum_3D.grid_size
+      ~CachedRectanglesPrefixSum_3D.max_prefix_value
+      ~CachedRectanglesPrefixSum_3D.pick_num_overlays
+      ~CachedRectanglesPrefixSum_3D.pop_dataset
+      ~CachedRectanglesPrefixSum_3D.to_factor
    
    
 

@@ -1079,7 +1079,7 @@ template <typename type_defs> class Dataset
 
         // remove additional entries again
         for( size_t uiI = 0; uiI < D; uiI++ )
-            vPoints.popEntry( xSortedPoints[ D - uiI - 1 ] );
+            vPoints.popEntry( xSortedPoints[ D - uiI - 1 ]  );
 
         return vRet;
     }

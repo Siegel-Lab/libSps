@@ -1,0 +1,42 @@
+﻿libSps.DiskUniformOverlayGridIntervalsPrefixSum\_2D
+===================================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: DiskUniformOverlayGridIntervalsPrefixSum_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.__init__
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.add_point
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.clear
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.clear_keep_points
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.count
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.count_multiple
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.count_size_limited
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.estimate_num_elements
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.generate
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.get_num_global_sparse_coords
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.get_num_internal_prefix_sums
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.get_num_internal_sparse_coords
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.get_num_overlay_prefix_sums
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.get_num_overlay_sparse_coords
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.get_overlay_grid
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.get_size
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.grid_size
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.max_prefix_value
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.pick_num_overlays
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.pop_dataset
+      ~DiskUniformOverlayGridIntervalsPrefixSum_2D.to_factor
+   
+   
+
+   
+   
+   

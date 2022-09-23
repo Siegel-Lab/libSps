@@ -1,0 +1,25 @@
+﻿libSps.ValDiskSimpleVector\_2D
+==============================
+
+.. currentmodule:: libSps
+
+.. autoclass:: ValDiskSimpleVector_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ValDiskSimpleVector_2D.__init__
+      ~ValDiskSimpleVector_2D.add
+      ~ValDiskSimpleVector_2D.get
+      ~ValDiskSimpleVector_2D.get_multiple
+   
+   
+
+   
+   
+   

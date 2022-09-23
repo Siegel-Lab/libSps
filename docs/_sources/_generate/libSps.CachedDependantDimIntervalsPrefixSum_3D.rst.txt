@@ -16,10 +16,24 @@
       ~CachedDependantDimIntervalsPrefixSum_3D.__init__
       ~CachedDependantDimIntervalsPrefixSum_3D.add_point
       ~CachedDependantDimIntervalsPrefixSum_3D.clear
+      ~CachedDependantDimIntervalsPrefixSum_3D.clear_keep_points
       ~CachedDependantDimIntervalsPrefixSum_3D.count
+      ~CachedDependantDimIntervalsPrefixSum_3D.count_multiple
       ~CachedDependantDimIntervalsPrefixSum_3D.count_size_limited
+      ~CachedDependantDimIntervalsPrefixSum_3D.estimate_num_elements
       ~CachedDependantDimIntervalsPrefixSum_3D.generate
+      ~CachedDependantDimIntervalsPrefixSum_3D.get_num_global_sparse_coords
+      ~CachedDependantDimIntervalsPrefixSum_3D.get_num_internal_prefix_sums
+      ~CachedDependantDimIntervalsPrefixSum_3D.get_num_internal_sparse_coords
+      ~CachedDependantDimIntervalsPrefixSum_3D.get_num_overlay_prefix_sums
+      ~CachedDependantDimIntervalsPrefixSum_3D.get_num_overlay_sparse_coords
       ~CachedDependantDimIntervalsPrefixSum_3D.get_overlay_grid
+      ~CachedDependantDimIntervalsPrefixSum_3D.get_size
+      ~CachedDependantDimIntervalsPrefixSum_3D.grid_size
+      ~CachedDependantDimIntervalsPrefixSum_3D.max_prefix_value
+      ~CachedDependantDimIntervalsPrefixSum_3D.pick_num_overlays
+      ~CachedDependantDimIntervalsPrefixSum_3D.pop_dataset
+      ~CachedDependantDimIntervalsPrefixSum_3D.to_factor
    
    
 

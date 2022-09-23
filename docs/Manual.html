@@ -15,6 +15,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -103,19 +104,19 @@
            <div itemprop="articleBody">
              
   <section id="libsps-manual">
-<h1>libSps - Manual<a class="headerlink" href="#libsps-manual" title="Permalink to this headline"></a></h1>
+<h1>libSps - Manual<a class="headerlink" href="#libsps-manual" title="Permalink to this heading"></a></h1>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
 <p>There are two ways to install libSps: Via bioconda and via GitHub/CMake.
 The bioconda installation is easier, but restricts you to using the default compilation parameters (see below).</p>
 <section id="bioconda">
-<h3>BioConda<a class="headerlink" href="#bioconda" title="Permalink to this headline"></a></h3>
+<h3>BioConda<a class="headerlink" href="#bioconda" title="Permalink to this heading"></a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="o">-</span><span class="n">c</span> <span class="n">bioconda</span> <span class="n">install</span> <span class="n">libSps</span>
 </pre></div>
 </div>
 </section>
 <section id="default-compilation-parameters">
-<h3>Default Compilation Parameters<a class="headerlink" href="#default-compilation-parameters" title="Permalink to this headline"></a></h3>
+<h3>Default Compilation Parameters<a class="headerlink" href="#default-compilation-parameters" title="Permalink to this heading"></a></h3>
 <p>By default libSps is compiled to handle the following types of data:</p>
 <table class="docutils align-default">
 <colgroup>
@@ -145,7 +146,7 @@ The bioconda installation is easier, but restricts you to using the default comp
 <p>Note that these parameters can be changed using the GitHub/CMake installation method.</p>
 </section>
 <section id="github-cmake">
-<h3>GitHub/CMake<a class="headerlink" href="#github-cmake" title="Permalink to this headline"></a></h3>
+<h3>GitHub/CMake<a class="headerlink" href="#github-cmake" title="Permalink to this heading"></a></h3>
 <p>To compile libSps from the githug source use the following commands:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># clone repository</span>
 <span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">MarkusRainerSchmidt</span><span class="o">/</span><span class="n">libSps</span>
@@ -187,13 +188,18 @@ You may want to consider turning options off to save compiletime: E.g. <code cla
 </section>
 </section>
 <section id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline"></a></h2>
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading"></a></h2>
 <p>The libSps workflow is seperated in two phases: Creating an index and querying the index.</p>
 <section id="python">
-<h3>Python<a class="headerlink" href="#python" title="Permalink to this headline"></a></h3>
-<p>This section contains the documentation for using libSps from Python3.</p>
+<h3>Python<a class="headerlink" href="#python" title="Permalink to this heading"></a></h3>
+<p>This section contains the documentation for using libSps from Python3.
+libSps should be imported as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">libSps</span> <span class="kn">import</span> <span class="n">make_sps_index</span>
+</pre></div>
+</div>
 <section id="creating-indices">
-<h4>Creating indices<a class="headerlink" href="#creating-indices" title="Permalink to this headline"></a></h4>
+<h4>Creating indices<a class="headerlink" href="#creating-indices" title="Permalink to this heading"></a></h4>
+<p>&#64;todo silence stxxl messages</p>
 <p>First you need to pick the correct implementation of the sparse prefix sum index for your use-case.
 For this, it is easiest to call the <code class="docutils literal notranslate"><span class="pre">make_sps_index</span></code> factory function with the appropriate parameters.</p>
 <p>For example creating an Index for 4-dimensional points, that</p>
@@ -254,7 +260,7 @@ You should hence use <code class="docutils literal notranslate"><span class="pre
 </div>
 </section>
 <section id="querying-indices">
-<h4>Querying indices<a class="headerlink" href="#querying-indices" title="Permalink to this headline"></a></h4>
+<h4>Querying indices<a class="headerlink" href="#querying-indices" title="Permalink to this heading"></a></h4>
 <p>For querying indices you provide the bottom-left-front-…. position and the top-right-back-… position of the region you want to count the number of points in. You also need the id of your dataset you got while calling generate.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">dataset_a_id</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
 </pre></div>
@@ -262,18 +268,18 @@ You should hence use <code class="docutils literal notranslate"><span class="pre
 <p>The bottom-left-front-…. position is inclusive and the top-right-back-… position is exclusive.</p>
 </section>
 <section id="documentation">
-<h4>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline"></a></h4>
+<h4>Documentation<a class="headerlink" href="#documentation" title="Permalink to this heading"></a></h4>
 <p>Technical Documentation for the python module can be found <span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/docs/Python.html" title="Python Documentation">here</a></span>.</p>
 </section>
 </section>
 <section id="c">
-<h3>C++<a class="headerlink" href="#c" title="Permalink to this headline"></a></h3>
+<h3>C++<a class="headerlink" href="#c" title="Permalink to this heading"></a></h3>
 <p>This section contains the Documentation for using libSps from C++17.
 The C++ library is header-only, so you merely need to include the appropriate header files to get it working.</p>
 <p>&#64;todo make a small example project that includes libSps
 &#64;todo give example code for the vec generator and sorter</p>
 <section id="id1">
-<h4>Creating indices<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h4>
+<h4>Creating indices<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h4>
 <p>For creating an instance of the Index class you need to provide the <code class="docutils literal notranslate"><span class="pre">type_defs</span></code> template parameter.
 As this parameter you should provide an instance of the <code class="docutils literal notranslate"><span class="pre">TypeDefs</span></code> class.
 You can either instantiate this class by itself or use the more convenient <code class="docutils literal notranslate"><span class="pre">InMemTypeDef</span></code>, <code class="docutils literal notranslate"><span class="pre">CachedTypeDef</span></code> or <code class="docutils literal notranslate"><span class="pre">DiskTypeDef</span></code>, which are defined in sps/default.h.</p>
@@ -288,16 +294,16 @@ You can either instantiate this class by itself or use the more convenient <code
 <p>Then cou can call <code class="docutils literal notranslate"><span class="pre">addPoint</span></code> and <code class="docutils literal notranslate"><span class="pre">generate</span></code> to set up your datasets as needed.</p>
 </section>
 <section id="id2">
-<h4>Querying indices<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h4>
+<h4>Querying indices<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h4>
 <p>Querying indices works the same as for the python Module.</p>
 </section>
 <section id="id3">
-<h4>Documentation<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h4>
+<h4>Documentation<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h4>
 <p>Technical Documentation for the c++ library can be found <span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/libSps/docs/Cpp.html" title="C++ Documentation">here</a></span>.</p>
 </section>
 </section>
 <section id="dependent-dimensions">
-<h3>Dependent Dimensions<a class="headerlink" href="#dependent-dimensions" title="Permalink to this headline"></a></h3>
+<h3>Dependent Dimensions<a class="headerlink" href="#dependent-dimensions" title="Permalink to this heading"></a></h3>
 <p>libSps can distribute overlays in dimension 1 dependent on dimension 0.</p>
 <img src="../_static/distributing-overlays.png" /><p><em>Making dimension 1 dependent on dimension 0 breaks the uniform grid. Instread, rows are placed differently in each column.</em></p>
 <p><strong>What are overlays?:</strong>
@@ -317,7 +323,7 @@ Looking seperatately at dimesion 1 or 2, all points look like they are evenly di
 <p>For more details you should read Shekelyan et al. [1] and Schmidt et al. [2] or have a look at the <span class="raw-html-md"><a href="https://github.com/MarkusRainerSchmidt/smoother/docs/index.html" title="Go to the Smoother GitHub page.">documentation of Smoother</a></span>.</p>
 </section>
 <section id="intervals">
-<h3>Intervals<a class="headerlink" href="#intervals" title="Permalink to this headline"></a></h3>
+<h3>Intervals<a class="headerlink" href="#intervals" title="Permalink to this heading"></a></h3>
 <p>libSps can be used to store and count n-dimensional orthotopes.
 1, 2, 3, … dimensional orthotopes are intervals, rectangles, cubes, … .
 libSps is able to place an n-orthotope in m-dimensional space (m&gt;=n), where the orthotope is simply a flat plane in the last m-n dimensions.</p>
@@ -332,7 +338,7 @@ It is always fine to exclude all rectangles that are big enough to enclose the q
 <p>For more details you should read Schmidt et al. [2].</p>
 </section>
 <section id="format-specification">
-<h3>Format specification<a class="headerlink" href="#format-specification" title="Permalink to this headline"></a></h3>
+<h3>Format specification<a class="headerlink" href="#format-specification" title="Permalink to this heading"></a></h3>
 <p>libSps can store indices on disk permanentely.
 To achieve this, several files are created.
 All these files are essentially vectors of varying length, where the individual elements are objects with sizes depending on the template parameters of the used type_defs (c++) or parameters of the make_sps_index function (Python).
@@ -386,7 +392,7 @@ The size of the vectors is not stored and needs to be inferred from the file siz
 <li><p>a pointer to it’s descritpion of type size_t.</p></li>
 <li><p>if td::IS_ORTHOTOPE, each add_point call adds all corners of the described orthotope.  <span class="raw-html-md"><br /></span>
 In this case each of the added points also stores a value of type uint8_t that indicates which corner it refers to.  <span class="raw-html-md"><br /></span>
-Corers are counted binary-like, i.e. in inverse order and from start to end position.  <span class="raw-html-md"><br /></span>
+Corners are counted binary-like, i.e. in inverse order and from start to end position.  <span class="raw-html-md"><br /></span>
 E.g. for 3 dimensions (left-right, down-up, front-back): left-down-front (000), left-down-back (001), left-up-front (010), left-up-back (011), right-down-front (100), …  <span class="raw-html-md"><br /></span>
 See the Intervals section for more details.</p></li>
 </ul>
@@ -473,7 +479,7 @@ the index i of a point p is computed as follows:</p>
 </div>
 <p>Index gives the start index of the interval in .overlays.</p>
 <section id="default-sizes">
-<h4>Default sizes<a class="headerlink" href="#default-sizes" title="Permalink to this headline"></a></h4>
+<h4>Default sizes<a class="headerlink" href="#default-sizes" title="Permalink to this heading"></a></h4>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 33%" />
@@ -509,14 +515,14 @@ the index i of a point p is computed as follows:</p>
 </section>
 </section>
 <section id="limitations">
-<h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this headline"></a></h2>
+<h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p>libSps does not work with negative coordinates.</p></li>
 <li><p>dimension 1 is the only dimension that can be made dependent on another dimension and it can only be made dependent on dimension 0.</p></li>
 </ul>
 </section>
 <section id="thanks">
-<h2>Thanks<a class="headerlink" href="#thanks" title="Permalink to this headline"></a></h2>
+<h2>Thanks<a class="headerlink" href="#thanks" title="Permalink to this heading"></a></h2>
 <p>libSps uses several other projects. These are:</p>
 <ul class="simple">
 <li><p><span class="raw-html-md"><a href="https://github.com/pybind/pybind11" title="GitHub">Pybind11</a></span>: Seamless operability between C++11 and Python</p></li>
@@ -524,12 +530,12 @@ the index i of a point p is computed as follows:</p>
 </ul>
 </section>
 <section id="citing-libsps">
-<h2>Citing libSps<a class="headerlink" href="#citing-libsps" title="Permalink to this headline"></a></h2>
+<h2>Citing libSps<a class="headerlink" href="#citing-libsps" title="Permalink to this heading"></a></h2>
 <p>For citing libSps, please use:
 &#64;todo</p>
 </section>
 <section id="references">
-<h2>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h2>
+<h2>References<a class="headerlink" href="#references" title="Permalink to this heading"></a></h2>
 <p>[1] Shekelyan, M., Dignös, A. &amp; Gamper, J. Sparse prefix sums: Constant-time range sum queries over sparse multidimensional data cubes. Information Systems 82, 136–147 (2019).</p>
 <p>[2] Schmidt et al. &#64;todo</p>
 </section>

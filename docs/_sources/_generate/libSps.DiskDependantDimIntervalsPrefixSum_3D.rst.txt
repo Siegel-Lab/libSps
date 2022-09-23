@@ -16,10 +16,24 @@
       ~DiskDependantDimIntervalsPrefixSum_3D.__init__
       ~DiskDependantDimIntervalsPrefixSum_3D.add_point
       ~DiskDependantDimIntervalsPrefixSum_3D.clear
+      ~DiskDependantDimIntervalsPrefixSum_3D.clear_keep_points
       ~DiskDependantDimIntervalsPrefixSum_3D.count
+      ~DiskDependantDimIntervalsPrefixSum_3D.count_multiple
       ~DiskDependantDimIntervalsPrefixSum_3D.count_size_limited
+      ~DiskDependantDimIntervalsPrefixSum_3D.estimate_num_elements
       ~DiskDependantDimIntervalsPrefixSum_3D.generate
+      ~DiskDependantDimIntervalsPrefixSum_3D.get_num_global_sparse_coords
+      ~DiskDependantDimIntervalsPrefixSum_3D.get_num_internal_prefix_sums
+      ~DiskDependantDimIntervalsPrefixSum_3D.get_num_internal_sparse_coords
+      ~DiskDependantDimIntervalsPrefixSum_3D.get_num_overlay_prefix_sums
+      ~DiskDependantDimIntervalsPrefixSum_3D.get_num_overlay_sparse_coords
       ~DiskDependantDimIntervalsPrefixSum_3D.get_overlay_grid
+      ~DiskDependantDimIntervalsPrefixSum_3D.get_size
+      ~DiskDependantDimIntervalsPrefixSum_3D.grid_size
+      ~DiskDependantDimIntervalsPrefixSum_3D.max_prefix_value
+      ~DiskDependantDimIntervalsPrefixSum_3D.pick_num_overlays
+      ~DiskDependantDimIntervalsPrefixSum_3D.pop_dataset
+      ~DiskDependantDimIntervalsPrefixSum_3D.to_factor
    
    
 

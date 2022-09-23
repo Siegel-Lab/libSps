@@ -1,0 +1,42 @@
+﻿libSps.DiskUniformOverlayGridRectanglesPrefixSum\_2D
+====================================================
+
+.. currentmodule:: libSps
+
+.. autoclass:: DiskUniformOverlayGridRectanglesPrefixSum_2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.__init__
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.add_point
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.clear
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.clear_keep_points
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.count
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.count_multiple
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.count_size_limited
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.estimate_num_elements
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.generate
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.get_num_global_sparse_coords
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.get_num_internal_prefix_sums
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.get_num_internal_sparse_coords
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.get_num_overlay_prefix_sums
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.get_num_overlay_sparse_coords
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.get_overlay_grid
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.get_size
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.grid_size
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.max_prefix_value
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.pick_num_overlays
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.pop_dataset
+      ~DiskUniformOverlayGridRectanglesPrefixSum_2D.to_factor
+   
+   
+
+   
+   
+   

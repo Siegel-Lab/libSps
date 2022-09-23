@@ -16,10 +16,24 @@
       ~CachedRectanglesPrefixSum_2D.__init__
       ~CachedRectanglesPrefixSum_2D.add_point
       ~CachedRectanglesPrefixSum_2D.clear
+      ~CachedRectanglesPrefixSum_2D.clear_keep_points
       ~CachedRectanglesPrefixSum_2D.count
+      ~CachedRectanglesPrefixSum_2D.count_multiple
       ~CachedRectanglesPrefixSum_2D.count_size_limited
+      ~CachedRectanglesPrefixSum_2D.estimate_num_elements
       ~CachedRectanglesPrefixSum_2D.generate
+      ~CachedRectanglesPrefixSum_2D.get_num_global_sparse_coords
+      ~CachedRectanglesPrefixSum_2D.get_num_internal_prefix_sums
+      ~CachedRectanglesPrefixSum_2D.get_num_internal_sparse_coords
+      ~CachedRectanglesPrefixSum_2D.get_num_overlay_prefix_sums
+      ~CachedRectanglesPrefixSum_2D.get_num_overlay_sparse_coords
       ~CachedRectanglesPrefixSum_2D.get_overlay_grid
+      ~CachedRectanglesPrefixSum_2D.get_size
+      ~CachedRectanglesPrefixSum_2D.grid_size
+      ~CachedRectanglesPrefixSum_2D.max_prefix_value
+      ~CachedRectanglesPrefixSum_2D.pick_num_overlays
+      ~CachedRectanglesPrefixSum_2D.pop_dataset
+      ~CachedRectanglesPrefixSum_2D.to_factor
    
    
 

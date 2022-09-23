@@ -15,10 +15,12 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="SimpleValVector" href="SimpleValVector.html" />
     <link rel="prev" title="StdOutProgressStream" href="StdOutProgressStream.html" /> 
 </head>
 
@@ -53,6 +55,7 @@
 <li class="toctree-l2"><a class="reference internal" href="RamVectorSorter.html">RamVectorSorter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="StdOutProgressStream.html">StdOutProgressStream</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">SimpleVector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SimpleValVector.html">SimpleValVector</a></li>
 </ul>
 </li>
 </ul>
@@ -83,10 +86,10 @@
            <div itemprop="articleBody">
              
   <section id="simplevector">
-<h1>SimpleVector<a class="headerlink" href="#simplevector" title="Permalink to this headline"></a></h1>
+<h1>SimpleVector<a class="headerlink" href="#simplevector" title="Permalink to this heading"></a></h1>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN3sps12SimpleVectorE">
-<span id="_CPPv3I0EN3sps12SimpleVectorE"></span><span id="_CPPv2I0EN3sps12SimpleVectorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_defs</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classsps_1_1SimpleVector"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">SimpleVector</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="AbstractIndex.html#_CPPv4N3sps13AbstractIndexE" title="sps::AbstractIndex"><span class="n"><span class="pre">AbstractIndex</span></span></a><a class="headerlink" href="#_CPPv4I0EN3sps12SimpleVectorE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I0EN3sps12SimpleVectorE"></span><span id="_CPPv2I0EN3sps12SimpleVectorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_defs</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classsps_1_1SimpleVector"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SimpleVector</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">sps</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="AbstractIndex.html#_CPPv4N3sps13AbstractIndexE" title="sps::AbstractIndex"><span class="n"><span class="pre">AbstractIndex</span></span></a><a class="headerlink" href="#_CPPv4I0EN3sps12SimpleVectorE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>A naive, iteration-based index implementation for benchmarking. </p>
 <p>Ignores the number of orthotope dimensions ( always sets type_defs::ORTHOTOPE_DIMS = type_defs:D ).</p>
 <dl class="field-list simple">
@@ -148,6 +151,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="StdOutProgressStream.html" class="btn btn-neutral float-left" title="StdOutProgressStream" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="SimpleValVector.html" class="btn btn-neutral float-right" title="SimpleValVector" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
