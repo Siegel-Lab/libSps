@@ -385,6 +385,7 @@ template <typename type_defs> class Index : public AbstractIndex
     {
 #if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
+        xProg << "countSizeLimited " << vFrom << " to " << vTo << "\n";
 #endif
         val_t uiRet = 0;
 #pragma GCC diagnostic push
@@ -397,6 +398,13 @@ template <typename type_defs> class Index : public AbstractIndex
                                        xProg
 #endif
         );
+
+#ifndef NDEBUG
+        xProg << "countSizeLimited uiRet=" << uiRet << "\n";
+        if (uiRet >= std::numeric_limits<val_t>::max( ) / 2)
+            throw std::runtime_error("unrealistic value for uiRet");
+#endif
+
 #pragma GCC diagnostic pop
         return uiRet;
     }
@@ -708,6 +716,20 @@ template <typename type_defs> class Index : public AbstractIndex
             return std::vector<std::array<pos_t, 3>>{ };
         return vDataSets[ xDatasetId ].getOverlayGrid( vOverlayGrid, vSparseCoord );
     }
+
+    val_t getMaxPrefixSum( ) const
+    {
+        val_t uiMax = 0;
+        for(const sps_t& rSps : vPrefixSumGrid.vData)
+        {
+            if constexpr( IS_ORTHOTOPE )
+                for(size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++)
+                    uiMax = std::max(uiMax, rSps[uiX]);
+            else
+                    uiMax = std::max(uiMax, rSps);
+        }
+        return uiMax;
+    }
 };
 
 } // namespace sps
@@ -992,6 +1014,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
         .def( "get_size", &sps::Index<type_defs>::getSize, pybind11::arg( "dataset_id" ),
               "Returns the size of the dataset in bytes." )
+        .def( "get_max_prefix_sum", &sps::Index<type_defs>::getMaxPrefixSum,
+              "Get the largest stored prefix sum." )
         .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, pybind11::arg( "f" ),
               pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),

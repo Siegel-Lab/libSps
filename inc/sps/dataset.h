@@ -1567,6 +1567,10 @@ template <typename type_defs> class Dataset
     sps_t getAll( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
                   const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg ) const
     {
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            if( vPos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
+                return sps_t{ };
+
         auto vSparsePos = overlayCoord( rSparseCoords, vPos );
 #if GET_PROG_PRINTS
         xProg << Verbosity( 2 );

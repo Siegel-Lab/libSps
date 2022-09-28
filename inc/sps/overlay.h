@@ -616,7 +616,7 @@ template <typename type_defs> class Overlay
             return;
 
 #if GET_PROG_PRINTS
-        xProg << Verbosity( 3 ) << "\t\tquery: " << vPos << " in overlay " << uiI << "\n";
+        xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiI << "\n";
 #endif
         red_pos_t vRelevant = relevant( vPos, uiI );
         red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiI ] );
@@ -626,7 +626,8 @@ template <typename type_defs> class Overlay
             bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
 
 #if GET_PROG_PRINTS
-        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
+        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << " valid: " 
+              << (bValid ? "true" : "false") << "\n";
 #endif
         // in release mode query with sanity=false to avoid sanity checks
         sps_t uiCurrArr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
@@ -678,7 +679,7 @@ template <typename type_defs> class Overlay
             return;
 
 #if GET_PROG_PRINTS
-        xProg << Verbosity( 3 ) << "\t\tquery: " << vPos << " in overlay " << uiI << "\n";
+        xProg << Verbosity( 3 ) << "\t\tALL: query: " << vPos << " in overlay " << uiI << "\n";
 #endif
         red_pos_t vRelevant = relevant( vPos, uiI );
         red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiI ] );
@@ -688,7 +689,8 @@ template <typename type_defs> class Overlay
             bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
 
 #if GET_PROG_PRINTS
-        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << "\n";
+        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << " valid: " 
+              << (bValid ? "true" : "false") << "\n";
 #endif
         sps_t uiCurr;
         if( bValid )
@@ -700,6 +702,21 @@ template <typename type_defs> class Overlay
 #if GET_PROG_PRINTS
         xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
 #endif
+
+#ifndef NDEBUG
+        if constexpr( IS_ORTHOTOPE )
+        {
+            for(size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++)
+                if (uiCurr[uiX] >= std::numeric_limits<val_t>::max( ) / 2)
+                    throw std::runtime_error("unrealistic value for uiCurr");
+        }
+        else
+        {
+            if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
+                throw std::runtime_error("unrealistic value for uiCurr");
+        }
+#endif
+
         uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? -1 : 1 );
     }
 
@@ -721,7 +738,7 @@ template <typename type_defs> class Overlay
         val_t uiRet{ };
 
 #if GET_PROG_PRINTS
-        xProg << Verbosity( 2 ) << "\tquerying overlay for " << vCoords << "...\n";
+        xProg << Verbosity( 2 ) << "\tquerying overlay for " << vCoords << " corner idx= " << uiCornerIdx << " bottom left prefix sum= " << uiBottomLeftPrefixSum << "...\n";
 #endif
 
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -754,6 +771,11 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 2 ) << "\tquerying internal " << vCoords << " -> " << vSparseCoords << ": +" << uiCurr
                   << "\n";
 #endif
+#ifndef NDEBUG
+            if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
+                throw std::runtime_error("unrealistic value for uiCurr");
+#endif
+
             uiRet += uiCurr;
         }
 #if GET_PROG_PRINTS
@@ -761,6 +783,10 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 2 ) << "\tno internal entries\n";
 #endif
 
+#ifndef NDEBUG
+        if (uiRet >= std::numeric_limits<val_t>::max( ) / 2)
+            throw std::runtime_error("unrealistic value for uiRet");
+#endif
 
         return uiRet;
     }
@@ -794,11 +820,39 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 2 ) << "\tquerying internal " << vCoords << " -> " << vSparseCoords << ": +" << uiCurr
                   << "\n";
 #endif
+#ifndef NDEBUG
+            if constexpr( IS_ORTHOTOPE )
+            {
+                for(size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++)
+                    if (uiCurr[uiX] >= std::numeric_limits<val_t>::max( ) / 2)
+                        throw std::runtime_error("unrealistic value for uiCurr");
+            }
+            else
+            {
+                if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
+                    throw std::runtime_error("unrealistic value for uiCurr");
+            }
+#endif
+
             uiRet += uiCurr;
         }
 #if GET_PROG_PRINTS
         else
             xProg << Verbosity( 2 ) << "\tno internal entries\n";
+#endif
+
+#ifndef NDEBUG
+        if constexpr( IS_ORTHOTOPE )
+        {
+            for(size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++)
+                if (uiRet[uiX] >= std::numeric_limits<val_t>::max( ) / 2)
+                    throw std::runtime_error("unrealistic value for uiRet");
+        }
+        else
+        {
+            if (uiRet >= std::numeric_limits<val_t>::max( ) / 2)
+                throw std::runtime_error("unrealistic value for uiRet");
+        }
 #endif
 
 
