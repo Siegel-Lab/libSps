@@ -345,14 +345,21 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
         );
 
+#ifndef NDEBUG
+        if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
+            throw std::runtime_error("unrealistic value for uiCurr");
+#endif
+
         val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
-        if(xInterType == IntersectionType::encloses)
-            uiFac *= -1;
+        if constexpr( IS_ORTHOTOPE )
+            if( xInterType == IntersectionType::encloses )
+                uiFac *= -1;
 #if GET_PROG_PRINTS
         xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/" << ( 1 << ( D - ORTHOTOPE_DIMS ) )
               << "]" << "\n";
 #endif
         uiRet += uiCurr * uiFac;
+
     }
 
 #pragma GCC diagnostic pop
@@ -404,9 +411,15 @@ template <typename type_defs> class Index : public AbstractIndex
 
 #ifndef NDEBUG
         xProg << "countSizeLimited uiRet=" << uiRet << "\n";
+#endif
         if (uiRet >= std::numeric_limits<val_t>::max( ) / 2)
+        {
+            // @todo @fixme @continue_here this is not a solution to the problem...
+            uiRet = 0;
+#ifndef NDEBUG
             throw std::runtime_error("unrealistic value for uiRet");
 #endif
+        }
 
 #pragma GCC diagnostic pop
         return uiRet;

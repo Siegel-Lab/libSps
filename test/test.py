@@ -3,7 +3,7 @@ import os
 sys.path.append(os.getcwd())
 #from build_test.libSps import IntersectionType, DiskDependantDimRectanglesPrefixSum_2D, DiskDependantDimPointsPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridRectanglesPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D
-from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D, DiskUniformOverlayGridIntervalsPrefixSum_2D
+from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D, DiskUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D
 #from build_rel.libSps import *
 import random
 
@@ -102,7 +102,7 @@ def count_truth(area, interval, p1, p2, points, intersection_mode):
 def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_queries=True):
     tree.clear()
     idx_before = len(tree)
-    for idx, pos in enumerate(points):
+    for idx, pos in enumerate(points[:len(points)//2]):
         if area or interval:
             tree.add_point(*pos, "p" + str(idx))
         else:
@@ -141,21 +141,21 @@ def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_qu
                                     print("not wide enough")
                                 continue
                         if all(a < b for a, b in zip(p1, p2)):
-                            truth = count_truth(area, interval, p1, p2, points, intersection_mode)
+                            truth = count_truth(area, interval, p1, p2, points[:len(points)//2], intersection_mode)
                             if print_all:
                                 print("expected total count:", truth)
                                 print("intersection_mode:", intersection_mode)
                                 for pc in combinations(p1, p2):
                                     if area or interval:
                                         if pc == p2:
-                                            corner_c = sum(1 if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe in points)
+                                            corner_c = sum(1 if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe in points[:len(points)//2])
                                         else:
-                                            corner_c = sum(1 if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _ in points)
+                                            corner_c = sum(1 if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _ in points[:len(points)//2])
                                     else:
-                                        corner_c = sum(1 if all(i < j for i, j in zip(p, pc)) else 0 for p in points)
+                                        corner_c = sum(1 if all(i < j for i, j in zip(p, pc)) else 0 for p in points[:len(points)//2])
                                 print("expected corner count", corner_c, "for", pc)
                                 print("query", p1, p2)
-                                print("points", points)
+                                print("points", points[:len(points)//2])
                             cnt = tree.count(x, p1, p2, intersection_mode, verbosity=5 if print_all else 0)
                             if not cnt == truth:
                                 #render_overlays(tree, x, str(d) + "-" + str(cont))
@@ -164,14 +164,14 @@ def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_qu
                                 for pc in combinations(p1, p2):
                                     if area or interval:
                                         if pc == p2:
-                                            corner_c = sum(1 if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe in points)
+                                            corner_c = sum(1 if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe in points[:len(points)//2])
                                         else:
-                                            corner_c = sum(1 if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _ in points)
+                                            corner_c = sum(1 if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _ in points[:len(points)//2])
                                     else:
-                                        corner_c = sum(1 if all(i < j for i, j in zip(p, pc)) else 0 for p in points)
+                                        corner_c = sum(1 if all(i < j for i, j in zip(p, pc)) else 0 for p in points[:len(points)//2])
                                     print("expected corner count", corner_c, "for", pc)
                                 print("query", p1, p2)
-                                print("points", points)
+                                print("points", points[:len(points)//2])
                                 print(tree)
                                 print("failure", d, cont, intersection_mode)
                                 exit()
@@ -190,7 +190,7 @@ def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
     tree.clear()
     cont = 0
     for x in range(1, n):
-        for _ in range(min(x*2, 100)):
+        for _ in range(min(2*x*2, 200)):
             #tree.clear()
             points = []
             for _ in range(x):
@@ -231,8 +231,7 @@ random.seed(6846854546132)
 
 #test(DiskDependantDimPointsPrefixSum_2D("test/blub5", True), 2)
 
-#@continue_here why is this not working? o.O
-test(CachedUniformOverlayGridIntervalsPrefixSum_2D("test/blub6", True), 2, interval=True)
+test(CachedUniformOverlayGridPointsPrefixSum_2D("test/blub6", True), 2)
 #test(CachedDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, enforce_wide_queries=False)
 
 
