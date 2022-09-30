@@ -7,7 +7,7 @@ from build_test.libSps import IntersectionType, CachedUniformOverlayGridInterval
 #from build_rel.libSps import *
 import random
 
-print_all = True
+print_all = False
 
 if False:
     from bokeh.plotting import figure, output_file, save
@@ -70,14 +70,17 @@ def combinations(a, b):
             yield x + [b[-1]]
 
 
-def count_truth(area, p1, p2, points, intersection_mode):
-    if area:
+def count_truth(area, interval, p1, p2, points, intersection_mode):
+    if area or interval:
         if intersection_mode == IntersectionType.enclosed:
             truth = sum(1 if all(i >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
                             for ps, pe in points)
-        elif intersection_mode == IntersectionType.encloses:
+        elif intersection_mode == IntersectionType.encloses and area:
             truth = sum(1 if all(i < k and j >= l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
                             for ps, pe in points)
+        elif intersection_mode == IntersectionType.encloses and interval:
+            truth = sum(1 if all(i < k and j >= l if idx == 0 else i >= k and j < l for idx, (i, j, k, l) in \
+                            enumerate(zip(ps, pe, p1, p2))) else 0 for ps, pe in points)
         elif intersection_mode == IntersectionType.overlaps:
             truth = sum(1 if all(j >= k and i < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
                             for ps, pe in points)
@@ -104,7 +107,7 @@ def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_qu
             tree.add_point(*pos, "p" + str(idx))
         else:
             tree.add_point(pos, "p" + str(idx))
-    x = tree.generate(idx_before, len(tree), 5 if print_all else 0)
+    x = tree.generate(idx_before, len(tree), verbosity=5 if print_all else 0)
     if print_all:
         print("done generating")
         print(tree)
@@ -138,8 +141,22 @@ def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_qu
                                     print("not wide enough")
                                 continue
                         if all(a < b for a, b in zip(p1, p2)):
+                            truth = count_truth(area, interval, p1, p2, points, intersection_mode)
+                            if print_all:
+                                print("expected total count:", truth)
+                                print("intersection_mode:", intersection_mode)
+                                for pc in combinations(p1, p2):
+                                    if area or interval:
+                                        if pc == p2:
+                                            corner_c = sum(1 if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe in points)
+                                        else:
+                                            corner_c = sum(1 if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _ in points)
+                                    else:
+                                        corner_c = sum(1 if all(i < j for i, j in zip(p, pc)) else 0 for p in points)
+                                print("expected corner count", corner_c, "for", pc)
+                                print("query", p1, p2)
+                                print("points", points)
                             cnt = tree.count(x, p1, p2, intersection_mode, verbosity=5 if print_all else 0)
-                            truth = count_truth(area or interval, p1, p2, points, intersection_mode)
                             if not cnt == truth:
                                 #render_overlays(tree, x, str(d) + "-" + str(cont))
                                 print("counts:", cnt, truth)
@@ -165,8 +182,8 @@ def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_qu
                     if print_all:
                         print("not valid")
     print("success", d, cont)
-    if d == 2 and cont == 5:
-        exit()
+    #if d == 2 and cont == 5:
+    #    exit()
 
 
 def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
@@ -215,7 +232,7 @@ random.seed(6846854546132)
 #test(DiskDependantDimPointsPrefixSum_2D("test/blub5", True), 2)
 
 #@continue_here why is this not working? o.O
-test(DiskUniformOverlayGridIntervalsPrefixSum_2D("test/blub6", True), 2, interval=True)
+test(CachedUniformOverlayGridIntervalsPrefixSum_2D("test/blub6", True), 2, interval=True)
 #test(CachedDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, enforce_wide_queries=False)
 
 

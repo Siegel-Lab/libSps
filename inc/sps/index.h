@@ -192,8 +192,10 @@ template <typename type_defs> class Index : public AbstractIndex
         }
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::encloses )
+            if( xIntersectionType == IntersectionType::slice)
                 vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = vEnd[ uiI ] - vStart[ uiI ];
+            else if( xIntersectionType == IntersectionType::encloses )
+                vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = 1 + vEnd[ uiI ] - vStart[ uiI ];
             else
                 vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = 0;
 
@@ -344,10 +346,11 @@ template <typename type_defs> class Index : public AbstractIndex
         );
 
         val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
+        if(xInterType == IntersectionType::encloses)
+            uiFac *= -1;
 #if GET_PROG_PRINTS
         xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/" << ( 1 << ( D - ORTHOTOPE_DIMS ) )
-              << "]"
-              << "\n";
+              << "]" << "\n";
 #endif
         uiRet += uiCurr * uiFac;
     }

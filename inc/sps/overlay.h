@@ -548,10 +548,20 @@ template <typename type_defs> class Overlay
     {
         // construct overlay sum grid
 #ifndef NDEBUG
-        xProg << Verbosity( 1 ) << "constructing overlay sum grid\n";
+        xProg << Verbosity( 1 ) << "constructing overlay sum grid for overlay with vMyBottomLeft" << vMyBottomLeft << "\n";
 #endif
 
-        uiBottomLeftPrefixSum = pDataset->getAll( rOverlays, rSparseCoords, rPrefixSums, vMyBottomLeft, xProg );
+        pos_t uiQPos;
+        bool uiLargerZero = true;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            uiQPos[uiI] = vMyBottomLeft[uiI] - 1;
+            uiLargerZero = uiLargerZero && vMyBottomLeft[uiI] > 0;
+        }
+        if(uiLargerZero)
+            uiBottomLeftPrefixSum = pDataset->getAll( rOverlays, rSparseCoords, rPrefixSums, uiQPos, xProg );
+        else
+            uiBottomLeftPrefixSum = sps_t {};
 
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vPredecessors[ uiI ].size( ) > 0 )
@@ -649,7 +659,7 @@ template <typename type_defs> class Overlay
         }
 
 #if GET_PROG_PRINTS
-        xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
+        xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << " (" << uiCurrArr << ")\n";
 #endif
         uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? -1 : 1 );
     }
@@ -769,7 +779,7 @@ template <typename type_defs> class Overlay
                 uiCurr = uiCurrArr;
 #if GET_PROG_PRINTS
             xProg << Verbosity( 2 ) << "\tquerying internal " << vCoords << " -> " << vSparseCoords << ": +" << uiCurr
-                  << "\n";
+                   << " (" << uiCurrArr << ")\n";
 #endif
 #ifndef NDEBUG
             if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
