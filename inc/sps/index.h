@@ -411,15 +411,11 @@ template <typename type_defs> class Index : public AbstractIndex
 
 #ifndef NDEBUG
         xProg << "countSizeLimited uiRet=" << uiRet << "\n";
-#endif
         if (uiRet >= std::numeric_limits<val_t>::max( ) / 2)
         {
-            // @todo @fixme @continue_here this is not a solution to the problem...
-            uiRet = 0;
-#ifndef NDEBUG
             throw std::runtime_error("unrealistic value for uiRet");
-#endif
         }
+#endif
 
 #pragma GCC diagnostic pop
         return uiRet;

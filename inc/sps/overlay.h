@@ -537,7 +537,7 @@ template <typename type_defs> class Overlay
             } );
         }
 
-        // synchronization hiddin within the function
+        // synchronization hidden within the function
         xInternalEntires = rPrefixSums.template add<D>( vInternalAxisSizes, vTmp );
     }
 
