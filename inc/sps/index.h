@@ -451,13 +451,12 @@ template <typename type_defs> class Index : public AbstractIndex
      * Counts for multiple regions.
      * to_pos must be larger equal than from_pos in each dimension.
      *
-     * @param xDatasetId The id of the dataset to query
-     * @param vRegions The bottom left and top right positions of the queried regions.
+     * @param vRegions Id of the dataset to query, The bottom left and top right positions of the queried regions.
      * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return std::vector<val_t> The number of points in dataset_id between from_pos and to_pos for each given region.
      */
-    std::vector<val_t> countMultiple( class_key_t xDatasetId, std::vector<std::pair<ret_pos_t, ret_pos_t>> vRegions,
+    std::vector<val_t> countMultiple( std::vector<std::tuple<class_key_t, ret_pos_t, ret_pos_t>> vRegions,
                                       IntersectionType xInterType = IntersectionType::enclosed,
                                       size_t uiVerbosity = 0 ) const
     {
@@ -468,7 +467,8 @@ template <typename type_defs> class Index : public AbstractIndex
         std::vector<val_t> vRet( vRegions.size( ) );
 
         for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
-            vRet[ uiI ] = count( xDatasetId, vRegions[ uiI ].first, vRegions[ uiI ].second, xInterType, uiVerbosity );
+            vRet[ uiI ] = count( std::get<0>(vRegions[ uiI ]), std::get<1>(vRegions[ uiI ]),
+                                 std::get<2>(vRegions[ uiI ]), xInterType, uiVerbosity );
 #ifdef DO_PROFILE
         ProfilerFlush( );
         ProfilerStop( );
@@ -954,7 +954,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                   .c_str( ) )
-        .def( "count_multiple", &sps::Index<type_defs>::countMultiple, pybind11::arg( "dataset_id" ),
+        .def( "count_multiple", &sps::Index<type_defs>::countMultiple,
               pybind11::arg( "regions" ), //
               pybind11::arg( "intersection_type" ) = IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,

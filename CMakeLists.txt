@@ -67,17 +67,17 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 
 # configure the version.h.in file
 add_custom_target(
-    config_version ALL
-    COMMAND ${CMAKE_SOURCE_DIR}/src/conf_version.h.in.sh
-        "${CMAKE_SOURCE_DIR}/inc/sps/version.h.in"
+    sps_config_version ALL
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/src/conf_version.h.in.sh
+        "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/version.h.in"
         "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
         "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
     VERBATIM)
 
 add_custom_target(
-    config_build_time ALL
-    COMMAND ${CMAKE_SOURCE_DIR}/src/conf_build_time.h.in.sh
-        "${CMAKE_SOURCE_DIR}/inc/sps/build_time.h.in"
+    sps_config_build_time ALL
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/src/conf_build_time.h.in.sh
+        "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/build_time.h.in"
         "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h"
     VERBATIM)
 
@@ -132,7 +132,7 @@ if(WITH_PYTHON)
     endif()
     target_link_libraries( Sps PUBLIC stxxl )
     target_include_directories( Sps PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
-    add_dependencies(Sps config_version config_build_time)
+    add_dependencies(Sps sps_config_version sps_config_build_time)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake) 
@@ -144,7 +144,7 @@ if(DO_PROFILE)
     target_include_directories( test SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
     target_link_libraries(test PUBLIC stxxl )
     target_include_directories( test PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
-    add_dependencies(test config_version config_build_time)
+    add_dependencies(test sps_config_version sps_config_build_time)
 
     # build benchmakring
     add_executable ( benchmark src/benchmark.cpp )
@@ -166,9 +166,15 @@ if(DO_PROFILE)
     target_link_libraries(benchmark PUBLIC stxxl )
     target_link_libraries( benchmark PUBLIC profiler )
 
-    add_dependencies(benchmark config_version config_build_time)
+    add_dependencies(benchmark sps_config_version sps_config_build_time)
 endif()
 
+add_library( libSps INTERFACE )
+target_include_directories( libSps INTERFACE inc )
+target_include_directories( libSps INTERFACE SYSTEM ${STXXL_INCLUDE_DIRS} )
+target_link_libraries( libSps INTERFACE stxxl )
+target_include_directories( libSps INTERFACE ${CMAKE_BINARY_DIR}/generated/inc)
+add_dependencies(libSps sps_config_version sps_config_build_time)
 
 # Documentation setup
 find_package(Doxygen)

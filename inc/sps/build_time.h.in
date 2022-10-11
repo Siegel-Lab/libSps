@@ -1,4 +1,4 @@
 #pragma once
 
 
-#define BUILD_TIME "@BUILD_TIME@"
+#define SPS_BUILD_TIME "@BUILD_TIME@"

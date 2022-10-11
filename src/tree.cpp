@@ -295,8 +295,8 @@ PYBIND11_MODULE( libSps, m )
     if( getenv( (char*)"STXXLERRLOGFILE" ) == nullptr )
         putenv( (char*)"STXXLERRLOGFILE=/dev/null" );
 
-    m.attr( "VERSION" ) = VERSION;
-    m.attr( "BUILD_TIME" ) = BUILD_TIME;
+    m.attr( "VERSION" ) = SPS_VERSION;
+    m.attr( "BUILD_TIME" ) = SPS_BUILD_TIME;
 
     exportEnum( m );
 
