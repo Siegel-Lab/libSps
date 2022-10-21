@@ -615,7 +615,7 @@ template <typename type_defs> class Overlay
 #endif
     )
     {
-        if( uiDistToTo == 0 )
+        if( uiDistToTo == 0 || D == 1 )
             return;
         size_t uiI = 0;
         while( uiI < D && ( vPos[ uiI ] != vMyBottomLeft[ uiI ] || vSparseCoordsOverlay[ uiI ][ 0 ].uiStartIndex ==
@@ -879,6 +879,7 @@ template <typename type_defs> class Overlay
         return vRelevantEntries;
     }
 
+
     template <typename T> inline std::array<T, D> expand( const std::array<T, D - 1>& vCompressed, size_t uiI ) const
     {
         std::array<T, D> vAllEntries;
@@ -886,6 +887,7 @@ template <typename type_defs> class Overlay
             vAllEntries[ uiJ ] = vCompressed[ uiJ ];
         for( size_t uiJ = uiI + 1; uiJ < D; uiJ++ )
             vAllEntries[ uiJ ] = vCompressed[ uiJ - 1 ];
+        vAllEntries[ uiI ] = 0; // init remaining value
         return vAllEntries;
     }
 

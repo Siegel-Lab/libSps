@@ -20,3 +20,4 @@ dependencies:
   - breathe
   - tectonic
   - clang-format
+  - pybind11

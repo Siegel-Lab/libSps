@@ -318,6 +318,8 @@ template <typename type_defs> class Points
             os << uiX++ << ": " << rP << std::endl;
         return os;
     }
+
+
 };
 
 
