@@ -8,6 +8,7 @@ dependencies:
   - gxx=9.4.0
   - git=2.23.0
   - make=4.3
+  - pybind11=2.8.0
   - gdb
   - sphinx
   - sphinx_rtd_theme
@@ -20,4 +21,3 @@ dependencies:
   - breathe
   - tectonic
   - clang-format
-  - pybind11
