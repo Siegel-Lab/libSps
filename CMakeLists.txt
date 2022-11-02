@@ -170,10 +170,10 @@ if(DO_PROFILE)
 endif()
 
 add_library( Sps INTERFACE )
-target_include_directories( Sps INTERFACE SYSTEM inc )
-target_include_directories( Sps INTERFACE SYSTEM ${STXXL_INCLUDE_DIRS} )
+target_include_directories( Sps SYSTEM INTERFACE inc )
+target_include_directories( Sps SYSTEM INTERFACE ${STXXL_INCLUDE_DIRS} )
 target_link_libraries( Sps INTERFACE stxxl )
-target_include_directories( Sps INTERFACE SYSTEM ${CMAKE_BINARY_DIR}/generated/inc)
+target_include_directories( Sps SYSTEM INTERFACE ${CMAKE_BINARY_DIR}/generated/inc)
 add_dependencies(Sps sps_config_version sps_config_build_time)
 
 # Documentation setup
