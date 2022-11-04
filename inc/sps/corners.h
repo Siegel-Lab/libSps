@@ -82,28 +82,28 @@ template <typename type_defs> class Corners
             return uiEndIndex - uiStartIndex;
         }
 
-        std::ostream& stream( std::ostream& os, const Corners& rPoints, const desc_t& vDesc ) const
+        std::ostream& stream( std::ostream& os, const Corners& rCorners, const desc_t& vDesc ) const
         {
             os << "{ ";
             for( size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++ )
             {
                 if( uiI > uiStartIndex )
                     os << ", ";
-                rPoints.vData[ uiI ].stream( os, vDesc );
+                rCorners.vData[ uiI ].stream( os, vDesc );
             }
             os << " }";
 
             return os;
         }
 
-        std::ostream& stream( std::ostream& os, const Corners& rPoints ) const
+        std::ostream& stream( std::ostream& os, const Corners& rCorners ) const
         {
             os << "{ ";
             for( size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++ )
             {
                 if( uiI > uiStartIndex )
                     os << ", ";
-                os << rPoints.vData[ uiI ];
+                os << rCorners.vData[ uiI ];
             }
             os << " }";
 
@@ -113,13 +113,13 @@ template <typename type_defs> class Corners
 
     class EntryIterator
     {
-        const Corners& rPoints;
+        const Corners& rCorners;
         const Entry& rInfo;
         size_t uiI;
 
       public:
-        EntryIterator( const Corners& rPoints, const Entry& rInfo )
-            : rPoints( rPoints ), rInfo( rInfo ), uiI( rInfo.uiStartIndex )
+        EntryIterator( const Corners& rCorners, const Entry& rInfo )
+            : rCorners( rCorners ), rInfo( rInfo ), uiI( rInfo.uiStartIndex )
         {}
 
         void operator++( )
@@ -130,12 +130,12 @@ template <typename type_defs> class Corners
 
         const corner_t& operator*( ) const
         {
-            return rPoints.vData[ uiI ];
+            return rCorners.vData[ uiI ];
         }
 
         const corner_t* operator->( ) const
         {
-            return &rPoints.vData[ uiI ];
+            return &rCorners.vData[ uiI ];
         }
 
         bool operator!=( const EntryIterator& rOther ) const

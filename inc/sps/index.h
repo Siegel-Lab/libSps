@@ -8,10 +8,10 @@
 #pragma once
 
 #include "sps/abstract_index.h"
+#include "sps/corners.h"
 #include "sps/dataset.h"
 #include "sps/desc.h"
 #include "sps/nd_grid.h"
-#include "sps/points.h"
 #include "sps/sparse_coordinate.h"
 #include "sps/type_defs.h"
 #include "sps/util.h"
@@ -120,7 +120,7 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     void clear( )
     {
-        clearPoints( );
+        clearCorners( );
         clearKeepPoints( );
     }
 
@@ -130,7 +130,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @details
      * Clears all datasets and all points.
      */
-    void clearPoints( )
+    void clearCorners( )
     {
         vCorners.clear( );
         vDesc.clear( );

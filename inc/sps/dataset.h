@@ -1255,20 +1255,20 @@ template <typename type_defs> class Dataset
                             xCorners );
 
                         coordinate_t uiNumBins = rSparseCoords.axisSize( vSparseCoords[ 0 ] );
-                        typename corners_t::Entry xCurrPoints{ };
-                        xCurrPoints.uiEndIndex = xCorners.uiStartIndex;
+                        typename corners_t::Entry xCurrCorners{ };
+                        xCurrCorners.uiEndIndex = xCorners.uiStartIndex;
                         vSparseCoords[ uiI ].uiStartIndex = std::numeric_limits<coordinate_t>::max( );
                         for( size_t uiBin = 0; uiBin < uiNumBins; uiBin++ )
                         {
                             // collect points for overlay uiI (points still sorted by dim 0)
-                            xCurrPoints.uiStartIndex = xCurrPoints.uiEndIndex;
-                            while( xCurrPoints.uiEndIndex < xCorners.uiEndIndex &&
-                                   rSparseCoords.replace( vCorners.vData[ xCurrPoints.uiEndIndex ].vPos[ 0 ],
+                            xCurrCorners.uiStartIndex = xCurrCorners.uiEndIndex;
+                            while( xCurrCorners.uiEndIndex < xCorners.uiEndIndex &&
+                                   rSparseCoords.replace( vCorners.vData[ xCurrCorners.uiEndIndex ].vPos[ 0 ],
                                                           vSparseCoords[ 0 ] ) == uiBin )
-                                ++xCurrPoints.uiEndIndex;
+                                ++xCurrCorners.uiEndIndex;
 
                             auto xCurr =
-                                makeSparseCoords( rSparseCoords, vCorners, xCurrPoints, 1, uiNumOverlaysPerDim[ uiI ],
+                                makeSparseCoords( rSparseCoords, vCorners, xCurrCorners, 1, uiNumOverlaysPerDim[ uiI ],
                                                   xProg, uiAbsoluteStart, uiAbsoluteEnd );
                             assert( rSparseCoords.axisSize( xCurr ) > 0 );
                             if( vSparseCoords[ uiI ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) ||
@@ -1277,7 +1277,7 @@ template <typename type_defs> class Dataset
                             sparse_coord_t::append( xSparseCoordsDependantDimension, xCurr );
                             xProg << Verbosity( 1 );
                         }
-                        assert( xCurrPoints.uiEndIndex == xCorners.uiEndIndex );
+                        assert( xCurrCorners.uiEndIndex == xCorners.uiEndIndex );
 
                         continue;
                     }
