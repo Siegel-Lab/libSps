@@ -226,10 +226,9 @@ template <typename type_defs> class Overlay
     entry_arr_t vSparseCoordsInternal;
     std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D> vOverlayEntries;
     typename prefix_sum_grid_t::template Entry<D> xInternalEntires;
-    typename points_t::Entry xPoints;
     sps_t uiBottomLeftPrefixSum;
 
-    Overlay( ) : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }, xPoints{ }
+    Overlay( ) : vSparseCoordsOverlay{ }, vSparseCoordsInternal{ }, vOverlayEntries{ }, xInternalEntires{ }
     {}
 
     void iterate( coordinate_t uiEnd, std::function<void( coordinate_t )> fDo ) const
@@ -254,8 +253,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -283,6 +282,7 @@ template <typename type_defs> class Overlay
     }
 
     coordinate_t generateInternalSparseCoords( sparse_coord_t& rSparseCoords, points_t& vPoints,
+                                               typename points_t::Entry& xPoints,
                                                progress_stream_t&
 #ifndef NDEBUG
                                                    xProg
@@ -348,8 +348,13 @@ template <typename type_defs> class Overlay
         return uiTotalOverlayPrefixSumSize;
     }
 
+#pragma GCC diagnostic push
+// uiOverlayGridStartIndex unused if DEPENDANT_DIMENSION = false
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     coordinate_t generateOverlaySparseCoords( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                               points_t& vPoints, std::array<std::vector<coordinate_t>, D> vPredecessors,
+                                              std::vector<typename points_t::Entry>& vSplitPoints,
+                                              size_t uiOverlayGridStartIndex,
                                               pos_t vMyBottomLeft, pos_t vPosTopRight,
                                               progress_stream_t&
 #ifndef NDEBUG
@@ -406,7 +411,7 @@ template <typename type_defs> class Overlay
                                                 rP.vPos[ uiJAct ] < vPosTopRight[ uiJAct ] )
                                                 vCollectedCoords.push_back( rP.vPos[ uiJAct ] );
                                         },
-                                        pPred->xPoints );
+                                        vSplitPoints[ uiPred - uiOverlayGridStartIndex] );
                                 }
                         }
 
@@ -458,9 +463,11 @@ template <typename type_defs> class Overlay
         }
         return getNumOverlayPrefixSums( rSparseCoords );
     }
+#pragma GCC diagnostic pop
 
     void generateInternalPrefixSums( const overlay_grid_t&, sparse_coord_t& rSparseCoords,
                                      prefix_sum_grid_t& rPrefixSums, points_t& vPoints,
+                                     typename points_t::Entry& xPoints,
                                      progress_stream_t&
 #ifndef NDEBUG
                                          xProg
@@ -548,20 +555,21 @@ template <typename type_defs> class Overlay
     {
         // construct overlay sum grid
 #ifndef NDEBUG
-        xProg << Verbosity( 1 ) << "constructing overlay sum grid for overlay with vMyBottomLeft" << vMyBottomLeft << "\n";
+        xProg << Verbosity( 1 ) << "constructing overlay sum grid for overlay with vMyBottomLeft" << vMyBottomLeft
+              << "\n";
 #endif
 
         pos_t uiQPos;
         bool uiLargerZero = true;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            uiQPos[uiI] = vMyBottomLeft[uiI] - 1;
-            uiLargerZero = uiLargerZero && vMyBottomLeft[uiI] > 0;
+            uiQPos[ uiI ] = vMyBottomLeft[ uiI ] - 1;
+            uiLargerZero = uiLargerZero && vMyBottomLeft[ uiI ] > 0;
         }
-        if(uiLargerZero)
+        if( uiLargerZero )
             uiBottomLeftPrefixSum = pDataset->getAll( rOverlays, rSparseCoords, rPrefixSums, uiQPos, xProg );
         else
-            uiBottomLeftPrefixSum = sps_t {};
+            uiBottomLeftPrefixSum = sps_t{ };
 
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vPredecessors[ uiI ].size( ) > 0 )
@@ -636,8 +644,8 @@ template <typename type_defs> class Overlay
             bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
 
 #if GET_PROG_PRINTS
-        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << " valid: " 
-              << (bValid ? "true" : "false") << "\n";
+        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << " valid: " << ( bValid ? "true" : "false" )
+              << "\n";
 #endif
         // in release mode query with sanity=false to avoid sanity checks
         sps_t uiCurrArr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
@@ -699,8 +707,8 @@ template <typename type_defs> class Overlay
             bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
 
 #if GET_PROG_PRINTS
-        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << " valid: " 
-              << (bValid ? "true" : "false") << "\n";
+        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << " valid: " << ( bValid ? "true" : "false" )
+              << "\n";
 #endif
         sps_t uiCurr;
         if( bValid )
@@ -716,14 +724,14 @@ template <typename type_defs> class Overlay
 #ifndef NDEBUG
         if constexpr( IS_ORTHOTOPE )
         {
-            for(size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++)
-                if (uiCurr[uiX] >= std::numeric_limits<val_t>::max( ) / 2)
-                    throw std::runtime_error("unrealistic value for uiCurr");
+            for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
+                if( uiCurr[ uiX ] >= std::numeric_limits<val_t>::max( ) / 2 )
+                    throw std::runtime_error( "unrealistic value for uiCurr" );
         }
         else
         {
-            if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
-                throw std::runtime_error("unrealistic value for uiCurr");
+            if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
+                throw std::runtime_error( "unrealistic value for uiCurr" );
         }
 #endif
 
@@ -748,7 +756,8 @@ template <typename type_defs> class Overlay
         val_t uiRet{ };
 
 #if GET_PROG_PRINTS
-        xProg << Verbosity( 2 ) << "\tquerying overlay for " << vCoords << " corner idx= " << uiCornerIdx << " bottom left prefix sum= " << uiBottomLeftPrefixSum << "...\n";
+        xProg << Verbosity( 2 ) << "\tquerying overlay for " << vCoords << " corner idx= " << uiCornerIdx
+              << " bottom left prefix sum= " << uiBottomLeftPrefixSum << "...\n";
 #endif
 
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -779,11 +788,11 @@ template <typename type_defs> class Overlay
                 uiCurr = uiCurrArr;
 #if GET_PROG_PRINTS
             xProg << Verbosity( 2 ) << "\tquerying internal " << vCoords << " -> " << vSparseCoords << ": +" << uiCurr
-                   << " (" << uiCurrArr << ")\n";
+                  << " (" << uiCurrArr << ")\n";
 #endif
 #ifndef NDEBUG
-            if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
-                throw std::runtime_error("unrealistic value for uiCurr");
+            if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
+                throw std::runtime_error( "unrealistic value for uiCurr" );
 #endif
 
             uiRet += uiCurr;
@@ -794,8 +803,8 @@ template <typename type_defs> class Overlay
 #endif
 
 #ifndef NDEBUG
-        if (uiRet >= std::numeric_limits<val_t>::max( ) / 2)
-            throw std::runtime_error("unrealistic value for uiRet");
+        if( uiRet >= std::numeric_limits<val_t>::max( ) / 2 )
+            throw std::runtime_error( "unrealistic value for uiRet" );
 #endif
 
         return uiRet;
@@ -833,14 +842,14 @@ template <typename type_defs> class Overlay
 #ifndef NDEBUG
             if constexpr( IS_ORTHOTOPE )
             {
-                for(size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++)
-                    if (uiCurr[uiX] >= std::numeric_limits<val_t>::max( ) / 2)
-                        throw std::runtime_error("unrealistic value for uiCurr");
+                for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
+                    if( uiCurr[ uiX ] >= std::numeric_limits<val_t>::max( ) / 2 )
+                        throw std::runtime_error( "unrealistic value for uiCurr" );
             }
             else
             {
-                if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
-                    throw std::runtime_error("unrealistic value for uiCurr");
+                if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
+                    throw std::runtime_error( "unrealistic value for uiCurr" );
             }
 #endif
 
@@ -854,14 +863,14 @@ template <typename type_defs> class Overlay
 #ifndef NDEBUG
         if constexpr( IS_ORTHOTOPE )
         {
-            for(size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++)
-                if (uiRet[uiX] >= std::numeric_limits<val_t>::max( ) / 2)
-                    throw std::runtime_error("unrealistic value for uiRet");
+            for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
+                if( uiRet[ uiX ] >= std::numeric_limits<val_t>::max( ) / 2 )
+                    throw std::runtime_error( "unrealistic value for uiRet" );
         }
         else
         {
-            if (uiRet >= std::numeric_limits<val_t>::max( ) / 2)
-                throw std::runtime_error("unrealistic value for uiRet");
+            if( uiRet >= std::numeric_limits<val_t>::max( ) / 2 )
+                throw std::runtime_error( "unrealistic value for uiRet" );
         }
 #endif
 
@@ -905,9 +914,6 @@ template <typename type_defs> class Overlay
 
         os << "\txInternalEntires: ";
         os << rOverlay.xInternalEntires << std::endl;
-
-        os << "\txPoints: ";
-        os << rOverlay.xPoints << std::endl;
 
         os << ">";
 
@@ -961,28 +967,16 @@ template <typename type_defs> class Overlay
     {
         this->stream( os, vGridPos, rSparseCoords, rPrefixSums, rData );
 
-        if( rData.exists( rSparseCoords, vGridPos ) )
-        {
-            os << "\txPoints: ";
-            xPoints.stream( os, vPoints ) << std::endl;
-        }
-
         os << ">";
 
         return os;
     }
 
     std::ostream& stream( std::ostream& os, pos_t vGridPos, const sparse_coord_t& rSparseCoords,
-                          const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData, const points_t& vPoints,
-                          const desc_t& vDesc ) const
+                          const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData, const points_t& /*vPoints*/,
+                          const desc_t& /*vDesc*/ ) const
     {
         this->stream( os, vGridPos, rSparseCoords, rPrefixSums, rData );
-
-        if( rData.exists( rSparseCoords, vGridPos ) )
-        {
-            os << "\txPoints: ";
-            xPoints.stream( os, vPoints, vDesc ) << std::endl;
-        }
 
         os << ">";
 

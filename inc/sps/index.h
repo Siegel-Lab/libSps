@@ -176,9 +176,9 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param sDesc A description for the Point, defaults to "".
      */
     template <bool trigger = !IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, std::string sDesc = "" )
+    typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, val_t uiVal = 1, std::string sDesc = "" )
     {
-        vPoints.add( vPos, vDesc.add( sDesc ) );
+        vPoints.add( vPos, uiVal, vDesc.add( sDesc ) );
     }
 
     std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
@@ -192,7 +192,7 @@ template <typename type_defs> class Index : public AbstractIndex
         }
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            if( xIntersectionType == IntersectionType::slice)
+            if( xIntersectionType == IntersectionType::slice )
                 vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = vEnd[ uiI ] - vStart[ uiI ];
             else if( xIntersectionType == IntersectionType::encloses )
                 vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = 1 + vEnd[ uiI ] - vStart[ uiI ];
@@ -220,7 +220,8 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param sDesc A description for the orthotope, defaults to "".
      */
     template <bool trigger = IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, std::string sDesc = "" )
+    typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, val_t uiVal = 1,
+                                                 std::string sDesc = "" )
     {
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
             if( vStart[ uiI ] > vEnd[ uiI ] )
@@ -229,7 +230,7 @@ template <typename type_defs> class Index : public AbstractIndex
             if( vStart[ uiI ] != vEnd[ uiI ] )
                 throw std::invalid_argument( "end must equal start for non-orthotope dimensions." );
         auto vP = addDims( vStart, vEnd );
-        vPoints.add( vP[ 0 ], vP[ 1 ], vDesc.add( sDesc ) );
+        vPoints.add( vP[ 0 ], vP[ 1 ], uiVal, vDesc.add( sDesc ) );
     }
 
     /**
@@ -346,8 +347,8 @@ template <typename type_defs> class Index : public AbstractIndex
         );
 
 #ifndef NDEBUG
-        if (uiCurr >= std::numeric_limits<val_t>::max( ) / 2)
-            throw std::runtime_error("unrealistic value for uiCurr");
+        if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
+            throw std::runtime_error( "unrealistic value for uiCurr" );
 #endif
 
         val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
@@ -356,10 +357,10 @@ template <typename type_defs> class Index : public AbstractIndex
                 uiFac *= -1;
 #if GET_PROG_PRINTS
         xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/" << ( 1 << ( D - ORTHOTOPE_DIMS ) )
-              << "]" << "\n";
+              << "]"
+              << "\n";
 #endif
         uiRet += uiCurr * uiFac;
-
     }
 
 #pragma GCC diagnostic pop
@@ -411,9 +412,9 @@ template <typename type_defs> class Index : public AbstractIndex
 
 #ifndef NDEBUG
         xProg << "countSizeLimited uiRet=" << uiRet << "\n";
-        if (uiRet >= std::numeric_limits<val_t>::max( ) / 2)
+        if( uiRet >= std::numeric_limits<val_t>::max( ) / 2 )
         {
-            throw std::runtime_error("unrealistic value for uiRet");
+            throw std::runtime_error( "unrealistic value for uiRet" );
         }
 #endif
 
@@ -467,8 +468,8 @@ template <typename type_defs> class Index : public AbstractIndex
         std::vector<val_t> vRet( vRegions.size( ) );
 
         for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
-            vRet[ uiI ] = count( std::get<0>(vRegions[ uiI ]), std::get<1>(vRegions[ uiI ]),
-                                 std::get<2>(vRegions[ uiI ]), xInterType, uiVerbosity );
+            vRet[ uiI ] = count( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
+                                 std::get<2>( vRegions[ uiI ] ), xInterType, uiVerbosity );
 #ifdef DO_PROFILE
         ProfilerFlush( );
         ProfilerStop( );
@@ -732,13 +733,13 @@ template <typename type_defs> class Index : public AbstractIndex
     val_t getMaxPrefixSum( ) const
     {
         val_t uiMax = 0;
-        for(const sps_t& rSps : vPrefixSumGrid.vData)
+        for( const sps_t& rSps : vPrefixSumGrid.vData )
         {
             if constexpr( IS_ORTHOTOPE )
-                for(size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++)
-                    uiMax = std::max(uiMax, rSps[uiX]);
+                for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
+                    uiMax = std::max( uiMax, rSps[ uiX ] );
             else
-                    uiMax = std::max(uiMax, rSps);
+                uiMax = std::max( uiMax, rSps );
         }
         return uiMax;
     }
@@ -756,7 +757,8 @@ void exportEnum( pybind11::module& m )
     Which orthotopes to count, depending on how they intersect the queried area.
     Only relevant for the Index.count() function.
 )pbdoc" )
-        .value( "enclosed", sps::IntersectionType::enclosed, "count orthotopes that are fully enclosed by the queried area" )
+        .value( "enclosed", sps::IntersectionType::enclosed,
+                "count orthotopes that are fully enclosed by the queried area" )
         .value( "encloses", sps::IntersectionType::encloses, "count orthotopes that fully enclose by the queried area" )
         .value( "overlaps", sps::IntersectionType::overlaps, "count orthotopes that overlap the queried area" )
         .value( "first", sps::IntersectionType::first,
@@ -826,10 +828,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     if constexpr( !type_defs::IS_ORTHOTOPE )
         xMain.def(
             "add_point",
-            []( sps::Index<type_defs>& rM, typename type_defs::pos_t vPos, std::string sDesc ) {
-                rM.addPoint( vPos, sDesc );
-            },
+            []( sps::Index<type_defs>& rM, typename type_defs::pos_t vPos, typename type_defs::val_t uiVal,
+                std::string sDesc ) { rM.addPoint( vPos, uiVal, sDesc ); },
             pybind11::arg( "pos" ),
+            pybind11::arg( "val" ) = 0,
             pybind11::arg( "desc" ) = "",
             ( R"pbdoc(
     Append a point to the data structure.
@@ -837,6 +839,9 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :param pos: The position of the point.
     :type pos: list[int[)pbdoc" +
               std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+    
+    :param val: The value of the point.
+    :type val: int
     
     :param desc: A description for the Point, defaults to "".
     :type desc: str
@@ -848,9 +853,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         xMain.def(
             "add_point",
             []( sps::Index<type_defs>& rM, typename type_defs::ret_pos_t vStart, typename type_defs::ret_pos_t vEnd,
-                std::string sDesc ) { rM.addPoint( vStart, vEnd, sDesc ); },
+                typename type_defs::val_t uiVal, std::string sDesc ) { rM.addPoint( vStart, vEnd, uiVal, sDesc ); },
             pybind11::arg( "start" ),
             pybind11::arg( "end" ),
+            pybind11::arg( "val" ) = 0,
             pybind11::arg( "desc" ) = "",
             ( R"pbdoc(
     Append a )pbdoc" +
@@ -865,6 +871,9 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               sPointName + R"pbdoc(.
     :type end: list[int[)pbdoc" +
               std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+
+    :param val: The value of the point.
+    :type val: int
     
     :param desc: A description for the Point, defaults to "".
     :type desc: str
@@ -1026,8 +1035,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               "Returns the bottom-left-front-... and top-right-back-... position of all overlays." )
         .def( "get_size", &sps::Index<type_defs>::getSize, pybind11::arg( "dataset_id" ),
               "Returns the size of the dataset in bytes." )
-        .def( "get_max_prefix_sum", &sps::Index<type_defs>::getMaxPrefixSum,
-              "Get the largest stored prefix sum." )
+        .def( "get_max_prefix_sum", &sps::Index<type_defs>::getMaxPrefixSum, "Get the largest stored prefix sum." )
         .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, pybind11::arg( "f" ),
               pybind11::arg( "from_points" ) = 0,
               pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),

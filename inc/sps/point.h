@@ -4,7 +4,32 @@
 
 namespace sps
 {
-template <typename type_defs> class BasePoint
+#if 0
+template <typename type_defs> class FullPoint
+{
+    EXTRACT_TYPE_DEFS; // macro call
+
+    using desc_t = Desc<type_defs>;
+
+  public:
+    pos_t vFrom;
+    pos_t vTo;
+    size_t uiDescOffset;
+
+    FullPoint( pos_t vFrom, pos_t vTo, size_t uiDescOffset )
+        : vFrom( vFrom ), vTo( vTo ), uiDescOffset( uiDescOffset )
+    {}
+
+    FullPoint( ) : vFrom{ }, vTo{ }, uiDescOffset( 0 )
+    {}
+
+    void addTo( val_t& uiTo ) const
+    {
+        uiTo += uiVal;
+    }
+};
+#endif
+template <typename type_defs> class BaseCorner
 {
     EXTRACT_TYPE_DEFS; // macro call
 
@@ -12,35 +37,36 @@ template <typename type_defs> class BasePoint
 
   public:
     pos_t vPos;
-    size_t uiDescOffset;
+    val_t uiVal;
 
-    BasePoint( pos_t vPos, size_t uiDescOffset ) : vPos( vPos ), uiDescOffset( uiDescOffset )
+    BaseCorner( pos_t vPos, val_t uiVal )
+        : vPos( vPos ), uiVal( uiVal )
     {}
 
-    BasePoint( ) : vPos{ }, uiDescOffset( 0 )
+    BaseCorner( ) : vPos{ }, uiVal( 0 )
     {}
 
-    friend std::ostream& operator<<( std::ostream& os, const BasePoint& xPoint )
+    friend std::ostream& operator<<( std::ostream& os, const BaseCorner& xPoint )
     {
-        os << xPoint.vPos << " d" << xPoint.uiDescOffset;
+        os << xPoint.vPos;
         return os;
     }
 
     std::ostream& stream( std::ostream& os, const desc_t& vDesc ) const
     {
-        os << vPos << ": " << vDesc.get( uiDescOffset );
+        os << vPos;
         return os;
     }
 
     void addTo( val_t& uiTo ) const
     {
-        ++uiTo;
+        uiTo += uiVal;
     }
 };
 
 
 // Orthotope == HyperRectangle
-template <typename type_defs> class OrthotopeCorner : public BasePoint<type_defs>
+template <typename type_defs> class OrthotopeCorner : public BaseCorner<type_defs>
 {
     EXTRACT_TYPE_DEFS; // macro call
 
@@ -49,29 +75,30 @@ template <typename type_defs> class OrthotopeCorner : public BasePoint<type_defs
     uint8_t uiIdx;
 
   public:
-    OrthotopeCorner( pos_t vPos, size_t uiDescOffset, uint8_t uiIdx )
-        : BasePoint<type_defs>( vPos, uiDescOffset ), uiIdx( uiIdx )
+    OrthotopeCorner( pos_t vPos, val_t uiVal, uint8_t uiIdx )
+        : BaseCorner<type_defs>( vPos, uiVal ), uiIdx( uiIdx )
     {}
 
-    OrthotopeCorner( pos_t vPos, size_t uiDescOffset ) : BasePoint<type_defs>( vPos, uiDescOffset ), uiIdx( 0 )
+    OrthotopeCorner( pos_t vPos, val_t uiVal )
+        : BaseCorner<type_defs>( vPos, uiVal ), uiIdx( 0 )
     {}
 
-    OrthotopeCorner( ) : BasePoint<type_defs>( ), uiIdx( 0 )
+    OrthotopeCorner( ) : BaseCorner<type_defs>( ), uiIdx( 0 )
     {}
 
     std::ostream& stream( std::ostream& os, const desc_t& vDesc ) const
     {
-        BasePoint<type_defs>::stream( os, vDesc ) << " i" << (size_t)uiIdx;
+        BaseCorner<type_defs>::stream( os, vDesc ) << " i" << (size_t)uiIdx;
         return os;
     }
 
     void addTo( sps_t& uiTo ) const
     {
-        BasePoint<type_defs>::addTo( uiTo[ uiIdx ] );
+        BaseCorner<type_defs>::addTo( uiTo[ uiIdx ] );
     }
 };
 
-#define USED_POINT std::conditional<type_defs::IS_ORTHOTOPE, OrthotopeCorner<type_defs>, BasePoint<type_defs>>::type
+#define USED_POINT std::conditional<type_defs::IS_ORTHOTOPE, OrthotopeCorner<type_defs>, BaseCorner<type_defs>>::type
 
 // conditional inheritance required to force minimal memory usage (memory of disabled types is still allocated)
 template <typename type_defs> class Point : public USED_POINT

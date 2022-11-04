@@ -196,16 +196,17 @@ template <typename type_defs> class Points
     };
 
     Points( std::string sPrefix, bool bWrite )
-        : xFile( points_vec_generator.file( sPrefix + ".points", bWrite ) ), vData( points_vec_generator.vec( xFile ) )
+        : xFile( points_vec_generator.file( sPrefix + ".corners", bWrite ) ), vData( points_vec_generator.vec( xFile ) )
     {}
 
-    template <bool trigger = !IS_ORTHOTOPE> typename std::enable_if_t<trigger> add( pos_t vPos, size_t uiDescOffset )
+    template <bool trigger = !IS_ORTHOTOPE>
+    typename std::enable_if_t<trigger> add( pos_t vPos, val_t uiVal, size_t /*uiDescOffset*/ )
     {
-        vData.push_back( point_t( vPos, uiDescOffset ) );
+        vData.push_back( point_t( vPos, uiVal ) );
     }
 
     template <bool trigger = IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> add( pos_t vStart, pos_t vEnd, size_t uiDescOffset )
+    typename std::enable_if_t<trigger> add( pos_t vStart, pos_t vEnd, val_t uiVal, size_t /*uiDescOffset*/ )
     {
         forAllCombinationsN<pos_t, ORTHOTOPE_DIMS>(
             [ & ]( size_t uiI, pos_t vPos, size_t ) {
@@ -214,7 +215,7 @@ template <typename type_defs> class Points
                     assert( vStart[ uiD ] == vEnd[ uiD ] );
                     vPos[ uiD ] = vStart[ uiD ];
                 }
-                vData.push_back( point_t( vPos, uiDescOffset, uiI ) );
+                vData.push_back( point_t( vPos, uiVal, uiI ) );
             },
             vStart, vEnd );
     }
@@ -318,8 +319,6 @@ template <typename type_defs> class Points
             os << uiX++ << ": " << rP << std::endl;
         return os;
     }
-
-
 };
 
 

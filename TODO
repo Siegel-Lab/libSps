@@ -7,6 +7,8 @@
 
 
 
+- https://www.cs.princeton.edu/cass/papers/www11.pdf
+- https://pjrule.me/comp150-alg/
 
 
     === summary before vacation ===
@@ -23,4 +25,5 @@
 - shekalyan et. al's. size prediction seems to hit the optimum actually
     - at least for Hi-C data
     - for own distributions i can make examples where he is suboptimal
+
 

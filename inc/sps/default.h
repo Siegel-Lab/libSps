@@ -180,18 +180,17 @@ struct CacheVec : public stxxl::VECTOR_GENERATOR<val_t, PageSize, CachePages, Bl
         size_t uiRet = this->size( );
 
         for( const val_t& xVal : rOther )
-            this->push_back(xVal);
+            this->push_back( xVal );
         return uiRet;
 
-        // @todo @fixme this buffered writer causes issues (wrong values written) -> figure out why...
+        // @fixme this buffered writer causes issues (wrong values written) -> figure out why...
         // known so far:
         // - happens even without threading
         // - no drastically wrong values are written
 
-        //typename vec_t::bufwriter_type xWriter( this->end( ) );
-            //xWriter << xVal;
-        //xWriter.finish( );
-
+        // typename vec_t::bufwriter_type xWriter( this->end( ) );
+        // xWriter << xVal;
+        // xWriter.finish( );
     }
 };
 

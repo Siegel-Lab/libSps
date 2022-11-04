@@ -30,7 +30,7 @@ template <typename type_defs> class SimpleVector : public AbstractIndex
 {
     EXTRACT_TYPE_DEFS; // macro call
 
-    using base_point_t = BasePoint<type_defs>;
+    using base_point_t = BaseCorner<type_defs>;
     using ortho_t = AlignedPower2<std::array<base_point_t, 2>>;
 
 
@@ -57,11 +57,11 @@ template <typename type_defs> class SimpleVector : public AbstractIndex
      * @param vStart The bottom-left of the orthotope.
      * @param vEnd The top-right of the orthotope.
      */
-    void addPoint( pos_t vStart, pos_t vEnd )
+    void addPoint( pos_t vStart, pos_t vEnd, val_t uiVal = 1 )
     {
         ortho_t xNew;
-        xNew[ 0 ] = base_point_t( vStart, 0 );
-        xNew[ 1 ] = base_point_t( vEnd, 0 );
+        xNew[ 0 ] = base_point_t( vStart, uiVal );
+        xNew[ 1 ] = base_point_t( vEnd, uiVal );
         vData.push_back( xNew );
     }
 
@@ -216,6 +216,7 @@ template <typename type_defs> std::string exportSimpleVector( pybind11::module& 
     :type write_mode: str
 )pbdoc" )
         .def( "add_point", &sps::SimpleVector<type_defs>::addPoint, pybind11::arg( "start" ), pybind11::arg( "end" ),
+              pybind11::arg( "val" ) = 1,
               ( R"pbdoc(
     Append an orthotope to the vector
 
@@ -226,6 +227,9 @@ template <typename type_defs> std::string exportSimpleVector( pybind11::module& 
     :param end: The top right position of the orthotope.
     :type end: list[int[)pbdoc" +
                 std::to_string( type_defs::D ) + R"pbdoc(]]
+    
+    :param val: The value of the orthotope.
+    :type val: int
 )pbdoc" )
                   .c_str( ) )
         .def( "count", &sps::SimpleVector<type_defs>::count,
