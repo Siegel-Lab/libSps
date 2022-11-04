@@ -13,26 +13,22 @@
 namespace sps
 {
 
-template <typename type_defs> class Points
+template <typename type_defs> class Corners
 {
     EXTRACT_TYPE_DEFS; // macro call
 
-    using point_t = AlignedPower2<Point<type_defs>>;
+    using corner_t = AlignedPower2<Corner<type_defs>>;
 
     // template<int s> struct CheckSizeOfPoint;
     // CheckSizeOfPoint<sizeof(Point<type_defs>)> xCheckSizeOfPoint;
-    // CheckSizeOfPoint<sizeof(point_t)> xCheckSizeOfAlignedPoint;
+    // CheckSizeOfPoint<sizeof(corner_t)> xCheckSizeOfAlignedPoint;
 
     using desc_t = Desc<type_defs>;
 
   public:
-    EXTRACT_VEC_GENERATOR( points, point_t ); // macro call
-    static constexpr bool THREADSAVE = points_THREADSAVE;
+    static constexpr bool THREADSAVE = true;
 
   private:
-    using points_it_t = typename points_vec_t::iterator;
-    using const_points_it_t = typename points_vec_t::const_iterator;
-
     struct PointsComperator
     {
         const size_t uiDim;
@@ -40,25 +36,11 @@ template <typename type_defs> class Points
         PointsComperator( size_t uiDim ) : uiDim( uiDim )
         {}
 
-        bool operator( )( const point_t& a, const point_t& b ) const
+        bool operator( )( const corner_t& a, const corner_t& b ) const
         {
             return a.vPos[ uiDim ] < b.vPos[ uiDim ];
         }
-
-        point_t min_value( ) const
-        {
-            return point_t( );
-        };
-
-        point_t max_value( ) const
-        {
-            point_t xRet{ };
-            xRet.vPos[ uiDim ] = std::numeric_limits<coordinate_t>::max( );
-            return xRet;
-        };
     };
-    points_sort_func_t<points_it_t, PointsComperator> sort_points =
-        points_sort_func_t<points_it_t, PointsComperator>( );
     struct PointsComperator2
     {
         const size_t uiDim1, uiDim2;
@@ -66,7 +48,7 @@ template <typename type_defs> class Points
         PointsComperator2( size_t uiDim1, size_t uiDim2 ) : uiDim1( uiDim1 ), uiDim2( uiDim2 )
         {}
 
-        bool operator( )( const point_t& a, const point_t& b ) const
+        bool operator( )( const corner_t& a, const corner_t& b ) const
         {
             if( a.vPos[ uiDim1 ] < b.vPos[ uiDim1 ] )
                 return true;
@@ -74,26 +56,10 @@ template <typename type_defs> class Points
                 return false;
             return a.vPos[ uiDim2 ] < b.vPos[ uiDim2 ];
         }
-
-        point_t min_value( ) const
-        {
-            return point_t( );
-        };
-
-        point_t max_value( ) const
-        {
-            point_t xRet{ };
-            xRet.vPos[ uiDim1 ] = std::numeric_limits<coordinate_t>::max( );
-            xRet.vPos[ uiDim2 ] = std::numeric_limits<coordinate_t>::max( );
-            return xRet;
-        };
     };
-    points_sort_func_t<points_it_t, PointsComperator2> sort_points2 =
-        points_sort_func_t<points_it_t, PointsComperator2>( );
 
   public:
-    points_file_t xFile;
-    points_vec_t vData;
+    std::vector<corner_t> vData;
 
     struct Entry
     {
@@ -116,7 +82,7 @@ template <typename type_defs> class Points
             return uiEndIndex - uiStartIndex;
         }
 
-        std::ostream& stream( std::ostream& os, const Points& rPoints, const desc_t& vDesc ) const
+        std::ostream& stream( std::ostream& os, const Corners& rPoints, const desc_t& vDesc ) const
         {
             os << "{ ";
             for( size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++ )
@@ -130,7 +96,7 @@ template <typename type_defs> class Points
             return os;
         }
 
-        std::ostream& stream( std::ostream& os, const Points& rPoints ) const
+        std::ostream& stream( std::ostream& os, const Corners& rPoints ) const
         {
             os << "{ ";
             for( size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++ )
@@ -147,12 +113,12 @@ template <typename type_defs> class Points
 
     class EntryIterator
     {
-        const Points& rPoints;
+        const Corners& rPoints;
         const Entry& rInfo;
         size_t uiI;
 
       public:
-        EntryIterator( const Points& rPoints, const Entry& rInfo )
+        EntryIterator( const Corners& rPoints, const Entry& rInfo )
             : rPoints( rPoints ), rInfo( rInfo ), uiI( rInfo.uiStartIndex )
         {}
 
@@ -162,12 +128,12 @@ template <typename type_defs> class Points
             uiI++;
         }
 
-        const point_t& operator*( ) const
+        const corner_t& operator*( ) const
         {
             return rPoints.vData[ uiI ];
         }
 
-        const point_t* operator->( ) const
+        const corner_t* operator->( ) const
         {
             return &rPoints.vData[ uiI ];
         }
@@ -192,17 +158,16 @@ template <typename type_defs> class Points
             return os;
         }
 
-        friend class Points;
+        friend class Corners;
     };
 
-    Points( std::string sPrefix, bool bWrite )
-        : xFile( points_vec_generator.file( sPrefix + ".corners", bWrite ) ), vData( points_vec_generator.vec( xFile ) )
+    Corners(  )
     {}
 
     template <bool trigger = !IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> add( pos_t vPos, val_t uiVal, size_t /*uiDescOffset*/ )
     {
-        vData.push_back( point_t( vPos, uiVal ) );
+        vData.push_back( corner_t( vPos, uiVal ) );
     }
 
     template <bool trigger = IS_ORTHOTOPE>
@@ -215,7 +180,7 @@ template <typename type_defs> class Points
                     assert( vStart[ uiD ] == vEnd[ uiD ] );
                     vPos[ uiD ] = vStart[ uiD ];
                 }
-                vData.push_back( point_t( vPos, uiVal, uiI ) );
+                vData.push_back( corner_t( vPos, uiVal, uiI ) );
             },
             vStart, vEnd );
     }
@@ -232,22 +197,22 @@ template <typename type_defs> class Points
         return xRet;
     }
 
-    void iterate( std::function<void( const point_t& )> fDo, const Entry& rEntry ) const
+    void iterate( std::function<void( const corner_t& )> fDo, const Entry& rEntry ) const
     {
         auto itEnd = vData.cbegin( ) + rEntry.uiEndIndex;
         for( auto cIter = vData.cbegin( ) + rEntry.uiStartIndex; cIter != itEnd; cIter++ )
             fDo( *cIter );
     }
 
-    void iterate( std::function<void( point_t& )> fDo, const Entry& rEntry )
+    void iterate( std::function<void( corner_t& )> fDo, const Entry& rEntry )
     {
         auto itEnd = vData.begin( ) + rEntry.uiEndIndex;
         for( auto cIter = vData.begin( ) + rEntry.uiStartIndex; cIter != itEnd; cIter++ )
             fDo( *cIter );
     }
 
-    void forEqualRange( std::function<bool( const point_t& )> fBefore, std::function<bool( const point_t& )> fAfter,
-                        std::function<void( const point_t& )> fDo, const Entry& rEntry ) const
+    void forEqualRange( std::function<bool( const corner_t& )> fBefore, std::function<bool( const corner_t& )> fAfter,
+                        std::function<void( const corner_t& )> fDo, const Entry& rEntry ) const
     {
         size_t uiStartIdx = rEntry.uiStartIndex;
         size_t uiEndIdx = rEntry.uiEndIndex;
@@ -285,20 +250,20 @@ template <typename type_defs> class Points
         xRet.uiStartIndex = vData.size( );
         // make sure no new space needs to be allocated during copy operation (this allocation could lead to segfaults)
         vData.reserve( vData.size( ) + rEntry.size( ) );
-        iterate( [ & ]( const point_t& rP ) { vData.push_back( rP ); }, rEntry );
+        iterate( [ & ]( const corner_t& rP ) { vData.push_back( rP ); }, rEntry );
         xRet.uiEndIndex = vData.size( );
         return xRet;
     }
 
     void sortByDim( size_t uiDim, const Entry& rEntry )
     {
-        sort_points( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
+        std::sort<typename std::vector<corner_t>::iterator, PointsComperator>( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
                      PointsComperator( uiDim ) );
     }
 
     void sortByDim( size_t uiDim1, size_t uiDim2, const Entry& rEntry )
     {
-        sort_points2( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
+        std::sort<typename std::vector<corner_t>::iterator, PointsComperator2>( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
                       PointsComperator2( uiDim1, uiDim2 ) );
     }
 
@@ -312,10 +277,10 @@ template <typename type_defs> class Points
         vData.clear( );
     }
 
-    friend std::ostream& operator<<( std::ostream& os, const Points& vPoints )
+    friend std::ostream& operator<<( std::ostream& os, const Corners& vCorners )
     {
         size_t uiX = 0;
-        for( const auto& rP : vPoints.vData )
+        for( const auto& rP : vCorners.vData )
             os << uiX++ << ": " << rP << std::endl;
         return os;
     }

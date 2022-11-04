@@ -10,6 +10,7 @@ test/*.desc
 test/*.overlays
 test/*.prefix_sums
 test/*.points
+test/*.corners
 test/*.tsv
 test/*.html
 stxxl.errlog

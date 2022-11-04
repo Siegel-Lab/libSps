@@ -101,7 +101,7 @@ template <typename type_defs> class OrthotopeCorner : public BaseCorner<type_def
 #define USED_POINT std::conditional<type_defs::IS_ORTHOTOPE, OrthotopeCorner<type_defs>, BaseCorner<type_defs>>::type
 
 // conditional inheritance required to force minimal memory usage (memory of disabled types is still allocated)
-template <typename type_defs> class Point : public USED_POINT
+template <typename type_defs> class Corner : public USED_POINT
 {
     using X = typename USED_POINT;
 

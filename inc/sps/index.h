@@ -69,9 +69,9 @@ template <typename type_defs> class Index : public AbstractIndex
   public:
     EXTRACT_TYPE_DEFS; // macro call
   private:
-    using point_t = Point<type_defs>;
+    using corner_t = Corner<type_defs>;
 
-    using points_t = Points<type_defs>;
+    using corners_t = Corners<type_defs>;
     using desc_t = Desc<type_defs>;
 
     // template<int s> struct CheckSizeOfOverlay;
@@ -85,7 +85,7 @@ template <typename type_defs> class Index : public AbstractIndex
 
     EXTRACT_VEC_GENERATOR( dataset, dataset_t ); // macro call
 
-    points_t vPoints;
+    corners_t vCorners;
     desc_t vDesc;
     sparse_coord_t vSparseCoord;
     prefix_sum_grid_t vPrefixSumGrid;
@@ -105,8 +105,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * defaults to false.
      */
     Index( std::string sPrefix = "", bool bWrite = false )
-        : vPoints( sPrefix, bWrite ),
-          vDesc( sPrefix, bWrite ),
+        : vDesc( sPrefix, bWrite ),
           vSparseCoord( sPrefix, bWrite ),
           vPrefixSumGrid( sPrefix + ".prefix_sums", bWrite ),
           vOverlayGrid( sPrefix + ".overlays", bWrite ),
@@ -133,7 +132,7 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     void clearPoints( )
     {
-        vPoints.clear( );
+        vCorners.clear( );
         vDesc.clear( );
     }
 
@@ -178,7 +177,7 @@ template <typename type_defs> class Index : public AbstractIndex
     template <bool trigger = !IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, val_t uiVal = 1, std::string sDesc = "" )
     {
-        vPoints.add( vPos, uiVal, vDesc.add( sDesc ) );
+        vCorners.add( vPos, uiVal, vDesc.add( sDesc ) );
     }
 
     std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
@@ -230,7 +229,7 @@ template <typename type_defs> class Index : public AbstractIndex
             if( vStart[ uiI ] != vEnd[ uiI ] )
                 throw std::invalid_argument( "end must equal start for non-orthotope dimensions." );
         auto vP = addDims( vStart, vEnd );
-        vPoints.add( vP[ 0 ], vP[ 1 ], uiVal, vDesc.add( sDesc ) );
+        vCorners.add( vP[ 0 ], vP[ 1 ], uiVal, vDesc.add( sDesc ) );
     }
 
     /**
@@ -238,7 +237,7 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     coordinate_t numPoints( ) const
     {
-        return vPoints.size( );
+        return vCorners.size( );
     }
 
     /**
@@ -249,6 +248,8 @@ template <typename type_defs> class Index : public AbstractIndex
      * Use len(index) to determine the index of the first and last point, as add_point may add multiple points per call.
      *
      * This function is multithreaded.
+     * 
+     * @todo get uiFrom & uiTo from the last time generate was called on load of the index the size of the point vector
      *
      * @param uiFrom Size of the index before adding the first point of this dataset, defaults to zero.
      * @param uiTo Size of the index after adding all points of this dataset, defaults to the current size of the index.
@@ -269,13 +270,13 @@ template <typename type_defs> class Index : public AbstractIndex
             uiTo = numPoints( );
 
         progress_stream_t xProg( uiVerbosity );
-        typename points_t::Entry xPoints;
+        typename corners_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPoints, xPoints, fFac, xProg, uiNumOverlaySamples,
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, xPoints, fFac, xProg, uiNumOverlaySamples,
                         uiNumPointSamples );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
@@ -606,10 +607,10 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
-        typename points_t::Entry xPoints;
+        typename corners_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::estimateDataStructureElements( vPoints, xPoints, vFac, uiNumOverlaySamples,
+        return dataset_t::estimateDataStructureElements( vCorners, xPoints, vFac, uiNumOverlaySamples,
                                                          uiNumPointSamples );
     }
 
@@ -618,10 +619,10 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
-        typename points_t::Entry xPoints;
+        typename corners_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::generateCoordSizes( vPoints, xPoints )[ 0 ];
+        return dataset_t::generateCoordSizes( vCorners, xPoints )[ 0 ];
     }
 
     /**
@@ -642,11 +643,11 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
-        typename points_t::Entry xPoints;
+        typename corners_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
         progress_stream_t xProg( uiVerbosity );
-        return dataset_t::pickNumOverlays( vPoints, xPoints, uiNumOverlaySamples, uiNumPointSamples, xProg );
+        return dataset_t::pickNumOverlays( vCorners, xPoints, uiNumOverlaySamples, uiNumPointSamples, xProg );
     }
 
     /**
@@ -667,10 +668,10 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
-        typename points_t::Entry xPoints;
+        typename corners_t::Entry xPoints;
         xPoints.uiStartIndex = uiFrom;
         xPoints.uiEndIndex = uiTo;
-        return dataset_t::toFactor( vPoints, xPoints, uiNumOverlays );
+        return dataset_t::toFactor( vCorners, xPoints, uiNumOverlays );
     }
 
     /**
@@ -695,15 +696,15 @@ template <typename type_defs> class Index : public AbstractIndex
         os << rMain.vSparseCoord << std::endl;
         os << "vPrefixSumGrid: ";
         os << rMain.vPrefixSumGrid << std::endl;
-        os << "vPoints: ";
-        os << rMain.vPoints << std::endl;
+        os << "vCorners: ";
+        os << rMain.vCorners << std::endl;
         os << "vDesc: ";
         os << rMain.vDesc << std::endl;
 
         os << "Pretty Print: ";
         for( size_t uiI = 0; uiI < rMain.vDataSets.size( ); uiI++ )
             rMain.vDataSets[ uiI ].stream( os, rMain.vOverlayGrid, rMain.vSparseCoord, rMain.vPrefixSumGrid,
-                                           rMain.vPoints, rMain.vDesc )
+                                           rMain.vCorners, rMain.vDesc )
                 << std::endl;
 
         return os;
@@ -717,7 +718,7 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     std::vector<typename dataset_t::OverlayInfo> getOverlayInfo( class_key_t xDatasetId ) const
     {
-        return vDataSets[ xDatasetId ].getOverlayInfo( vOverlayGrid, vSparseCoord, vPoints );
+        return vDataSets[ xDatasetId ].getOverlayInfo( vOverlayGrid, vSparseCoord, vCorners );
     }
 
     /**
@@ -780,7 +781,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def_readonly( "grid_pos", &OI::vGridPos )
         .def_readonly( "index", &OI::uiIdx )
         .def_readonly( "pred_indices", &OI::vPredIds )
-        .def_readonly( "points", &OI::vvPoints )
+        .def_readonly( "points", &OI::vvCorners )
 
         ;
 

@@ -30,8 +30,8 @@ template <typename type_defs> class SimpleVector : public AbstractIndex
 {
     EXTRACT_TYPE_DEFS; // macro call
 
-    using base_point_t = BaseCorner<type_defs>;
-    using ortho_t = AlignedPower2<std::array<base_point_t, 2>>;
+    using base_corner_t = BaseCorner<type_defs>;
+    using ortho_t = AlignedPower2<std::array<base_corner_t, 2>>;
 
 
   public:
@@ -60,8 +60,8 @@ template <typename type_defs> class SimpleVector : public AbstractIndex
     void addPoint( pos_t vStart, pos_t vEnd, val_t uiVal = 1 )
     {
         ortho_t xNew;
-        xNew[ 0 ] = base_point_t( vStart, uiVal );
-        xNew[ 1 ] = base_point_t( vEnd, uiVal );
+        xNew[ 0 ] = base_corner_t( vStart, uiVal );
+        xNew[ 1 ] = base_corner_t( vEnd, uiVal );
         vData.push_back( xNew );
     }
 
