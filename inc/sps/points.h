@@ -161,7 +161,7 @@ template <typename type_defs> class Corners
         friend class Corners;
     };
 
-    Corners(  )
+    Corners( )
     {}
 
     template <bool trigger = !IS_ORTHOTOPE>
@@ -257,14 +257,15 @@ template <typename type_defs> class Corners
 
     void sortByDim( size_t uiDim, const Entry& rEntry )
     {
-        std::sort<typename std::vector<corner_t>::iterator, PointsComperator>( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
-                     PointsComperator( uiDim ) );
+        std::sort<typename std::vector<corner_t>::iterator, PointsComperator>(
+            vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex, PointsComperator( uiDim ) );
     }
 
     void sortByDim( size_t uiDim1, size_t uiDim2, const Entry& rEntry )
     {
-        std::sort<typename std::vector<corner_t>::iterator, PointsComperator2>( vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex,
-                      PointsComperator2( uiDim1, uiDim2 ) );
+        std::sort<typename std::vector<corner_t>::iterator, PointsComperator2>( vData.begin( ) + rEntry.uiStartIndex,
+                                                                                vData.begin( ) + rEntry.uiEndIndex,
+                                                                                PointsComperator2( uiDim1, uiDim2 ) );
     }
 
     size_t size( ) const

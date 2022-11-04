@@ -253,8 +253,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -282,14 +282,14 @@ template <typename type_defs> class Overlay
     }
 
     coordinate_t generateInternalSparseCoords( sparse_coord_t& rSparseCoords, corners_t& vCorners,
-                                               typename corners_t::Entry& xPoints,
+                                               typename corners_t::Entry& xCorners,
                                                progress_stream_t&
 #ifndef NDEBUG
                                                    xProg
 #endif
     )
     {
-        if( xPoints.size( ) > 0 )
+        if( xCorners.size( ) > 0 )
         {
 #ifndef NDEBUG
             xProg << Verbosity( 1 ) << "constructing sparse coordinates for points\n";
@@ -299,15 +299,15 @@ template <typename type_defs> class Overlay
 #ifndef NDEBUG
                 xProg << Verbosity( 2 ) << "dim " << uiI << "\n";
 #endif
-                vCorners.sortByDim( uiI, xPoints );
+                vCorners.sortByDim( uiI, xCorners );
 
 #ifndef NDEBUG
                 if( xProg.active( ) )
-                    xPoints.stream( std::cout << "from points: ", vCorners ) << std::endl;
+                    xCorners.stream( std::cout << "from points: ", vCorners ) << std::endl;
 #endif
 
-                vSparseCoordsInternal[ uiI ] = rSparseCoords.add( PointIterator( vCorners.cbegin( xPoints ), uiI ),
-                                                                  PointIterator( vCorners.cend( xPoints ), uiI ) );
+                vSparseCoordsInternal[ uiI ] = rSparseCoords.add( PointIterator( vCorners.cbegin( xCorners ), uiI ),
+                                                                  PointIterator( vCorners.cend( xCorners ), uiI ) );
 #ifndef NDEBUG
                 if( xProg.active( ) )
                     vSparseCoordsInternal[ uiI ].stream( std::cout << "result: ", rSparseCoords ) << std::endl;
@@ -352,10 +352,10 @@ template <typename type_defs> class Overlay
 // uiOverlayGridStartIndex unused if DEPENDANT_DIMENSION = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     coordinate_t generateOverlaySparseCoords( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                              corners_t& vCorners, std::array<std::vector<coordinate_t>, D> vPredecessors,
+                                              corners_t& vCorners,
+                                              std::array<std::vector<coordinate_t>, D> vPredecessors,
                                               std::vector<typename corners_t::Entry>& vSplitPoints,
-                                              size_t uiOverlayGridStartIndex,
-                                              pos_t vMyBottomLeft, pos_t vPosTopRight,
+                                              size_t uiOverlayGridStartIndex, pos_t vMyBottomLeft, pos_t vPosTopRight,
                                               progress_stream_t&
 #ifndef NDEBUG
                                                   xProg
@@ -411,7 +411,7 @@ template <typename type_defs> class Overlay
                                                 rP.vPos[ uiJAct ] < vPosTopRight[ uiJAct ] )
                                                 vCollectedCoords.push_back( rP.vPos[ uiJAct ] );
                                         },
-                                        vSplitPoints[ uiPred - uiOverlayGridStartIndex] );
+                                        vSplitPoints[ uiPred - uiOverlayGridStartIndex ] );
                                 }
                         }
 
@@ -467,7 +467,7 @@ template <typename type_defs> class Overlay
 
     void generateInternalPrefixSums( const overlay_grid_t&, sparse_coord_t& rSparseCoords,
                                      prefix_sum_grid_t& rPrefixSums, corners_t& vCorners,
-                                     typename corners_t::Entry& xPoints,
+                                     typename corners_t::Entry& xCorners,
                                      progress_stream_t&
 #ifndef NDEBUG
                                          xProg
@@ -483,9 +483,9 @@ template <typename type_defs> class Overlay
         std::vector<sps_t> vTmp( uiNumTotal, sps_t{ } );
 
         vCorners.iterate(
-            [ & ]( const corner_t& xPoint ) {
+            [ & ]( const corner_t& xCorner ) {
                 // compute index of prefix sum entry
-                pos_t uiSparsePos = rSparseCoords.sparse( xPoint.vPos, vSparseCoordsInternal );
+                pos_t uiSparsePos = rSparseCoords.sparse( xCorner.vPos, vSparseCoordsInternal );
                 coordinate_t uiIdx = 0;
                 for( size_t uiJ = 0; uiJ < D; uiJ++ )
                 {
@@ -496,9 +496,9 @@ template <typename type_defs> class Overlay
                 assert( uiIdx < vTmp.size( ) );
 
                 // add point to entry
-                xPoint.addTo( vTmp[ uiIdx ] );
+                xCorner.addTo( vTmp[ uiIdx ] );
             },
-            xPoints );
+            xCorners );
 
         // compute internal prefix sum
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -963,7 +963,8 @@ template <typename type_defs> class Overlay
         return os;
     }
     std::ostream& stream( std::ostream& os, pos_t vGridPos, const sparse_coord_t& rSparseCoords,
-                          const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData, const corners_t& vCorners ) const
+                          const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData,
+                          const corners_t& vCorners ) const
     {
         this->stream( os, vGridPos, rSparseCoords, rPrefixSums, rData );
 

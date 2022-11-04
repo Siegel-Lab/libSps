@@ -248,7 +248,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * Use len(index) to determine the index of the first and last point, as add_point may add multiple points per call.
      *
      * This function is multithreaded.
-     * 
+     *
      * @todo get uiFrom & uiTo from the last time generate was called on load of the index the size of the point vector
      *
      * @param uiFrom Size of the index before adding the first point of this dataset, defaults to zero.
@@ -270,14 +270,14 @@ template <typename type_defs> class Index : public AbstractIndex
             uiTo = numPoints( );
 
         progress_stream_t xProg( uiVerbosity );
-        typename corners_t::Entry xPoints;
-        xPoints.uiStartIndex = uiFrom;
-        xPoints.uiEndIndex = uiTo;
+        typename corners_t::Entry xCorners;
+        xCorners.uiStartIndex = uiFrom;
+        xCorners.uiEndIndex = uiTo;
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, xPoints, fFac, xProg, uiNumOverlaySamples,
-                        uiNumPointSamples );
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, xCorners, fFac, xProg,
+                        uiNumOverlaySamples, uiNumPointSamples );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
 
@@ -607,10 +607,10 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
-        typename corners_t::Entry xPoints;
-        xPoints.uiStartIndex = uiFrom;
-        xPoints.uiEndIndex = uiTo;
-        return dataset_t::estimateDataStructureElements( vCorners, xPoints, vFac, uiNumOverlaySamples,
+        typename corners_t::Entry xCorners;
+        xCorners.uiStartIndex = uiFrom;
+        xCorners.uiEndIndex = uiTo;
+        return dataset_t::estimateDataStructureElements( vCorners, xCorners, vFac, uiNumOverlaySamples,
                                                          uiNumPointSamples );
     }
 
@@ -619,10 +619,10 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
-        typename corners_t::Entry xPoints;
-        xPoints.uiStartIndex = uiFrom;
-        xPoints.uiEndIndex = uiTo;
-        return dataset_t::generateCoordSizes( vCorners, xPoints )[ 0 ];
+        typename corners_t::Entry xCorners;
+        xCorners.uiStartIndex = uiFrom;
+        xCorners.uiEndIndex = uiTo;
+        return dataset_t::generateCoordSizes( vCorners, xCorners )[ 0 ];
     }
 
     /**
@@ -643,11 +643,11 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
-        typename corners_t::Entry xPoints;
-        xPoints.uiStartIndex = uiFrom;
-        xPoints.uiEndIndex = uiTo;
+        typename corners_t::Entry xCorners;
+        xCorners.uiStartIndex = uiFrom;
+        xCorners.uiEndIndex = uiTo;
         progress_stream_t xProg( uiVerbosity );
-        return dataset_t::pickNumOverlays( vCorners, xPoints, uiNumOverlaySamples, uiNumPointSamples, xProg );
+        return dataset_t::pickNumOverlays( vCorners, xCorners, uiNumOverlaySamples, uiNumPointSamples, xProg );
     }
 
     /**
@@ -668,10 +668,10 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
             uiTo = numPoints( );
-        typename corners_t::Entry xPoints;
-        xPoints.uiStartIndex = uiFrom;
-        xPoints.uiEndIndex = uiTo;
-        return dataset_t::toFactor( vCorners, xPoints, uiNumOverlays );
+        typename corners_t::Entry xCorners;
+        xCorners.uiStartIndex = uiFrom;
+        xCorners.uiEndIndex = uiTo;
+        return dataset_t::toFactor( vCorners, xCorners, uiNumOverlays );
     }
 
     /**

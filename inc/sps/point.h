@@ -39,16 +39,15 @@ template <typename type_defs> class BaseCorner
     pos_t vPos;
     val_t uiVal;
 
-    BaseCorner( pos_t vPos, val_t uiVal )
-        : vPos( vPos ), uiVal( uiVal )
+    BaseCorner( pos_t vPos, val_t uiVal ) : vPos( vPos ), uiVal( uiVal )
     {}
 
     BaseCorner( ) : vPos{ }, uiVal( 0 )
     {}
 
-    friend std::ostream& operator<<( std::ostream& os, const BaseCorner& xPoint )
+    friend std::ostream& operator<<( std::ostream& os, const BaseCorner& xCorner )
     {
-        os << xPoint.vPos;
+        os << xCorner.vPos;
         return os;
     }
 
@@ -75,12 +74,10 @@ template <typename type_defs> class OrthotopeCorner : public BaseCorner<type_def
     uint8_t uiIdx;
 
   public:
-    OrthotopeCorner( pos_t vPos, val_t uiVal, uint8_t uiIdx )
-        : BaseCorner<type_defs>( vPos, uiVal ), uiIdx( uiIdx )
+    OrthotopeCorner( pos_t vPos, val_t uiVal, uint8_t uiIdx ) : BaseCorner<type_defs>( vPos, uiVal ), uiIdx( uiIdx )
     {}
 
-    OrthotopeCorner( pos_t vPos, val_t uiVal )
-        : BaseCorner<type_defs>( vPos, uiVal ), uiIdx( 0 )
+    OrthotopeCorner( pos_t vPos, val_t uiVal ) : BaseCorner<type_defs>( vPos, uiVal ), uiIdx( 0 )
     {}
 
     OrthotopeCorner( ) : BaseCorner<type_defs>( ), uiIdx( 0 )

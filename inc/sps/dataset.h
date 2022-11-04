@@ -49,8 +49,8 @@ template <typename type_defs> class Dataset
         size_t uiBlockSize;
 
       public:
-        DimIterator( typename corners_t::EntryIterator xIt, typename corners_t::EntryIterator xItEnd, size_t uiDimension,
-                     size_t uiBlockSize )
+        DimIterator( typename corners_t::EntryIterator xIt, typename corners_t::EntryIterator xItEnd,
+                     size_t uiDimension, size_t uiBlockSize )
             : xIt( xIt ), xItEnd( xItEnd ), uiDimension( uiDimension ), uiBlockSize( uiBlockSize )
         {}
 
@@ -165,8 +165,8 @@ template <typename type_defs> class Dataset
     {}
 
     typename sparse_coord_t::Entry
-    makeSparseCoords( sparse_coord_t& rSparseCoords, corners_t& vCorners, typename corners_t::Entry xPoints, size_t uiDim,
-                      size_t uiNumBlocks, progress_stream_t xProg,
+    makeSparseCoords( sparse_coord_t& rSparseCoords, corners_t& vCorners, typename corners_t::Entry xCorners,
+                      size_t uiDim, size_t uiNumBlocks, progress_stream_t xProg,
                       coordinate_t uiFixedStart = std::numeric_limits<coordinate_t>::max( ),
                       coordinate_t uiFixedEnd = std::numeric_limits<coordinate_t>::max( ) ) const
     {
@@ -174,12 +174,12 @@ template <typename type_defs> class Dataset
         coordinate_t uiLast = std::numeric_limits<coordinate_t>::max( );
         coordinate_t uiFirst = std::numeric_limits<coordinate_t>::max( );
         std::sort<typename std::vector<corner_t>::iterator, PointsComperator>(
-                     vCorners.vData.begin( ) + xPoints.uiStartIndex, 
-                     vCorners.vData.begin( ) + xPoints.uiEndIndex,
-                     PointsComperator( uiDim ) );
+            vCorners.vData.begin( ) + xCorners.uiStartIndex,
+            vCorners.vData.begin( ) + xCorners.uiEndIndex,
+            PointsComperator( uiDim ) );
         vCorners.iterate(
-            [ & ]( const corner_t& xPoint ) {
-                coordinate_t uiCurr = xPoint.vPos[ uiDim ];
+            [ & ]( const corner_t& xCorner ) {
+                coordinate_t uiCurr = xCorner.vPos[ uiDim ];
                 if( uiFirst == std::numeric_limits<coordinate_t>::max( ) )
                     uiFirst = uiCurr;
                 if( uiCurr != uiLast )
@@ -188,12 +188,12 @@ template <typename type_defs> class Dataset
                     ++uiNumCoords;
                 }
             },
-            xPoints );
+            xCorners );
         size_t uiBlockSize = 1 + ( uiNumCoords - 1 ) / uiNumBlocks;
         xProg << "generating " << uiNumBlocks << " overlays in dimension " << uiDim << " for " << uiNumCoords
               << " different coordinates.\n";
-        auto xStart = DimIterator( vCorners.cbegin( xPoints ), vCorners.cend( xPoints ), uiDim, uiBlockSize );
-        auto xEnd = DimIterator( vCorners.cend( xPoints ), vCorners.cend( xPoints ), uiDim, uiBlockSize );
+        auto xStart = DimIterator( vCorners.cbegin( xCorners ), vCorners.cend( xCorners ), uiDim, uiBlockSize );
+        auto xEnd = DimIterator( vCorners.cend( xCorners ), vCorners.cend( xCorners ), uiDim, uiBlockSize );
         if( uiFixedStart == std::numeric_limits<coordinate_t>::max( ) )
         {
             uiFixedEnd = uiLast;
@@ -319,7 +319,8 @@ template <typename type_defs> class Dataset
     }
 
     coordinate_t generateInternalSparseCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                               corners_t& vCorners, std::vector<typename corners_t::Entry>& vSplitPoints,
+                                               corners_t& vCorners,
+                                               std::vector<typename corners_t::Entry>& vSplitPoints,
                                                progress_stream_t xProg )
     {
         return generateSparseCoords( rOverlays, rSparseCoords, vCorners, xProg, [ & ]( size_t uiOverlayId ) {
@@ -334,9 +335,8 @@ template <typename type_defs> class Dataset
                     return (coordinate_t)0;
                 }
 
-            return rOverlays.vData[ uiOverlayId ].generateInternalSparseCoords( rSparseCoords, vCorners, 
-                                                                    vSplitPoints[uiOverlayId - xOverlays.uiStartIndex ],
-                                                                    xProg );
+            return rOverlays.vData[ uiOverlayId ].generateInternalSparseCoords(
+                rSparseCoords, vCorners, vSplitPoints[ uiOverlayId - xOverlays.uiStartIndex ], xProg );
         } );
     }
 
@@ -348,8 +348,8 @@ template <typename type_defs> class Dataset
 
 
     coordinate_t generateOverlaySparseCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                              std::vector<typename corners_t::Entry>& vSplitPoints,
-                                              corners_t& vCorners, progress_stream_t xProgIn )
+                                              std::vector<typename corners_t::Entry>& vSplitPoints, corners_t& vCorners,
+                                              progress_stream_t xProgIn )
     {
         rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + ( 2 << 8 ) );
 
@@ -391,7 +391,7 @@ template <typename type_defs> class Dataset
 
 
             vPrefixSumSize[ uiTid ] += rOverlays.vData[ uiOverlayId ].generateOverlaySparseCoords(
-                rOverlays, rSparseCoords, vCorners, vPredecessors, vSplitPoints, xOverlays.uiStartIndex, 
+                rOverlays, rSparseCoords, vCorners, vPredecessors, vSplitPoints, xOverlays.uiStartIndex,
                 vPosBottomLeftActual, vPosTopRightActual, xProg );
         } );
         rSparseCoords.shrink_to_fit( );
@@ -419,10 +419,9 @@ template <typename type_defs> class Dataset
             for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
                     [ & ]( size_t uiTid, size_t uiOverlayId, progress_stream_t xProgCpy ) {
-                        rOverlays.vData[ uiOverlayId ].generateInternalPrefixSums( rOverlays, rSparseCoords,
-                                                                                   rPrefixSums, vCorners, 
-                                                                                   vSplitPoints[uiOverlayId - uiFrom],
-                                                                                   xProgCpy );
+                        rOverlays.vData[ uiOverlayId ].generateInternalPrefixSums(
+                            rOverlays, rSparseCoords, rPrefixSums, vCorners, vSplitPoints[ uiOverlayId - uiFrom ],
+                            xProgCpy );
 
                         if( uiTid == 0 && xProg.printAgain( ) )
                             xProg << Verbosity( 0 ) << "processed " << uiOverlayId - uiFrom << " out of "
@@ -1011,21 +1010,22 @@ template <typename type_defs> class Dataset
         return ( fStartPos + fEndPos ) / 2;
     }
 
-    static double toFactor( corners_t& vCorners, const typename corners_t::Entry xPoints, uint64_t uiNumOverlays )
+    static double toFactor( corners_t& vCorners, const typename corners_t::Entry xCorners, uint64_t uiNumOverlays )
     {
-        pos_t uiCoordinateSizes = generateCoordSizes( vCorners, xPoints )[ 0 ];
+        pos_t uiCoordinateSizes = generateCoordSizes( vCorners, xCorners )[ 0 ];
         return toFactor( uiCoordinateSizes, uiNumOverlays );
     }
 
     static std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
-    estimateDataStructureElements( corners_t& vCorners, const typename corners_t::Entry xPoints, std::vector<double> vFac,
-                                   const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
+    estimateDataStructureElements( corners_t& vCorners, const typename corners_t::Entry xCorners,
+                                   std::vector<double> vFac, const uint64_t uiNumOverlaySamples,
+                                   const uint64_t uiNumPointSamples )
     {
         std::array<typename corners_t::Entry, D> xSortedPoints;
         std::array<std::vector<coordinate_t>, D> vvCoords;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            xSortedPoints[ uiI ] = vCorners.copyEntry( xPoints );
+            xSortedPoints[ uiI ] = vCorners.copyEntry( xCorners );
 
             vCorners.sortByDim( uiI, uiI != 0 ? 0 : 1, xSortedPoints[ uiI ] );
 
@@ -1038,15 +1038,15 @@ template <typename type_defs> class Dataset
                     xSortedPoints[ uiI ] );
         }
 
-        auto xA = generateCoordSizes( vCorners, xPoints );
+        auto xA = generateCoordSizes( vCorners, xCorners );
         pos_t uiCoordinateSizes = xA[ 0 ];
         pos_t uiMinPos = xA[ 2 ];
         std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>> vRet;
         for( float fFac : vFac )
-            vRet.push_back( estimateDataStructureElements( vCorners, xSortedPoints, vvCoords,
-                                                           toNumbers( toNumRatios( uiCoordinateSizes ), fFac ),
-                                                           uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex,
-                                                           uiMinPos, uiNumOverlaySamples, uiNumPointSamples ) );
+            vRet.push_back( estimateDataStructureElements(
+                vCorners, xSortedPoints, vvCoords, toNumbers( toNumRatios( uiCoordinateSizes ), fFac ),
+                uiCoordinateSizes, xCorners.uiEndIndex - xCorners.uiStartIndex, uiMinPos, uiNumOverlaySamples,
+                uiNumPointSamples ) );
 
         // remove additional entries again
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -1065,15 +1065,16 @@ template <typename type_defs> class Dataset
     }
 
 
-    static double pickOverlayFactor( corners_t& vCorners, const typename corners_t::Entry xPoints, pos_t uiCoordinateSizes,
-                                     size_t uiNumPoints, pos_t uiMinPos, const uint64_t uiNumOverlaySamples,
-                                     const uint64_t uiNumPointSamples, progress_stream_t xProg )
+    static double pickOverlayFactor( corners_t& vCorners, const typename corners_t::Entry xCorners,
+                                     pos_t uiCoordinateSizes, size_t uiNumPoints, pos_t uiMinPos,
+                                     const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples,
+                                     progress_stream_t xProg )
     {
         std::array<typename corners_t::Entry, D> xSortedPoints;
         std::array<std::vector<coordinate_t>, D> vvCoords;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            xSortedPoints[ uiI ] = vCorners.copyEntry( xPoints );
+            xSortedPoints[ uiI ] = vCorners.copyEntry( xCorners );
 
             vCorners.sortByDim( uiI, uiI != 0 ? 0 : 1, xSortedPoints[ uiI ] );
 
@@ -1142,31 +1143,31 @@ template <typename type_defs> class Dataset
         return fStart;
     }
 
-    static coordinate_t pickNumOverlays( corners_t& vCorners, const typename corners_t::Entry xPoints,
+    static coordinate_t pickNumOverlays( corners_t& vCorners, const typename corners_t::Entry xCorners,
                                          pos_t uiCoordinateSizes, size_t uiNumPoints, pos_t uiMinPos,
                                          const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples,
                                          progress_stream_t xProg )
     {
         auto vNums = toNumbers( toNumRatios( uiCoordinateSizes ),
-                                pickOverlayFactor( vCorners, xPoints, uiCoordinateSizes, uiNumPoints, uiMinPos,
+                                pickOverlayFactor( vCorners, xCorners, uiCoordinateSizes, uiNumPoints, uiMinPos,
                                                    uiNumOverlaySamples, uiNumPointSamples, xProg ) );
 
         return toAmount( vNums );
     }
 
-    static coordinate_t pickNumOverlays( corners_t& vCorners, const typename corners_t::Entry xPoints,
+    static coordinate_t pickNumOverlays( corners_t& vCorners, const typename corners_t::Entry xCorners,
                                          const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples,
                                          progress_stream_t xProg )
     {
-        auto xA = generateCoordSizes( vCorners, xPoints );
+        auto xA = generateCoordSizes( vCorners, xCorners );
         pos_t uiCoordinateSizes = xA[ 0 ];
         pos_t uiMinPos = xA[ 2 ];
-        return pickNumOverlays( vCorners, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex,
+        return pickNumOverlays( vCorners, xCorners, uiCoordinateSizes, xCorners.uiEndIndex - xCorners.uiStartIndex,
                                 uiMinPos, uiNumOverlaySamples, uiNumPointSamples, xProg );
     }
 
-    static pos_t pickOverlayNumbers( corners_t& vCorners, const typename corners_t::Entry xPoints, pos_t uiCoordinateSizes,
-                                     size_t uiNumPoints, pos_t uiMinPos, double fFac,
+    static pos_t pickOverlayNumbers( corners_t& vCorners, const typename corners_t::Entry xCorners,
+                                     pos_t uiCoordinateSizes, size_t uiNumPoints, pos_t uiMinPos, double fFac,
                                      const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples,
                                      progress_stream_t xProg )
     {
@@ -1174,11 +1175,11 @@ template <typename type_defs> class Dataset
         if( fFac >= 0 )
             return toNumbers( vNumRatios, fFac );
         return toNumbers( vNumRatios,
-                          pickOverlayFactor( vCorners, xPoints, uiCoordinateSizes, uiNumPoints, uiMinPos,
+                          pickOverlayFactor( vCorners, xCorners, uiCoordinateSizes, uiNumPoints, uiMinPos,
                                              uiNumOverlaySamples, uiNumPointSamples, xProg ) );
     }
 
-    static std::array<pos_t, 3> generateCoordSizes( corners_t& vCorners, const typename corners_t::Entry xPoints )
+    static std::array<pos_t, 3> generateCoordSizes( corners_t& vCorners, const typename corners_t::Entry xCorners )
     {
         pos_t uiMaxCoords;
         pos_t uiMinCoords;
@@ -1189,14 +1190,14 @@ template <typename type_defs> class Dataset
         }
 
         vCorners.iterate(
-            [ & ]( const corner_t& xPoint ) {
+            [ & ]( const corner_t& xCorner ) {
                 for( size_t uiI = 0; uiI < D; uiI++ )
                 {
-                    uiMinCoords[ uiI ] = std::min( uiMinCoords[ uiI ], xPoint.vPos[ uiI ] );
-                    uiMaxCoords[ uiI ] = std::max( uiMaxCoords[ uiI ], xPoint.vPos[ uiI ] + 1 );
+                    uiMinCoords[ uiI ] = std::min( uiMinCoords[ uiI ], xCorner.vPos[ uiI ] );
+                    uiMaxCoords[ uiI ] = std::max( uiMaxCoords[ uiI ], xCorner.vPos[ uiI ] + 1 );
                 }
             },
-            xPoints );
+            xCorners );
 
         pos_t uiCoordinateSizes;
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -1208,18 +1209,19 @@ template <typename type_defs> class Dataset
 // vPos not used with DEPENDANT_DIMENSION == false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     void generateOverlayCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, corners_t& vCorners,
-                                typename corners_t::Entry xPoints, std::vector<typename corners_t::Entry>& vSplitPoints,
-                                double fFac, progress_stream_t xProg,
-                                const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
+                                typename corners_t::Entry xCorners,
+                                std::vector<typename corners_t::Entry>& vSplitPoints, double fFac,
+                                progress_stream_t xProg, const uint64_t uiNumOverlaySamples,
+                                const uint64_t uiNumPointSamples )
     {
-        auto xA = generateCoordSizes( vCorners, xPoints );
+        auto xA = generateCoordSizes( vCorners, xCorners );
         pos_t uiCoordinateSizes = xA[ 0 ];
         uiMaxCoords = xA[ 1 ];
         uiMinCoords = xA[ 2 ];
 
         xProg << Verbosity( 0 ) << "picking number of overlay boxes.\n";
         pos_t uiNumOverlaysPerDim =
-            pickOverlayNumbers( vCorners, xPoints, uiCoordinateSizes, xPoints.uiEndIndex - xPoints.uiStartIndex,
+            pickOverlayNumbers( vCorners, xCorners, uiCoordinateSizes, xCorners.uiEndIndex - xCorners.uiStartIndex,
                                 uiMinCoords, fFac, uiNumOverlaySamples, uiNumPointSamples, xProg );
 
         xProg << Verbosity( 0 ) << "generating overlay grid.\n";
@@ -1246,21 +1248,21 @@ template <typename type_defs> class Dataset
                         coordinate_t uiAbsoluteStart = std::numeric_limits<coordinate_t>::max( );
                         coordinate_t uiAbsoluteEnd = 0;
                         vCorners.iterate(
-                            [ & ]( const corner_t& xPoint ) {
-                                uiAbsoluteStart = std::min( uiAbsoluteStart, xPoint.vPos[ 1 ] );
-                                uiAbsoluteEnd = std::max( uiAbsoluteEnd, xPoint.vPos[ 1 ] );
+                            [ & ]( const corner_t& xCorner ) {
+                                uiAbsoluteStart = std::min( uiAbsoluteStart, xCorner.vPos[ 1 ] );
+                                uiAbsoluteEnd = std::max( uiAbsoluteEnd, xCorner.vPos[ 1 ] );
                             },
-                            xPoints );
+                            xCorners );
 
                         coordinate_t uiNumBins = rSparseCoords.axisSize( vSparseCoords[ 0 ] );
                         typename corners_t::Entry xCurrPoints{ };
-                        xCurrPoints.uiEndIndex = xPoints.uiStartIndex;
+                        xCurrPoints.uiEndIndex = xCorners.uiStartIndex;
                         vSparseCoords[ uiI ].uiStartIndex = std::numeric_limits<coordinate_t>::max( );
                         for( size_t uiBin = 0; uiBin < uiNumBins; uiBin++ )
                         {
                             // collect points for overlay uiI (points still sorted by dim 0)
                             xCurrPoints.uiStartIndex = xCurrPoints.uiEndIndex;
-                            while( xCurrPoints.uiEndIndex < xPoints.uiEndIndex &&
+                            while( xCurrPoints.uiEndIndex < xCorners.uiEndIndex &&
                                    rSparseCoords.replace( vCorners.vData[ xCurrPoints.uiEndIndex ].vPos[ 0 ],
                                                           vSparseCoords[ 0 ] ) == uiBin )
                                 ++xCurrPoints.uiEndIndex;
@@ -1275,13 +1277,13 @@ template <typename type_defs> class Dataset
                             sparse_coord_t::append( xSparseCoordsDependantDimension, xCurr );
                             xProg << Verbosity( 1 );
                         }
-                        assert( xCurrPoints.uiEndIndex == xPoints.uiEndIndex );
+                        assert( xCurrPoints.uiEndIndex == xCorners.uiEndIndex );
 
                         continue;
                     }
                 }
                 vSparseCoords[ uiI ] =
-                    makeSparseCoords( rSparseCoords, vCorners, xPoints, uiI, uiNumOverlaysPerDim[ uiI ], xProg );
+                    makeSparseCoords( rSparseCoords, vCorners, xCorners, uiI, uiNumOverlaysPerDim[ uiI ], xProg );
             }
             xProg << Verbosity( 2 );
             if( xProg.active( ) )
@@ -1309,41 +1311,40 @@ template <typename type_defs> class Dataset
          * However, my PointsBinComperator accesses another stxxl::vector and therefore has to be guarded with a mutex.
          */
         std::mutex xLock;
-        
+
         std::sort<typename std::vector<corner_t>::iterator, PointsBinComperator>(
-                         vCorners.vData.begin( ) + xPoints.uiStartIndex, vCorners.vData.begin( ) + xPoints.uiEndIndex,
-                         PointsBinComperator( *this, rOverlays, rSparseCoords, xLock ) );
+            vCorners.vData.begin( ) + xCorners.uiStartIndex, vCorners.vData.begin( ) + xCorners.uiEndIndex,
+            PointsBinComperator( *this, rOverlays, rSparseCoords, xLock ) );
 
         // generate all overlays
         coordinate_t uiNumTotal = rOverlays.sizeOf( xOverlays );
         vSplitPoints.resize( uiNumTotal );
         for( coordinate_t uiI = 0; uiI < uiNumTotal; uiI++ )
         {
-            vSplitPoints[ uiI ].uiStartIndex = uiI > 0 ? vSplitPoints[ uiI - 1 ].uiEndIndex : xPoints.uiStartIndex;
+            vSplitPoints[ uiI ].uiStartIndex = uiI > 0 ? vSplitPoints[ uiI - 1 ].uiEndIndex : xCorners.uiStartIndex;
             vSplitPoints[ uiI ].uiEndIndex = vSplitPoints[ uiI ].uiStartIndex;
             // collect points for overlay uiI
-            while( vSplitPoints[ uiI ].uiEndIndex < xPoints.uiEndIndex &&
+            while( vSplitPoints[ uiI ].uiEndIndex < xCorners.uiEndIndex &&
                    overlayIndex( rOverlays, rSparseCoords, vCorners.vData[ vSplitPoints[ uiI ].uiEndIndex ].vPos ) ==
                        uiI + xOverlays.uiStartIndex )
                 ++vSplitPoints[ uiI ].uiEndIndex;
-
         }
-        assert( vSplitPoints[ uiNumTotal - 1 ].uiEndIndex == xPoints.uiEndIndex );
+        assert( vSplitPoints[ uiNumTotal - 1 ].uiEndIndex == xCorners.uiEndIndex );
     }
 #pragma GCC diagnostic pop
 
     Dataset( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
-             corners_t& vCorners, typename corners_t::Entry xPoints, double fFac, progress_stream_t xProg,
+             corners_t& vCorners, typename corners_t::Entry xCorners, double fFac, progress_stream_t xProg,
              const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
         : vSparseCoords( ), xSparseCoordsDependantDimension( )
     {
-        if( xPoints.uiEndIndex == xPoints.uiStartIndex )
+        if( xCorners.uiEndIndex == xCorners.uiStartIndex )
             return;
 
         std::vector<typename corners_t::Entry> vSplitPoints;
 
         // generate the overall sparse coordinates
-        generateOverlayCoords( rOverlays, rSparseCoords, vCorners, xPoints, vSplitPoints, fFac, xProg,
+        generateOverlayCoords( rOverlays, rSparseCoords, vCorners, xCorners, vSplitPoints, fFac, xProg,
                                uiNumOverlaySamples, uiNumPointSamples );
 
         xProg << Verbosity( 0 ) << "generating internal sparse coords.\n";
@@ -1351,8 +1352,8 @@ template <typename type_defs> class Dataset
             generateInternalSparseCoords( rOverlays, rSparseCoords, vCorners, vSplitPoints, xProg );
 
         xProg << Verbosity( 0 ) << "generating overlay sparse coords.\n";
-        coordinate_t uiSizeOverlayPrefixSums = generateOverlaySparseCoords( rOverlays, rSparseCoords, vSplitPoints, 
-                                                                            vCorners, xProg );
+        coordinate_t uiSizeOverlayPrefixSums =
+            generateOverlaySparseCoords( rOverlays, rSparseCoords, vSplitPoints, vCorners, xProg );
 
         xProg << Verbosity( 0 ) << "generating internal prefix sums.\n";
         generateInternalPrefixSums( rOverlays, rSparseCoords, rPrefixSums, vCorners, vSplitPoints,
@@ -1483,8 +1484,8 @@ template <typename type_defs> class Dataset
             vRet.back( ).vPredIds =
                 getPredecessor( rOverlays, rSparseCoords, vRet.back( ).vGridPos, vRet.back( ).vBottomLeft,
                                 vRet.back( ).vTopRight, typename type_defs::progress_stream_t( 0 ) );
-            //vCorners.iterate( [ & ]( const corner_t& xP ) { vRet.back( ).vvCorners.push_back( xP.vPos ); },
-            //                 rOverlays.vData[ uiI ].xPoints );
+            // vCorners.iterate( [ & ]( const corner_t& xP ) { vRet.back( ).vvCorners.push_back( xP.vPos ); },
+            //                  rOverlays.vData[ uiI ].xCorners );
         }
 
         return vRet;
