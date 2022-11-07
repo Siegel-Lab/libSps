@@ -4,31 +4,7 @@
 
 namespace sps
 {
-#if 0
-template <typename type_defs> class FullPoint
-{
-    EXTRACT_TYPE_DEFS; // macro call
 
-    using desc_t = Desc<type_defs>;
-
-  public:
-    pos_t vFrom;
-    pos_t vTo;
-    size_t uiDescOffset;
-
-    FullPoint( pos_t vFrom, pos_t vTo, size_t uiDescOffset )
-        : vFrom( vFrom ), vTo( vTo ), uiDescOffset( uiDescOffset )
-    {}
-
-    FullPoint( ) : vFrom{ }, vTo{ }, uiDescOffset( 0 )
-    {}
-
-    void addTo( val_t& uiTo ) const
-    {
-        uiTo += uiVal;
-    }
-};
-#endif
 template <typename type_defs> class BaseCorner
 {
     EXTRACT_TYPE_DEFS; // macro call

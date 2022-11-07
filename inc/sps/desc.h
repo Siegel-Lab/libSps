@@ -7,39 +7,40 @@
 namespace sps
 {
 
-template <typename type_defs> class Desc;
+template <template <typename> typename vec_gen_t> class DescImpl;
 
 }
 
 namespace std
 {
 
-template <typename type_defs> ostream& operator<<( ostream& os, const typename sps::Desc<type_defs>& rDesc );
+template <template <typename> typename vec_gen_t> ostream& operator<<( ostream& os, const typename sps::DescImpl<vec_gen_t>& rDesc );
 
 } // namespace std
 
 namespace sps
 {
-
-template <typename type_defs> class Desc
+template<template <typename> typename vec_gen_t> class DescImpl
 {
-    EXTRACT_TYPE_DEFS; // macro call
+    using char_gen_t = vec_gen_t<char>;
+    char_gen_t desc_vec_generator = char_gen_t();
 
-    EXTRACT_VEC_GENERATOR( desc, char ); // macro call
-
-    desc_file_t xFile;
-    desc_vec_t vData;
+    typename char_gen_t::file_t xFile;
+    typename char_gen_t::vec_t vData;
     char cEof;
 
-    friend std::ostream& std::operator<< <>( std::ostream& os, const Desc& rTree );
+    friend std::ostream& std::operator<< <>( std::ostream& os, const DescImpl& rTree );
 
   public:
-    Desc( std::string sPrefix, bool bWrite, char cEof )
+    DescImpl( std::string sPrefix, bool bWrite, char cEof )
         : xFile( desc_vec_generator.file( sPrefix + ".desc", bWrite ) ),
           vData( desc_vec_generator.vec( xFile ) ),
           cEof( cEof )
     {}
-    Desc( std::string sPrefix, bool bWrite ) : Desc( sPrefix, bWrite, std::char_traits<char>::eof( ) )
+    DescImpl( std::string sPrefix, bool bWrite ) : DescImpl( sPrefix, bWrite, std::char_traits<char>::eof( ) )
+    {}
+
+    DescImpl(  )
     {}
 
     size_t add( std::string sDesc )
@@ -54,7 +55,7 @@ template <typename type_defs> class Desc
     std::string get( size_t uiPos ) const
     {
         std::string sRet = "";
-        typename desc_vec_t::const_iterator cIter = vData.begin( ) + uiPos;
+        typename char_gen_t::vec_t::const_iterator cIter = vData.begin( ) + uiPos;
         while( *cIter != cEof )
             sRet += *( cIter++ );
         return sRet;
@@ -65,7 +66,7 @@ template <typename type_defs> class Desc
         vData.clear( );
     }
 
-    friend std::ostream& operator<<( std::ostream& os, const Desc& rDesc )
+    friend std::ostream& operator<<( std::ostream& os, const DescImpl& rDesc )
     {
         os << "0: ";
         size_t uiI = 0;
@@ -83,5 +84,9 @@ template <typename type_defs> class Desc
         return os;
     }
 };
+
+template <typename type_defs> 
+using Desc = DescImpl<type_defs::template desc_vec_generator_t>;
+
 
 } // namespace sps
