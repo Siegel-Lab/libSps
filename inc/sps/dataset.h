@@ -1251,7 +1251,7 @@ template <typename type_defs> class Dataset
     }
 
     std::ostream& stream( std::ostream& os, const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
-                          const prefix_sum_grid_t& rPrefixSums, const corners_t& vCorners, const desc_t& vDesc ) const
+                          const prefix_sum_grid_t& rPrefixSums, const corners_t& vCorners ) const
     {
         os << "<" << std::endl;
         os << "\tvSparseCoords: ";
@@ -1260,7 +1260,7 @@ template <typename type_defs> class Dataset
         os << std::endl;
 
         os << "\txOverlayGrid: ";
-        xOverlays.stream( os, rOverlays, rSparseCoords, rPrefixSums, *this, vCorners, vDesc ) << std::endl;
+        xOverlays.stream( os, rOverlays, rSparseCoords, rPrefixSums, *this, vCorners ) << std::endl;
 
         os << ">";
 

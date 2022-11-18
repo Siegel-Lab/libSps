@@ -56,6 +56,7 @@ template <typename type_defs> class SimpleVector : public AbstractIndex
      *
      * @param vStart The bottom-left of the orthotope.
      * @param vEnd The top-right of the orthotope.
+     * @param uiVal Value of the points, default to 1.
      */
     void addPoint( pos_t vStart, pos_t vEnd, val_t uiVal = 1 )
     {

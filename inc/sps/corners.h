@@ -19,11 +19,11 @@ template <typename type_defs> class Corners
 
     using corner_t = AlignedPower2<Corner<type_defs>>;
 
-    // template<int s> struct CheckSizeOfPoint;
-    // CheckSizeOfPoint<sizeof(Point<type_defs>)> xCheckSizeOfPoint;
-    // CheckSizeOfPoint<sizeof(corner_t)> xCheckSizeOfAlignedPoint;
-
-    using desc_t = Desc<type_defs>;
+#if 0
+    template<int s> struct CheckSizeOfPoint;
+    CheckSizeOfPoint<sizeof(Point<type_defs>)> xCheckSizeOfPoint;
+    CheckSizeOfPoint<sizeof(corner_t)> xCheckSizeOfAlignedPoint;
+#endif
 
   public:
     static constexpr bool THREADSAVE = true;
@@ -82,20 +82,6 @@ template <typename type_defs> class Corners
             return uiEndIndex - uiStartIndex;
         }
 
-        std::ostream& stream( std::ostream& os, const Corners& rCorners, const desc_t& vDesc ) const
-        {
-            os << "{ ";
-            for( size_t uiI = uiStartIndex; uiI < uiEndIndex; uiI++ )
-            {
-                if( uiI > uiStartIndex )
-                    os << ", ";
-                rCorners.vData[ uiI ].stream( os, vDesc );
-            }
-            os << " }";
-
-            return os;
-        }
-
         std::ostream& stream( std::ostream& os, const Corners& rCorners ) const
         {
             os << "{ ";
@@ -103,7 +89,7 @@ template <typename type_defs> class Corners
             {
                 if( uiI > uiStartIndex )
                     os << ", ";
-                os << rCorners.vData[ uiI ];
+                rCorners.vData[ uiI ].stream( os );
             }
             os << " }";
 
@@ -164,14 +150,13 @@ template <typename type_defs> class Corners
     Corners( )
     {}
 
-    template <bool trigger = !IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> add( pos_t vPos, val_t uiVal, size_t /*uiDescOffset*/ )
+    template <bool trigger = !IS_ORTHOTOPE> typename std::enable_if_t<trigger> add( pos_t vPos, val_t uiVal )
     {
         vData.push_back( corner_t( vPos, uiVal ) );
     }
 
     template <bool trigger = IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> add( pos_t vStart, pos_t vEnd, val_t uiVal, size_t /*uiDescOffset*/ )
+    typename std::enable_if_t<trigger> add( pos_t vStart, pos_t vEnd, val_t uiVal )
     {
         forAllCombinationsN<pos_t, ORTHOTOPE_DIMS>(
             [ & ]( size_t uiI, pos_t vPos, size_t ) {

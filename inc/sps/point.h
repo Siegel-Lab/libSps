@@ -27,7 +27,7 @@ template <typename type_defs> class BaseCorner
         return os;
     }
 
-    std::ostream& stream( std::ostream& os, const desc_t& vDesc ) const
+    std::ostream& stream( std::ostream& os ) const
     {
         os << vPos;
         return os;
@@ -59,9 +59,9 @@ template <typename type_defs> class OrthotopeCorner : public BaseCorner<type_def
     OrthotopeCorner( ) : BaseCorner<type_defs>( ), uiIdx( 0 )
     {}
 
-    std::ostream& stream( std::ostream& os, const desc_t& vDesc ) const
+    std::ostream& stream( std::ostream& os ) const
     {
-        BaseCorner<type_defs>::stream( os, vDesc ) << " i" << (size_t)uiIdx;
+        BaseCorner<type_defs>::stream( os ) << " i" << (size_t)uiIdx;
         return os;
     }
 

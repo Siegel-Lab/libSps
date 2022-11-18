@@ -72,10 +72,6 @@ template <typename type_defs> class Index : public AbstractIndex
     using corner_t = Corner<type_defs>;
 
     using corners_t = Corners<type_defs>;
-    using desc_t = Desc<type_defs>;
-
-    // template<int s> struct CheckSizeOfOverlay;
-    // CheckSizeOfOverlay<sizeof(Overlay<type_defs>)> xCheckSizeOfOverlay;
 
     using overlay_t = AlignedPower2<Overlay<type_defs>>;
     using sparse_coord_t = SparseCoord<type_defs>;
@@ -86,7 +82,6 @@ template <typename type_defs> class Index : public AbstractIndex
     EXTRACT_VEC_GENERATOR( dataset, dataset_t ); // macro call
 
     corners_t vCorners;
-    desc_t vDesc;
     sparse_coord_t vSparseCoord;
     prefix_sum_grid_t vPrefixSumGrid;
     overlay_grid_t vOverlayGrid;
@@ -105,8 +100,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * defaults to false.
      */
     Index( std::string sPrefix = "", bool bWrite = false )
-        : vDesc( sPrefix, bWrite ),
-          vSparseCoord( sPrefix, bWrite ),
+        : vSparseCoord( sPrefix, bWrite ),
           vPrefixSumGrid( sPrefix + ".prefix_sums", bWrite ),
           vOverlayGrid( sPrefix + ".overlays", bWrite ),
           xFile( dataset_vec_generator.file( sPrefix + ".datsets", bWrite ) ),
@@ -133,7 +127,6 @@ template <typename type_defs> class Index : public AbstractIndex
     void clearCorners( )
     {
         vCorners.clear( );
-        vDesc.clear( );
     }
 
     /**
@@ -171,12 +164,12 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * @tparam trigger This function is only active if IS_ORTHOTOPE = false
      * @param vPos The position of the point.
-     * @param sDesc A description for the Point, defaults to "".
+     * @param uiVal The value of the point, defaults to 1.
      */
     template <bool trigger = !IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, val_t uiVal = 1, std::string sDesc = "" )
+    typename std::enable_if_t<trigger> addPoint( ret_pos_t vPos, val_t uiVal = 1 )
     {
-        vCorners.add( vPos, uiVal, vDesc.add( sDesc ) );
+        vCorners.add( vPos, uiVal );
     }
 
     std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
@@ -215,11 +208,11 @@ template <typename type_defs> class Index : public AbstractIndex
      * @tparam trigger This function is only active if IS_ORTHOTOPE = true
      * @param vStart The bottom left position of the orthotope.
      * @param vEnd The top right position of the orthotope.
+     * @param uiVal The value of the point, defaults to 1.
      * @param sDesc A description for the orthotope, defaults to "".
      */
     template <bool trigger = IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, val_t uiVal = 1,
-                                                 std::string sDesc = "" )
+    typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, val_t uiVal = 1 )
     {
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
             if( vStart[ uiI ] > vEnd[ uiI ] )
@@ -228,7 +221,7 @@ template <typename type_defs> class Index : public AbstractIndex
             if( vStart[ uiI ] != vEnd[ uiI ] )
                 throw std::invalid_argument( "end must equal start for non-orthotope dimensions." );
         auto vP = addDims( vStart, vEnd );
-        vCorners.add( vP[ 0 ], vP[ 1 ], uiVal, vDesc.add( sDesc ) );
+        vCorners.add( vP[ 0 ], vP[ 1 ], uiVal );
     }
 
     /**
@@ -252,7 +245,11 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * @param uiFrom Size of the index before adding the first point of this dataset, defaults to zero.
      * @param uiTo Size of the index after adding all points of this dataset, defaults to the current size of the index.
+     * @param fFac Overlay size factor, defaults to -1.
+     *             -1: factor is picked so that the estimated size of the datastructure is minimal
      * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
+     * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
+     * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @return class_key_t The id of the generated dataset.
      */
     class_key_t generate( coordinate_t uiFrom = 0,
@@ -279,6 +276,8 @@ template <typename type_defs> class Index : public AbstractIndex
                         uiNumOverlaySamples, uiNumPointSamples );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
+
+        vCorners.clear( );
 
 #ifdef DO_PROFILE
         ProfilerFlush( );
@@ -379,7 +378,6 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param vFrom The bottom left position of the query region.
      * @param vTo The top right position of the query region.
      * @param xInterType The used intersection type, defaults to enclosed.
-     * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
     val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo,
@@ -577,9 +575,11 @@ template <typename type_defs> class Index : public AbstractIndex
      * - The total size in bytes
      *
      *
-     * @param fFac list of factors that are proportional to the number of boxes within the data structure
+     * @param vFac list of factors that are proportional to the number of boxes within the data structure
      * @param uiFrom index of first point that shall be included in the dataset
-     * @param uiTo ndex of first point that shall not be included in the dataset anymore
+     * @param uiTo index of first point that shall not be included in the dataset anymore
+     * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
+     * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @return std:vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
      *         The predicted number of dataset structure elements for each factor
      */
@@ -619,6 +619,9 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * @param uiFrom index of first point that shall be included in the dataset
      * @param uiTo index of first point that shall not be included in the dataset anymore
+     * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
+     * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
+     * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
      * @return uint64_t The predicted best value for f
      */
     uint64_t pickNumOverlays( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
@@ -682,13 +685,11 @@ template <typename type_defs> class Index : public AbstractIndex
         os << rMain.vPrefixSumGrid << std::endl;
         os << "vCorners: ";
         os << rMain.vCorners << std::endl;
-        os << "vDesc: ";
-        os << rMain.vDesc << std::endl;
 
         os << "Pretty Print: ";
         for( size_t uiI = 0; uiI < rMain.vDataSets.size( ); uiI++ )
             rMain.vDataSets[ uiI ].stream( os, rMain.vOverlayGrid, rMain.vSparseCoord, rMain.vPrefixSumGrid,
-                                           rMain.vCorners, rMain.vDesc )
+                                           rMain.vCorners )
                 << std::endl;
 
         return os;
@@ -811,11 +812,11 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     if constexpr( !type_defs::IS_ORTHOTOPE )
         xMain.def(
             "add_point",
-            []( sps::Index<type_defs>& rM, typename type_defs::pos_t vPos, typename type_defs::val_t uiVal,
-                std::string sDesc ) { rM.addPoint( vPos, uiVal, sDesc ); },
+            []( sps::Index<type_defs>& rM, typename type_defs::pos_t vPos, typename type_defs::val_t uiVal ) {
+                rM.addPoint( vPos, uiVal );
+            },
             pybind11::arg( "pos" ),
-            pybind11::arg( "val" ) = 0,
-            pybind11::arg( "desc" ) = "",
+            pybind11::arg( "val" ) = 1,
             ( R"pbdoc(
     Append a point to the data structure.
     
@@ -836,11 +837,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         xMain.def(
             "add_point",
             []( sps::Index<type_defs>& rM, typename type_defs::ret_pos_t vStart, typename type_defs::ret_pos_t vEnd,
-                typename type_defs::val_t uiVal, std::string sDesc ) { rM.addPoint( vStart, vEnd, uiVal, sDesc ); },
+                typename type_defs::val_t uiVal ) { rM.addPoint( vStart, vEnd, uiVal ); },
             pybind11::arg( "start" ),
             pybind11::arg( "end" ),
-            pybind11::arg( "val" ) = 0,
-            pybind11::arg( "desc" ) = "",
+            pybind11::arg( "val" ) = 1,
             ( R"pbdoc(
     Append a )pbdoc" +
               sPointName + R"pbdoc( to the data structure.

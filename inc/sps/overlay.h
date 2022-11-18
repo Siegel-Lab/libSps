@@ -253,8 +253,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -932,18 +932,7 @@ template <typename type_defs> class Overlay
     }
     std::ostream& stream( std::ostream& os, pos_t vGridPos, const sparse_coord_t& rSparseCoords,
                           const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData,
-                          const corners_t& vCorners ) const
-    {
-        this->stream( os, vGridPos, rSparseCoords, rPrefixSums, rData );
-
-        os << ">";
-
-        return os;
-    }
-
-    std::ostream& stream( std::ostream& os, pos_t vGridPos, const sparse_coord_t& rSparseCoords,
-                          const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData, const corners_t& /*vCorners*/,
-                          const desc_t& /*vDesc*/ ) const
+                          const corners_t& /*vCorners*/ ) const
     {
         this->stream( os, vGridPos, rSparseCoords, rPrefixSums, rData );
 
