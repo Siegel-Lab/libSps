@@ -14,16 +14,17 @@ template <template <typename> typename vec_gen_t> class DescImpl;
 namespace std
 {
 
-template <template <typename> typename vec_gen_t> ostream& operator<<( ostream& os, const typename sps::DescImpl<vec_gen_t>& rDesc );
+template <template <typename> typename vec_gen_t>
+ostream& operator<<( ostream& os, const typename sps::DescImpl<vec_gen_t>& rDesc );
 
 } // namespace std
 
 namespace sps
 {
-template<template <typename> typename vec_gen_t> class DescImpl
+template <template <typename> typename vec_gen_t> class DescImpl
 {
     using char_gen_t = vec_gen_t<char>;
-    char_gen_t desc_vec_generator = char_gen_t();
+    char_gen_t desc_vec_generator = char_gen_t( );
 
     typename char_gen_t::file_t xFile;
     typename char_gen_t::vec_t vData;
@@ -40,7 +41,7 @@ template<template <typename> typename vec_gen_t> class DescImpl
     DescImpl( std::string sPrefix, bool bWrite ) : DescImpl( sPrefix, bWrite, std::char_traits<char>::eof( ) )
     {}
 
-    DescImpl(  )
+    DescImpl( )
     {}
 
     size_t add( std::string sDesc )
@@ -85,8 +86,7 @@ template<template <typename> typename vec_gen_t> class DescImpl
     }
 };
 
-template <typename type_defs> 
-using Desc = DescImpl<type_defs::template desc_vec_generator_t>;
+template <typename type_defs> using Desc = DescImpl<type_defs::template desc_vec_generator_t>;
 
 
 } // namespace sps

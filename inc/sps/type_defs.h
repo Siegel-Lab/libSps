@@ -96,8 +96,6 @@ class TypeDefs
     static constexpr bool EXPLAIN = _explain;
 
 
-    static constexpr bool UNIFORM_OVERLAY_GRID = _uniform_overlay_grid;
-
     static constexpr bool BINARY_SEARCH_BASED_SPARSE = _binary_search_based_sparse;
 
     static constexpr coordinate_t ORTHOTOPE_DIMS = _orthotope_dims;
@@ -138,8 +136,6 @@ class TypeDefs
     NAMED_VEC_GEN_AND_SORTER_EXTRACT( prefix_sums )                                                                    \
                                                                                                                        \
     static constexpr bool EXPLAIN = type_defs::EXPLAIN;                                                                \
-                                                                                                                       \
-    static constexpr bool UNIFORM_OVERLAY_GRID = type_defs::UNIFORM_OVERLAY_GRID;                                      \
                                                                                                                        \
     static constexpr bool BINARY_SEARCH_BASED_SPARSE = type_defs::BINARY_SEARCH_BASED_SPARSE;                          \
                                                                                                                        \

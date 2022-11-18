@@ -177,7 +177,7 @@ struct CacheVec : public stxxl::VECTOR_GENERATOR<val_t, PageSize, CachePages, Bl
   public:
     using vec_t::vec_t;
 
-    CacheVec()
+    CacheVec( )
     {}
 
     size_t extend( const std::vector<val_t>& rOther )
@@ -262,7 +262,7 @@ template <typename val_t> struct DiskVec : public std::vector<val_t>
         ifstream.close( );
     }
 
-    DiskVec()
+    DiskVec( )
     {}
 
     ~DiskVec( )

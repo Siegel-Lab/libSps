@@ -149,9 +149,8 @@ template <typename type_defs> class Index : public AbstractIndex
 
     void popDataset( )
     {
-        size_t uiRmSp = getNumInternalSparseCoords( vDataSets.size( ) - 1 ) +
-                        getNumGlobalSparseCoords( vDataSets.size( ) - 1 ) +
-                        getNumOverlaySparseCoords( vDataSets.size( ) - 1 );
+        size_t uiRmSp =
+            getNumInternalSparseCoords( vDataSets.size( ) - 1 ) + getNumOverlaySparseCoords( vDataSets.size( ) - 1 );
         vSparseCoord.vData.resize( vSparseCoord.vData.size( ) >= uiRmSp ? vSparseCoord.vData.size( ) - uiRmSp : 0 );
 
         size_t uiRmPs =
@@ -533,17 +532,6 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
     /**
-     * @brief Count the number of global sparse coordinates stored in the dataset with id dataset_id.
-     *
-     * @param xDatasetId The id of the dataset to query
-     * @return coordinate_t number of global sparse coordinates
-     */
-    coordinate_t getNumGlobalSparseCoords( class_key_t xDatasetId ) const
-    {
-        return vDataSets[ xDatasetId ].getNumGlobalSparseCoords( );
-    }
-
-    /**
      * @brief Count the number of overlay blocks.
      *
      * @param xDatasetId The id of the dataset to query
@@ -724,7 +712,7 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         if( vDataSets.size( ) <= xDatasetId )
             return std::vector<std::array<pos_t, 3>>{ };
-        return vDataSets[ xDatasetId ].getOverlayGrid( vOverlayGrid, vSparseCoord );
+        return vDataSets[ xDatasetId ].getOverlayGrid( vOverlayGrid );
     }
 
     val_t getMaxPrefixSum( ) const
@@ -1166,17 +1154,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :type dataset_id: int
 
     :return: number of overlay sparse coordinates.
-    :rtype: int
-)pbdoc" )
-        .def( "get_num_global_sparse_coords", &sps::Index<type_defs>::getNumGlobalSparseCoords,
-              pybind11::arg( "dataset_id" ),
-              R"pbdoc(
-    Count the number of global sparse coordinates stored in the dataset with id dataset_id.
-
-    :param dataset_id: The id of the dataset to query
-    :type dataset_id: int
-
-    :return: number of global sparse coordinates.
     :rtype: int
 )pbdoc" )
 

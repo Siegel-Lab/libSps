@@ -898,9 +898,9 @@ template <typename type_defs> class Overlay
     {
         os << "<";
         os << std::endl;
-        auto vPosActual = rData.actualFromGridPos( rSparseCoords, vGridPos );
+        auto vPosActual = rData.actualFromGridPos( vGridPos );
         os << "\tbottom left: " << vPosActual << "\n";
-        auto vPosTR = rData.actualTopRightFromGridPos( rSparseCoords, vGridPos );
+        auto vPosTR = rData.actualTopRightFromGridPos( vGridPos );
         os << "\ttop right: " << vPosTR << "\n";
         os << "\tvSparseCoordsOverlay: ";
         for( size_t uiI = 0; uiI < D; uiI++ )
