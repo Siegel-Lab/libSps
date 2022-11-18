@@ -19,7 +19,7 @@ QUAL_OVERLAY = 1000
 QUAL_PTS = 1000
 
 files = [".prefix_sums", ".coords", ".overlays", ".datsets"]
-files_full = files + [".desc", ".points"]
+files_full = files
 
 def query(index, id, dims, genome_size, n=N_QUERY):
     bins = []
@@ -29,9 +29,9 @@ def query(index, id, dims, genome_size, n=N_QUERY):
         for _ in range(dims):
             pos_s.append(random.randrange(genome_size))
             pos_e.append(pos_s[-1] + random.randrange(100))
-        bins.append((pos_s, pos_e))
+        bins.append((id, pos_s, pos_e))
     t1 = time.perf_counter()
-    index.count_multiple(id, bins)
+    index.count_multiple(bins)
     t2 = time.perf_counter()
     #querytime
     #print((t2-t1), n, sep="\t", end="\t")
@@ -72,15 +72,15 @@ def fill(n, index, name, dims, is_ort, density, distrib, asp_ratio, offset):
             for s in pos_s: #pos_s[1:]:
                 #pos_e.append(max(s, int(n * density * asp_ratio)) + random.randrange((int(n * density * asp_ratio))//2))
                 pos_e.append(s)
-            index.add_point(pos_s, pos_e, "")
+            index.add_point(pos_s, pos_e)
             for pos_x in enumerate_all_combinations(pos_s, pos_e):
                 pts.append(pos_x + [b-a for a, b in zip(pos_s, pos_e)])
         else:
-            index.add_point(pos_s, "")
+            index.add_point(pos_s)
             pts.append(pos_s)
             if distrib == "dup":
                 for _ in range(2**dims):
-                    index.add_point(pos_s, "")
+                    index.add_point(pos_s)
                     pts.append(pos_s)
     t2 = time.perf_counter()
     #id = index.generate(0, len(index), fac, verbosity=0)
@@ -137,7 +137,6 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                   Div(text="<b>overlay grid</b>", align="center"), 
                   Div(text="<b>internal lookup table</b>", align="center"), 
                   Div(text="<b>overlay lookup table</b>", align="center"), 
-                  Div(text="<b>global lookup table</b>", align="center"), 
                   Div(text="<b>total file size</b>", align="center"),
                   Div(text="<b>total file size error</b>", align="center")])
     for _n in range(MIN_FILL, MAX_FILL):
@@ -145,10 +144,10 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
         for offset in [0]: #[0, 100]:
             for density in [1]: #[0.1, 1, 10]:
                 for asp_ratio in [1]:# [1, 10]:
-                    for distrib in ["dist_dep_dec"]:#["even", "dist_dep_dec", "diagonal", "log_norm", "dup"]:
+                    for distrib in ["even"]:#["even", "dist_dep_dec", "diagonal", "log_norm", "dup"]:
                         for index_params, name, param in zip(indices, index_names, params):
-                            ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,las,lps,eps,gcs = ([], [], [], 
-                                    [], [], [], [], [], [], [], [], [], [], [])
+                            ipsas,opsas,iscas,oscas,ipsps,opsps,iscps,oscps,fsa,fsp,eps,gcs = ([], [], [], 
+                                    [], [], [], [], [], [], [], [], [])
                             xs = []
                             actual_left = float('inf')
                             actual_right = 0
@@ -159,16 +158,15 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                                 density, distrib, asp_ratio, offset)
 
                             size_estimates = index.estimate_num_elements(
-                                    [fac_base ** _fac - 1 for _fac in range(0, 10)],
-                                                                      0, len(index), QUAL_OVERLAY, QUAL_PTS) 
+                                    [fac_base ** _fac - 1 for _fac in range(0, 10)], QUAL_OVERLAY, QUAL_PTS) 
                             
-                            for fac, (opsp, ipsp, oscp, iscp, num_overlays, lp, file_size_estimate) in zip(
+                            for fac, (opsp, ipsp, oscp, iscp, num_overlays, _, file_size_estimate) in zip(
                                             [fac_base ** _fac - 1 for _fac in range(0, 10)], size_estimates):
                                 file_size_estimate = file_size_estimate / 10**9 # in Gb
                                 fsp.append(file_size_estimate)
 
                                 if file_size_estimate < max_pred_file_size:
-                                    id = index.generate(0, len(index), fac, 0, QUAL_OVERLAY, QUAL_PTS)
+                                    id = index.generate(fac, 0, QUAL_OVERLAY, QUAL_PTS)
                                     query(index, id, param[0], n)
                                     ipsa = index.get_num_internal_prefix_sums(id)
                                     ipsas.append(ipsa)
@@ -178,8 +176,6 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     iscas.append(isca)
                                     osca = index.get_num_overlay_sparse_coords(id)
                                     oscas.append(osca)
-                                    la = index.get_num_global_sparse_coords(id)
-                                    las.append(la)
                                     gcs.append(index.get_size(id)/ 10**9) # in GB
                                 else:
                                     ipsas.append(float('NaN'))
@@ -193,7 +189,6 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                 ipsps.append(ipsp)
                                 oscps.append(oscp)
                                 iscps.append(iscp)
-                                lps.append(lp)
                                 xs.append(num_overlays)
                                 del index
                                 if file_size_estimate < max_pred_file_size:
@@ -218,19 +213,19 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     print("!", end="", flush=True)
 
                             print(" ", end="", flush=True)
-                            picked_num = index.pick_num_overlays(0, len(index), QUAL_OVERLAY, QUAL_PTS)
+                            picked_num = index.pick_num_overlays(QUAL_OVERLAY, QUAL_PTS)
                             print(".", end="", flush=True)
                             picked_size = index.estimate_num_elements( 
-                                    [index.to_factor(picked_num, 0, len(index))],
-                                    0, len(index), QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                                    [index.to_factor(picked_num)],
+                                    QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
                             print(".", end="", flush=True)
                             picked_size_s = index.estimate_num_elements( 
-                                    [index.to_factor(int(num_cells ** ( 1/(param[0]+param[1])) ), 0, len(index))],
-                                    0, len(index), QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                                    [index.to_factor(int(num_cells ** ( 1/(param[0]+param[1])) ))],
+                                    QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
                             print(".", end="", flush=True)
                             picked_size_g = index.estimate_num_elements( 
-                                    [index.to_factor(int(num_cells ** ( 1/2 )), 0, len(index))],
-                                    0, len(index), QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                                    [index.to_factor(int(num_cells ** ( 1/2 )))],
+                                    QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
                             print(".")
                             del index
                             if plot:
@@ -254,10 +249,6 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     plot_osc.circle(x=xs, y=oscas, fill_color="green", line_color=None, size=8)
                                     plot_osc.circle(x=xs, y=oscps, fill_color=None, line_color="red", size=8)
 
-                                    plot_ls = figure(x_axis_type=axis_type)
-                                    plot_ls.circle(x=xs, y=las, fill_color="green", line_color=None, size=8)
-                                    plot_ls.circle(x=xs, y=lps, fill_color=None, line_color="red", size=8)
-                                
                                     plot_fs = figure(x_axis_type=axis_type, y_axis_type="log")
                                     act = plot_fs.circle(x=xs, y=fsa, fill_color="green", line_color=None, size=8)
                                     plot_fs.circle(x=xs, y=gcs, fill_color=None, line_color="blue", size=9)
@@ -290,7 +281,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     plot_ep.yaxis[0].ticker.base = 10
                                     plot_ep.yaxis[0].formatter.ticker = plot_ep.yaxis[0].ticker
 
-                                    for p in [plot_ips, plot_ops, plot_isc, plot_osc, plot_ls, plot_fs, plot_ep]:
+                                    for p in [plot_ips, plot_ops, plot_isc, plot_osc, plot_fs, plot_ep]:
                                         p.yaxis.axis_label = "amount"
                                         p.xaxis.axis_label = "num overlays"
                                         p.background_fill_color = "lightgrey"
@@ -307,7 +298,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                                     "</b>", 
                                                     width=50, sizing_mode="stretch_height",
                                                     align="center"),
-                                                plot_ips, plot_ops, plot_isc, plot_osc, plot_ls, plot_fs, plot_ep])
+                                                plot_ips, plot_ops, plot_isc, plot_osc, plot_fs, plot_ep])
                                     #plots.append([plot_fs])
 
     if plot:

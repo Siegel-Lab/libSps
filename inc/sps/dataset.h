@@ -630,7 +630,12 @@ template <typename type_defs> class Dataset
         }
         pos_t uiNumDistinctInOverlay =
             sampleNumDistinct( vCorners, uiFromGlob, uiToGlob, uiNumPointSamples, xSortedPoints );
-        pos_t uiSampledIntervalSize = sampleIntervalSize( vCorners, uiFromGlob, uiToGlob, xSortedPoints );
+        pos_t uiSampledIntervalSize;
+        if constexpr(BINARY_SEARCH_BASED_SPARSE) // @todo seems not to be working properly yet
+            uiSampledIntervalSize = sampleNumDistinct( vCorners, uiFromGlob, uiToGlob, uiNumPointSamples,
+                                                        xSortedPoints );
+        else
+            uiSampledIntervalSize = sampleIntervalSize( vCorners, uiFromGlob, uiToGlob, xSortedPoints );
 
 
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -657,9 +662,15 @@ template <typename type_defs> class Dataset
                             ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
                             sampleNumDistinct( vCorners, uiFrom, uiTo, uiNumPointSamples, xSortedPoints[ uiJ ], uiJ );
 
-                        uiNumLookUpTablesOverlay +=
-                            ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
-                            sampleIntervalSize( vCorners, uiFrom, uiTo, xSortedPoints[ uiJ ], uiJ );
+                        if constexpr(BINARY_SEARCH_BASED_SPARSE)
+                            uiNumLookUpTablesOverlay +=
+                                ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
+                                sampleNumDistinct( vCorners, uiFrom, uiTo, uiNumPointSamples, 
+                                                    xSortedPoints[ uiJ ], uiJ );
+                        else
+                            uiNumLookUpTablesOverlay +=
+                                ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
+                                sampleIntervalSize( vCorners, uiFrom, uiTo, xSortedPoints[ uiJ ], uiJ );
                     }
                 uiNumPSOverlay += uiNumPSOverlayCurr;
             }
