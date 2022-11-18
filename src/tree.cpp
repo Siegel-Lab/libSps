@@ -19,18 +19,18 @@ template <size_t D> std::string exportStorageSimpleVec( pybind11::module& m, std
 {
     std::string sRet = "";
 #ifdef DISK
-    sRet += exportSimpleVector<DiskTypeDef<D, false, false, D>>( m, ( "DiskSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<DiskTypeDef<D, D>>( m, ( "DiskSimpleVector" + sSuff ).c_str( ) );
 #endif
 #ifdef CACHED
-    sRet += exportSimpleVector<CachedTypeDef<D, false, false, D>>( m, ( "CachedSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<CachedTypeDef<D, D>>( m, ( "CachedSimpleVector" + sSuff ).c_str( ) );
 #endif
 #ifdef RAM
-    sRet += exportSimpleVector<InMemTypeDef<D, false, false, D>>( m, ( "RamSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<InMemTypeDef<D, D>>( m, ( "RamSimpleVector" + sSuff ).c_str( ) );
 #endif
     return sRet;
 }
 
-template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope>
+template <size_t D, size_t orthope>
 std::string exportStorage( pybind11::module& m, std::string sPref, std::string sSuff )
 {
     std::string sDesc = "for";
@@ -45,88 +45,57 @@ std::string exportStorage( pybind11::module& m, std::string sPref, std::string s
     else
         sDesc += " " + std::to_string( D ) + "-orthotopes";
     sDesc += " in " + std::to_string( D - orthope ) + "-dimensional space";
-    if( dependant_dim )
-        sDesc += ", with a dependent dimension";
     std::string sRet = "";
 #ifdef DISK
-    sRet += exportIndex<DiskTypeDef<D, dependant_dim, uniform_overlay_grid, orthope>>(
-        m, ( "Disk" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
+    sRet += exportIndex<DiskTypeDef<D, orthope>>( m, ( "Disk" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
 #endif
 #ifdef CACHED
-    sRet += exportIndex<CachedTypeDef<D, dependant_dim, uniform_overlay_grid, orthope>>(
-        m, ( "Cached" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
+    sRet += exportIndex<CachedTypeDef<D, orthope>>( m, ( "Cached" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
 #endif
 #ifdef RAM
-    sRet += exportIndex<InMemTypeDef<D, dependant_dim, uniform_overlay_grid, orthope>>(
-        m, ( "Ram" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
+    sRet += exportIndex<InMemTypeDef<D, orthope>>( m, ( "Ram" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
 #endif
     return sRet;
 }
 
-template <size_t D, bool dependant_dim, bool uniform_overlay_grid>
-std::string exportOrthope( pybind11::module& m, std::string sPref, std::string sSuff )
+template <size_t D> std::string exportOrthope( pybind11::module& m, std::string sSuff )
 {
     std::string sRet = "";
 #ifdef W_CUBES
     if constexpr( D >= 3 )
-        sRet += exportStorage<D + 3, dependant_dim, uniform_overlay_grid, 3>( m, sPref + "Cubes", sSuff );
+        sRet += exportStorage<D + 3, 3>( m, "Cubes", sSuff );
 #endif
 #ifdef W_RECTANGLES
     if constexpr( D >= 2 )
-        sRet += exportStorage<D + 2, dependant_dim, uniform_overlay_grid, 2>( m, sPref + "Rectangles", sSuff );
+        sRet += exportStorage<D + 2, 2>( m, "Rectangles", sSuff );
 #endif
 #ifdef W_INTERVALS
-    sRet += exportStorage<D + 1, dependant_dim, uniform_overlay_grid, 1>( m, sPref + "Intervals", sSuff );
+    sRet += exportStorage<D + 1, 1>( m, "Intervals", sSuff );
 #endif
 #ifdef W_POINTS
-    sRet += exportStorage<D, dependant_dim, uniform_overlay_grid, 0>( m, sPref + "Points", sSuff );
+    sRet += exportStorage<D, 0>( m, "Points", sSuff );
 #endif
     return sRet;
 }
 
-template <size_t D, bool dependant_dim>
-std::string exportUniform( pybind11::module& m, std::string sPref, std::string sSuff )
-{
-    std::string sRet = "";
-#ifdef W_UNIFORM_OVERLAY_GRID
-    if constexpr( !dependant_dim )
-        sRet += exportOrthope<D, dependant_dim, true>( m, sPref + "UniformOverlayGrid", sSuff );
-#endif
-#ifdef WO_UNIFORM_OVERLAY_GRID
-    sRet += exportOrthope<D, dependant_dim, false>( m, sPref, sSuff );
-#endif
-    return sRet;
-}
-
-template <size_t D> std::string exportDependant( pybind11::module& m, std::string sSuff )
-{
-    std::string sRet = "";
-#ifdef W_DEPENDANT_DIM
-    sRet += exportUniform<D, true>( m, "DependantDim", sSuff );
-#endif
-#ifdef WO_DEPENDANT_DIM
-    sRet += exportUniform<D, false>( m, "", sSuff );
-#endif
-    return sRet;
-}
 
 std::string exportDims( pybind11::module& m )
 {
     std::string sRet = "";
 #if NUM_DIMENSIONS_A != 0
-    sRet += exportDependant<NUM_DIMENSIONS_A>( m, "_" + std::to_string( NUM_DIMENSIONS_A ) + "D" );
+    sRet += exportOrthope<NUM_DIMENSIONS_A>( m, "_" + std::to_string( NUM_DIMENSIONS_A ) + "D" );
     sRet += exportStorageSimpleVec<NUM_DIMENSIONS_A>( m, "_" + std::to_string( NUM_DIMENSIONS_A ) + "D" );
 #endif
 #if NUM_DIMENSIONS_B != 0
-    sRet += exportDependant<NUM_DIMENSIONS_B>( m, "_" + std::to_string( NUM_DIMENSIONS_B ) + "D" );
+    sRet += exportOrthope<NUM_DIMENSIONS_B>( m, "_" + std::to_string( NUM_DIMENSIONS_B ) + "D" );
     sRet += exportStorageSimpleVec<NUM_DIMENSIONS_B>( m, "_" + std::to_string( NUM_DIMENSIONS_B ) + "D" );
 #endif
 #if NUM_DIMENSIONS_C != 0
-    sRet += exportDependant<NUM_DIMENSIONS_C>( m, "_" + std::to_string( NUM_DIMENSIONS_C ) + "D" );
+    sRet += exportOrthope<NUM_DIMENSIONS_C>( m, "_" + std::to_string( NUM_DIMENSIONS_C ) + "D" );
     sRet += exportStorageSimpleVec<NUM_DIMENSIONS_C>( m, "_" + std::to_string( NUM_DIMENSIONS_C ) + "D" );
 #endif
 #if NUM_DIMENSIONS_D != 0
-    sRet += exportDependant<NUM_DIMENSIONS_D>( m, "_" + std::to_string( NUM_DIMENSIONS_D ) + "D" );
+    sRet += exportOrthope<NUM_DIMENSIONS_D>( m, "_" + std::to_string( NUM_DIMENSIONS_D ) + "D" );
     sRet += exportStorageSimpleVec<NUM_DIMENSIONS_D>( m, "_" + std::to_string( NUM_DIMENSIONS_D ) + "D" );
 #endif
     return sRet;
@@ -145,18 +114,16 @@ size_t getTotalSystemMemory( )
     return pages * page_size;
 }
 
-template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope,
-          template <size_t, bool, bool, size_t> typename storage_t>
+template <size_t D, size_t orthope, template <size_t, size_t> typename storage_t>
 std::unique_ptr<AbstractIndex> factoryHelperFinal( std::string sPrefix, bool bWrite, bool bSimpleVec )
 {
     if( bSimpleVec )
-        return std::make_unique<sps::SimpleVector<storage_t<D, false, false, D>>>( sPrefix, bWrite );
+        return std::make_unique<sps::SimpleVector<storage_t<D, D>>>( sPrefix, bWrite );
     else
-        return std::make_unique<sps::Index<storage_t<D, dependant_dim, uniform_overlay_grid, orthope>>>( sPrefix,
-                                                                                                         bWrite );
+        return std::make_unique<sps::Index<storage_t<D, orthope>>>( sPrefix, bWrite );
 }
 
-template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope>
+template <size_t D, size_t orthope>
 std::unique_ptr<AbstractIndex> factoryHelper( std::string sStorageType, std::string sPrefix, bool bWrite,
                                               bool bSimpleVec )
 {
@@ -165,123 +132,77 @@ std::unique_ptr<AbstractIndex> factoryHelper( std::string sStorageType, std::str
     if( sStorageType == "PickByFileSize" )
     {
         if( bWrite ) // cached
-            return factoryHelperFinal<D, dependant_dim, uniform_overlay_grid, orthope, CachedTypeDef>( sPrefix, bWrite,
-                                                                                                       bSimpleVec );
+            return factoryHelperFinal<D, orthope, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
 
         std::ifstream::pos_type uiTotalSize = filesize( ( sPrefix + ".prefix_sums" ).c_str( ) ) + //
                                               filesize( ( sPrefix + ".coords" ).c_str( ) );
 
         if( (size_t)uiTotalSize * 2 < getTotalSystemMemory( ) ) // Disk
-            return factoryHelperFinal<D, dependant_dim, uniform_overlay_grid, orthope, DiskTypeDef>( sPrefix, bWrite,
-                                                                                                     bSimpleVec );
+            return factoryHelperFinal<D, orthope, DiskTypeDef>( sPrefix, bWrite, bSimpleVec );
         else // CACHED
-            return factoryHelperFinal<D, dependant_dim, uniform_overlay_grid, orthope, CachedTypeDef>( sPrefix, bWrite,
-                                                                                                       bSimpleVec );
+            return factoryHelperFinal<D, orthope, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
     }
 #endif
 #endif
 
 #ifdef DISK
     if( sStorageType == "Disk" )
-        return factoryHelperFinal<D, dependant_dim, uniform_overlay_grid, orthope, DiskTypeDef>( sPrefix, bWrite,
-                                                                                                 bSimpleVec );
+        return factoryHelperFinal<D, orthope, DiskTypeDef>( sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef CACHED
     if( sStorageType == "Cached" )
-        return factoryHelperFinal<D, dependant_dim, uniform_overlay_grid, orthope, CachedTypeDef>( sPrefix, bWrite,
-                                                                                                   bSimpleVec );
+        return factoryHelperFinal<D, orthope, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef RAM
     if( sStorageType == "Ram" )
-        return factoryHelperFinal<D, dependant_dim, uniform_overlay_grid, orthope, InMemTypeDef>( sPrefix, bWrite,
-                                                                                                  bSimpleVec );
+        return factoryHelperFinal<D, orthope, InMemTypeDef>( sPrefix, bWrite, bSimpleVec );
 #endif
     throw std::invalid_argument( "libSps has not been compiled with the requested storage type." );
 }
 
-template <size_t D, bool dependant_dim, bool uniform_overlay_grid>
+template <size_t D>
 std::unique_ptr<AbstractIndex> factoryHelper( size_t uiOrthtopeDims, std::string sStorageType, std::string sPrefix,
                                               bool bWrite, bool bSimpleVec )
 {
 #ifdef W_CUBES
     if( uiOrthtopeDims == 3 )
-        return factoryHelper<D + 3, dependant_dim, uniform_overlay_grid, 3>( sStorageType, sPrefix, bWrite,
-                                                                             bSimpleVec );
+        return factoryHelper<D + 3, 3>( sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_RECTANGLES
     if( uiOrthtopeDims == 2 )
-        return factoryHelper<D + 2, dependant_dim, uniform_overlay_grid, 2>( sStorageType, sPrefix, bWrite,
-                                                                             bSimpleVec );
+        return factoryHelper<D + 2, 2>( sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_INTERVALS
     if( uiOrthtopeDims == 1 )
-        return factoryHelper<D + 1, dependant_dim, uniform_overlay_grid, 1>( sStorageType, sPrefix, bWrite,
-                                                                             bSimpleVec );
+        return factoryHelper<D + 1, 1>( sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_POINTS
     if( uiOrthtopeDims == 0 )
-        return factoryHelper<D, dependant_dim, uniform_overlay_grid, 0>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D, 0>( sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
     throw std::invalid_argument( "libSps has not been compiled with the requested number of orthotope dimensions." );
 }
 
-template <size_t D, bool dependant_dim>
-std::unique_ptr<AbstractIndex> factoryHelper( bool bUniformOverlayGrid, size_t uiOrthtopeDims, std::string sStorageType,
-                                              std::string sPrefix, bool bWrite, bool bSimpleVec )
-{
-#ifdef W_UNIFORM_OVERLAY_GRID
-    if( bUniformOverlayGrid && !dependant_dim )
-        return factoryHelper<D, false, true>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
-#endif
-#ifdef WO_UNIFORM_OVERLAY_GRID
-    if( !bUniformOverlayGrid )
-        return factoryHelper<D, dependant_dim, false>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
-#endif
-    throw std::invalid_argument(
-        "libSps has not been compiled with the requested uniform overlay grid configuration." );
-}
 
-template <size_t D>
-std::unique_ptr<AbstractIndex> factoryHelper( bool bDependentDimension, bool bUniformOverlayGrid, size_t uiOrthtopeDims,
-                                              std::string sStorageType, std::string sPrefix, bool bWrite,
-                                              bool bSimpleVec )
-{
-#ifdef W_DEPENDANT_DIM
-    if( bDependentDimension )
-        return factoryHelper<D, true>( bUniformOverlayGrid, uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
-#endif
-#ifdef WO_DEPENDANT_DIM
-    if( !bDependentDimension )
-        return factoryHelper<D, false>( bUniformOverlayGrid, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
-                                        bSimpleVec );
-#endif
-    throw std::invalid_argument( "libSps has not been compiled with the requested dependent dimension configuration." );
-}
-
-std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, bool bDependentDimension,
-                                        bool bUniformOverlayGrid, size_t uiOrthtopeDims, std::string sStorageType,
-                                        bool bWrite )
+std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t uiOrthtopeDims,
+                                        std::string sStorageType, bool bWrite )
 {
     bool bSimpleVec = false;
 #if NUM_DIMENSIONS_A != 0
     if( NUM_DIMENSIONS_A == uiD )
-        return factoryHelper<NUM_DIMENSIONS_A>( bDependentDimension, bUniformOverlayGrid, uiOrthtopeDims, sStorageType,
-                                                sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<NUM_DIMENSIONS_A>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #if NUM_DIMENSIONS_B != 0
     if( NUM_DIMENSIONS_B == uiD )
-        return factoryHelper<NUM_DIMENSIONS_B>( bDependentDimension, bUniformOverlayGrid, uiOrthtopeDims, sStorageType,
-                                                sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<NUM_DIMENSIONS_B>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #if NUM_DIMENSIONS_C != 0
     if( NUM_DIMENSIONS_C == uiD )
-        return factoryHelper<NUM_DIMENSIONS_C>( bDependentDimension, bUniformOverlayGrid, uiOrthtopeDims, sStorageType,
-                                                sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<NUM_DIMENSIONS_C>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #if NUM_DIMENSIONS_D != 0
     if( NUM_DIMENSIONS_D == uiD )
-        return factoryHelper<NUM_DIMENSIONS_D>( bDependentDimension, bUniformOverlayGrid, uiOrthtopeDims, sStorageType,
-                                                sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<NUM_DIMENSIONS_D>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
     throw std::invalid_argument( "libSps has not been compiled with the requested number of dimensions." );
 }
@@ -323,7 +244,6 @@ Documentation for the Python Module
 
     // export the factory function
     m.def( "make_sps_index", &factory, pybind11::arg( "filepath_prefix" ) = "", pybind11::arg( "num_dimensions" ) = 2,
-           pybind11::arg( "with_dependent_dimension" ) = false, pybind11::arg( "uniform_overlay_grid" ) = false,
            pybind11::arg( "num_orthotope_dimensions" ) = 0, pybind11::arg( "storage_type" ) = "Ram",
            pybind11::arg( "open_in_write_mode" ) = true,
            R"pbdoc(
@@ -337,12 +257,6 @@ Documentation for the Python Module
 
     :param with_dependent_dimension: Whether the overlay grid in dimension 1 is dependent on the grid in dimension 0, defaults to False.
     :type with_dependent_dimension: bool
-
-    :param uniform_overlay_grid: Whether the overlay grid shall be completely uniform, defaults to False.
-    :type uniform_overlay_grid: bool
-
-    :param num_orthotope_dimensions: Number of orthotope dimensions (set this to 1, 2, 3, ... to add intervals, rectangles, cubes, ... instead of points), defaults to 0.
-    :type num_orthotope_dimensions: int
 
     :param storage_type: The way the datastructure interacts with the filesystem, defaults to Ram.
     :type storage_type: str

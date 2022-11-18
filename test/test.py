@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.getcwd())
 #from build_test.libSps import IntersectionType, DiskDependantDimRectanglesPrefixSum_2D, DiskDependantDimPointsPrefixSum_2D
-from build_test.libSps import IntersectionType, DiskUniformOverlayGridRectanglesPrefixSum_2D, DiskUniformOverlayGridPointsPrefixSum_2D
+from build_test.libSps import IntersectionType, DiskRectanglesPrefixSum_2D, DiskPointsPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D, DiskUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_1D, DiskUniformOverlayGridPointsPrefixSum_1D, DiskUniformOverlayGridIntervalsPrefixSum_1D, CachedUniformOverlayGridPointsPrefixSum_1D
 #from build_rel.libSps import *
@@ -231,7 +231,7 @@ random.seed(6846854546132)
 #test(CachedUniformOverlayGridPointsPrefixSum_2D("test/blub2", True), 2)
 #test(DiskDependantDimPointsPrefixSum_5D("test/blub4", True), 5)
 
-test(DiskUniformOverlayGridPointsPrefixSum_2D("test/blub5", True), 2)
+test(DiskPointsPrefixSum_2D("test/blub5", True), 2)
 
 #test(DiskUniformOverlayGridIntervalsPrefixSum_1D("test/blub6", True), 1, area=True)
 #test(CachedDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, enforce_wide_queries=False)

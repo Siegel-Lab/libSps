@@ -115,19 +115,14 @@ def make_indices():
         for ort_dim in [False]: #[False, True]:
             num_ort_dims = dims if ort_dim else 0
             for storage in ["Disk"]: #["Disk", "Cached"]:
-                for uniform_overlay_grid in [False, True]:
-                    for dep_dim in ([False] if uniform_overlay_grid else [False, True]):
-                        xs = [
-                            str(dims) + "d", 
-                            ("rect" if ort_dim else "point"), 
-                            ("ram" if storage == "Disk" else "cached"), 
-                            ("uniform" if uniform_overlay_grid else "adaptive"), 
-                            ("dep" if dep_dim else "indep")
-                        ]
-                        index_names.append(xs)
-                        indices.append(("test/benchmark_index", dims, dep_dim, uniform_overlay_grid, 
-                                        num_ort_dims, storage))
-                        params.append((dims, ort_dim))
+                xs = [
+                    str(dims) + "d", 
+                    ("rect" if ort_dim else "point"), 
+                    ("ram" if storage == "Disk" else "cached"), 
+                ]
+                index_names.append(xs)
+                indices.append(("test/benchmark_index", dims, num_ort_dims, storage))
+                params.append((dims, ort_dim))
     return indices, index_names, params
 
 def test(plot=True, max_pred_file_size=1, fac_base=2):

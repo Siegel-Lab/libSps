@@ -146,11 +146,9 @@ static const bool BINARY_SEARCH_BASED_SPARSE = true;
  * Index stores all information in RAM and never interacts with the filesystem.
  *
  * @tparam D number of dimensions
- * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
- * @tparam uniform_overlay_grid whether overlays are distributed uniformly (disables dependant_dim)
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope>
+template <size_t D, size_t orthope>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
                               D, //
@@ -161,8 +159,6 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               RamVecGenerator, //
                               RamVecGenerator, //
                               RamVecGenerator, //
-                              dependant_dim, //
-                              uniform_overlay_grid, //
                               BINARY_SEARCH_BASED_SPARSE, //
                               orthope, //
                               EXPLAIN, //
@@ -348,11 +344,9 @@ template <typename val_t> struct DiskVecGenerator
  * Expect it to consume as much RAM as the filesize.
  *
  * @tparam D number of dimensions
- * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
- * @tparam uniform_overlay_grid whether overlays are distributed uniformly (disables dependant_dim)
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope>
+template <size_t D, size_t orthope>
 using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              default_val_t, //
                              D, //
@@ -363,8 +357,6 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              DiskVecGenerator, //
                              DiskVecGenerator, //
                              DiskVecGenerator, //
-                             dependant_dim, //
-                             uniform_overlay_grid, //
                              BINARY_SEARCH_BASED_SPARSE, //
                              orthope, //
                              EXPLAIN, //
@@ -379,11 +371,9 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
  * stored.
  *
  * @tparam D number of dimensions
- * @tparam dependant_dim whether dimension 1 is dependant on dimension 0
- * @tparam uniform_overlay_grid whether overlays are distributed uniformly (disables dependant_dim)
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, bool dependant_dim, bool uniform_overlay_grid, size_t orthope>
+template <size_t D, size_t orthope>
 using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                default_val_t, //
                                D, //
@@ -394,8 +384,6 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                DiskVecGenerator, //
                                DiskVecGenerator, //
                                CachedVecGenerator, //
-                               dependant_dim, //
-                               uniform_overlay_grid, //
                                BINARY_SEARCH_BASED_SPARSE, //
                                orthope, //
                                EXPLAIN, //

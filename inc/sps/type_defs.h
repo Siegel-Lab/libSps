@@ -47,8 +47,6 @@ class Verbosity
  * @tparam _D number of dimensions.
  * @tparam _class_key_t type of the dataset keys, expected to be an unsigned int.
  * @tparam _vec_generator generator object that implements the file and vec methods. See DiskVecGenerator.
- * @tparam _dependant_dim whether dimension 1 is dependant on dimension 0
- * @tparam _uniform_overlay_grid whether overlays are distributed uniformly (disables dependant_dim)
  * @tparam _binary_search_based_sparse whether sparse space lookup tables shall be binary search based
  * @tparam _orthotope_dims number or orthotope dimensions
  * @tparam _explain debugging parameter. Be verbose while creating and querying the index.
@@ -64,8 +62,6 @@ template <typename _coordinate_t, //
           NAMED_VEC_GEN_AND_SORTER_TEMPLATE( desc ), //
           NAMED_VEC_GEN_AND_SORTER_TEMPLATE( points ), //
           NAMED_VEC_GEN_AND_SORTER_TEMPLATE( prefix_sums ), //
-          bool _dependant_dim, //
-          bool _uniform_overlay_grid, //
           bool _binary_search_based_sparse, //
           size_t _orthotope_dims, //
           bool _explain, //
