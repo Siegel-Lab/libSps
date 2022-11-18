@@ -102,13 +102,12 @@ def count_truth(area, interval, p1, p2, points, intersection_mode):
 
 def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_queries=True):
     tree.clear()
-    idx_before = len(tree)
     for idx, pos in enumerate(points[:len(points)//2]):
         if area or interval:
-            tree.add_point(pos[0], pos[1], pos[2], "p" + str(idx))
+            tree.add_point(pos[0], pos[1], pos[2])
         else:
-            tree.add_point(pos[0], pos[1], "p" + str(idx))
-    x = tree.generate(idx_before, len(tree), verbosity=5 if print_all else 0)
+            tree.add_point(pos[0], pos[1])
+    x = tree.generate(verbosity=5 if print_all else 0)
     if print_all:
         print("done generating")
         print(tree)
