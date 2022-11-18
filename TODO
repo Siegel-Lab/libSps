@@ -1,22 +1,28 @@
 - biocontainer instead of yaml file?
 - think about caching the overlay prefix sums during construction...
     - would yeld another giant speedup!
-- remove vector sorter in favour of adding sort method to the vectors
 - make columns of overlays share same sparse coords lookup array?
-    - or is this alleviated with the dependent dimension?
+    - by checking if sparse coords are exactly the same -> should actually happen quite soon
+    - requires size estimation adjustment
+- think about the sparse coordinate arrays
+    - right now they are double -> once for the overlay once for the internal prefix sums
+    - the internal sparse coords could be computed form the overlay sparse coords
+    - price: 1 more lookup; gain: less coords storage
+
+    - sparse coords could also be a binary searchable list instead
+        - no more O(1) complexity
+        - much less storage
+
+- store list of individual points for each poision of the prefix sum array
+    - requires one additional vector
+    - then points can be searched by iteration at smallest resolution
+    - try other sparse coords arrays before trying this
 
 
 
-- https://www.cs.princeton.edu/cass/papers/www11.pdf
-- https://pjrule.me/comp150-alg/
 
 
-    === summary before vacation ===
-
-- size estimation now works 
-    - it now actually samples the required values instead of predicting them
-    - caveat: dependant dim size estimation still broken because position of overlays is determined wrongly
-        - no? i think i fixed this?
+     === summary before vacation ===
 
 - dependant dim makes file smaller from 1.75Gb to 1.2Gb
     - worth the effort? :/

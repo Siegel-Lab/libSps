@@ -138,6 +138,7 @@ using default_coordinate_t = uint64_t;
 using default_val_t = uint32_t;
 using default_class_key_t = uint16_t;
 static const bool EXPLAIN = false;
+static const bool BINARY_SEARCH_BASED_SPARSE = true;
 
 /**
  * @brief Type definitions for a RAM Index
@@ -162,6 +163,7 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               RamVecGenerator, //
                               dependant_dim, //
                               uniform_overlay_grid, //
+                              BINARY_SEARCH_BASED_SPARSE, //
                               orthope, //
                               EXPLAIN, //
                               StdOutProgressStream>;
@@ -363,6 +365,7 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              DiskVecGenerator, //
                              dependant_dim, //
                              uniform_overlay_grid, //
+                             BINARY_SEARCH_BASED_SPARSE, //
                              orthope, //
                              EXPLAIN, //
                              StdOutProgressStream>;
@@ -393,6 +396,7 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                CachedVecGenerator, //
                                dependant_dim, //
                                uniform_overlay_grid, //
+                               BINARY_SEARCH_BASED_SPARSE, //
                                orthope, //
                                EXPLAIN, //
                                StdOutProgressStream>;

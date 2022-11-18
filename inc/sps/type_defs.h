@@ -49,6 +49,7 @@ class Verbosity
  * @tparam _vec_generator generator object that implements the file and vec methods. See DiskVecGenerator.
  * @tparam _dependant_dim whether dimension 1 is dependant on dimension 0
  * @tparam _uniform_overlay_grid whether overlays are distributed uniformly (disables dependant_dim)
+ * @tparam _binary_search_based_sparse whether sparse space lookup tables shall be binary search based
  * @tparam _orthotope_dims number or orthotope dimensions
  * @tparam _explain debugging parameter. Be verbose while creating and querying the index.
  * @tparam _progress_stream_t object that catches all the print output. See StdOutProgressStream.
@@ -65,6 +66,7 @@ template <typename _coordinate_t, //
           NAMED_VEC_GEN_AND_SORTER_TEMPLATE( prefix_sums ), //
           bool _dependant_dim, //
           bool _uniform_overlay_grid, //
+          bool _binary_search_based_sparse, //
           size_t _orthotope_dims, //
           bool _explain, //
           typename _progress_stream_t>
@@ -96,6 +98,8 @@ class TypeDefs
     static constexpr bool DEPENDANT_DIMENSION = _dependant_dim;
 
     static constexpr bool UNIFORM_OVERLAY_GRID = _uniform_overlay_grid;
+
+    static constexpr bool BINARY_SEARCH_BASED_SPARSE = _binary_search_based_sparse;
 
     static constexpr coordinate_t ORTHOTOPE_DIMS = _orthotope_dims;
 
@@ -139,6 +143,8 @@ class TypeDefs
     static constexpr bool DEPENDANT_DIMENSION = type_defs::DEPENDANT_DIMENSION;                                        \
                                                                                                                        \
     static constexpr bool UNIFORM_OVERLAY_GRID = type_defs::UNIFORM_OVERLAY_GRID;                                      \
+                                                                                                                       \
+    static constexpr bool BINARY_SEARCH_BASED_SPARSE = type_defs::BINARY_SEARCH_BASED_SPARSE;                          \
                                                                                                                        \
     static constexpr coordinate_t ORTHOTOPE_DIMS = type_defs::ORTHOTOPE_DIMS;                                          \
                                                                                                                        \
