@@ -203,7 +203,7 @@ if(Sphinx_FOUND)
             "${BINARY_BUILD_DIR}"
             "${SPHINX_TEX_DIR}" &&
         tectonic "${SPHINX_TEX_DIR}/*.tex"
-        DEPENDS Sps docs-doxygen
+        DEPENDS libSps docs-doxygen
         COMMENT "Building API documentation with Sphinx")
 
 else(Sphinx_FOUND)

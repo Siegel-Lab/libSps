@@ -255,9 +255,6 @@ Documentation for the Python Module
     :param num_dimensions: Number of dimensions for datapoints in the index, defaults to 2.
     :type num_dimensions: int
 
-    :param with_dependent_dimension: Whether the overlay grid in dimension 1 is dependent on the grid in dimension 0, defaults to False.
-    :type with_dependent_dimension: bool
-
     :param storage_type: The way the datastructure interacts with the filesystem, defaults to Ram.
     :type storage_type: str
 

@@ -783,7 +783,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     .. automethod:: __len__
     .. automethod:: clear
     .. automethod:: clear_keep_points
-    .. automethod:: __get_overlay_info
     .. automethod:: get_overlay_grid
     .. automethod:: estimate_num_elements
     .. automethod:: pick_num_overlays
@@ -792,7 +791,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     .. automethod:: get_num_overlay_prefix_sums
     .. automethod:: get_num_internal_sparse_coords
     .. automethod:: get_num_overlay_sparse_coords
-    .. automethod:: get_num_global_sparse_coords
 )pbdoc" )
                                                                            .c_str( ) );
 
