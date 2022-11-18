@@ -204,7 +204,7 @@ template <typename type_defs> class Index : public AbstractIndex
         return vRet;
     }
 
-    typename corners_t::Entry makeEntry()
+    typename corners_t::Entry makeEntry( )
     {
         typename corners_t::Entry xCorners;
         xCorners.uiStartIndex = 0;
@@ -266,7 +266,7 @@ template <typename type_defs> class Index : public AbstractIndex
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, makeEntry(), fFac, xProg,
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, makeEntry( ), fFac, xProg,
                         uiNumOverlaySamples, uiNumPointSamples );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
@@ -580,7 +580,7 @@ template <typename type_defs> class Index : public AbstractIndex
                                    const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
                                    const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
-        return dataset_t::estimateDataStructureElements( vCorners, makeEntry(), vFac, uiNumOverlaySamples,
+        return dataset_t::estimateDataStructureElements( vCorners, makeEntry( ), vFac, uiNumOverlaySamples,
                                                          uiNumPointSamples );
     }
 
@@ -592,7 +592,7 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     pos_t gridSize( )
     {
-        return dataset_t::generateCoordSizes( vCorners, makeEntry() )[ 0 ];
+        return dataset_t::generateCoordSizes( vCorners, makeEntry( ) )[ 0 ];
     }
 
     /**
@@ -612,7 +612,7 @@ template <typename type_defs> class Index : public AbstractIndex
                               const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES, size_t uiVerbosity = 0 )
     {
         progress_stream_t xProg( uiVerbosity );
-        return dataset_t::pickNumOverlays( vCorners, makeEntry(), uiNumOverlaySamples, uiNumPointSamples, xProg );
+        return dataset_t::pickNumOverlays( vCorners, makeEntry( ), uiNumOverlaySamples, uiNumPointSamples, xProg );
     }
 
     /**
@@ -628,7 +628,7 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     double toFactor( uint64_t uiNumOverlays )
     {
-        return dataset_t::toFactor( vCorners, makeEntry(), uiNumOverlays );
+        return dataset_t::toFactor( vCorners, makeEntry( ), uiNumOverlays );
     }
 
     /**
