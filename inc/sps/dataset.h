@@ -30,8 +30,6 @@ template <typename type_defs> class Dataset
     using corners_t = Corners<type_defs>;
     using desc_t = Desc<type_defs>;
 
-    std::array<typename sparse_coord_t::Entry, D> vSparseCoords;
-
     typename overlay_grid_t::template Entry<D> xOverlays;
 
     pos_t uiSizeOverlays;
@@ -157,7 +155,7 @@ template <typename type_defs> class Dataset
 
 
   public:
-    Dataset( ) : vSparseCoords( )
+    Dataset( )
     {}
 
     typename sparse_coord_t::Entry
@@ -1015,7 +1013,6 @@ template <typename type_defs> class Dataset
     Dataset( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
              corners_t& vCorners, typename corners_t::Entry xCorners, double fFac, progress_stream_t xProg,
              const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
-        : vSparseCoords( )
     {
         if( xCorners.uiEndIndex == xCorners.uiStartIndex )
             return;
@@ -1240,8 +1237,6 @@ template <typename type_defs> class Dataset
     friend std::ostream& operator<<( std::ostream& os, const Dataset& rDataset )
     {
         os << "<" << std::endl;
-        os << "\tvSparseCoords: ";
-        os << rDataset.vSparseCoords << std::endl;
 
         os << "\txOverlayGrid: ";
         os << rDataset.xOverlays << std::endl;
@@ -1254,10 +1249,6 @@ template <typename type_defs> class Dataset
                           const prefix_sum_grid_t& rPrefixSums, const corners_t& vCorners ) const
     {
         os << "<" << std::endl;
-        os << "\tvSparseCoords: ";
-        for( size_t uiI = 0; uiI < D; uiI++ )
-            vSparseCoords[ uiI ].stream( os, rSparseCoords ) << " ";
-        os << std::endl;
 
         os << "\txOverlayGrid: ";
         xOverlays.stream( os, rOverlays, rSparseCoords, rPrefixSums, *this, vCorners ) << std::endl;

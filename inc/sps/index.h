@@ -105,7 +105,10 @@ template <typename type_defs> class Index : public AbstractIndex
           vOverlayGrid( sPrefix + ".overlays", bWrite ),
           xFile( dataset_vec_generator.file( sPrefix + ".datsets", bWrite ) ),
           vDataSets( dataset_vec_generator.vec( xFile ) )
-    {}
+    {
+        // corners should never be persistent...
+        clearCorners( );
+    }
 
     /**
      * @brief Clear the complete index.
@@ -130,7 +133,7 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
     /**
-     * @brief Clear the points.
+     * @brief Clear everything but the points.
      */
     void clearKeepPoints( )
     {
@@ -172,6 +175,7 @@ template <typename type_defs> class Index : public AbstractIndex
         vCorners.add( vPos, uiVal );
     }
 
+  private:
     std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
                                   IntersectionType xIntersectionType = IntersectionType::slice ) const
     {
@@ -200,6 +204,15 @@ template <typename type_defs> class Index : public AbstractIndex
         return vRet;
     }
 
+    typename corners_t::Entry makeEntry()
+    {
+        typename corners_t::Entry xCorners;
+        xCorners.uiStartIndex = 0;
+        xCorners.uiEndIndex = vCorners.size( );
+        return xCorners;
+    }
+
+  public:
     /**
      * @brief Append an orthotope to the data structure.
      *
@@ -208,8 +221,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @tparam trigger This function is only active if IS_ORTHOTOPE = true
      * @param vStart The bottom left position of the orthotope.
      * @param vEnd The top right position of the orthotope.
-     * @param uiVal The value of the point, defaults to 1.
-     * @param sDesc A description for the orthotope, defaults to "".
+     * @param uiVal The value of the orthotope, defaults to 1.
      */
     template <bool trigger = IS_ORTHOTOPE>
     typename std::enable_if_t<trigger> addPoint( ret_pos_t vStart, ret_pos_t vEnd, val_t uiVal = 1 )
@@ -224,13 +236,6 @@ template <typename type_defs> class Index : public AbstractIndex
         vCorners.add( vP[ 0 ], vP[ 1 ], uiVal );
     }
 
-    /**
-     * @brief Total number of points (among all datasets).
-     */
-    coordinate_t numPoints( ) const
-    {
-        return vCorners.size( );
-    }
 
     /**
      * @brief Generate a new dataset.
@@ -241,10 +246,6 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * This function is multithreaded.
      *
-     * @todo get uiFrom & uiTo from the last time generate was called on load of the index the size of the point vector
-     *
-     * @param uiFrom Size of the index before adding the first point of this dataset, defaults to zero.
-     * @param uiTo Size of the index after adding all points of this dataset, defaults to the current size of the index.
      * @param fFac Overlay size factor, defaults to -1.
      *             -1: factor is picked so that the estimated size of the datastructure is minimal
      * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
@@ -252,9 +253,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @return class_key_t The id of the generated dataset.
      */
-    class_key_t generate( coordinate_t uiFrom = 0,
-                          coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
-                          double fFac = -1,
+    class_key_t generate( double fFac = -1,
                           size_t uiVerbosity = 1,
                           const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
                           const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
@@ -262,17 +261,12 @@ template <typename type_defs> class Index : public AbstractIndex
 #ifdef DO_PROFILE
         ProfilerStart( "gperftools.generate.prof" );
 #endif
-        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
-            uiTo = numPoints( );
 
         progress_stream_t xProg( uiVerbosity );
-        typename corners_t::Entry xCorners;
-        xCorners.uiStartIndex = uiFrom;
-        xCorners.uiEndIndex = uiTo;
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, xCorners, fFac, xProg,
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, makeEntry(), fFac, xProg,
                         uiNumOverlaySamples, uiNumPointSamples );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
@@ -576,37 +570,29 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      *
      * @param vFac list of factors that are proportional to the number of boxes within the data structure
-     * @param uiFrom index of first point that shall be included in the dataset
-     * @param uiTo index of first point that shall not be included in the dataset anymore
      * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
      * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @return std:vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
      *         The predicted number of dataset structure elements for each factor
      */
     std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
-    estimateDataStructureElements( std::vector<double> vFac, coordinate_t uiFrom = 0,
-                                   coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
+    estimateDataStructureElements( std::vector<double> vFac,
                                    const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
                                    const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
     {
-        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
-            uiTo = numPoints( );
-        typename corners_t::Entry xCorners;
-        xCorners.uiStartIndex = uiFrom;
-        xCorners.uiEndIndex = uiTo;
-        return dataset_t::estimateDataStructureElements( vCorners, xCorners, vFac, uiNumOverlaySamples,
+        return dataset_t::estimateDataStructureElements( vCorners, makeEntry(), vFac, uiNumOverlaySamples,
                                                          uiNumPointSamples );
     }
 
 
-    pos_t gridSize( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    /**
+     * @brief Get the axis sizes of the inserted points.
+     *
+     * @return pos_t an array containing the axis size for each dimension.
+     */
+    pos_t gridSize( )
     {
-        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
-            uiTo = numPoints( );
-        typename corners_t::Entry xCorners;
-        xCorners.uiStartIndex = uiFrom;
-        xCorners.uiEndIndex = uiTo;
-        return dataset_t::generateCoordSizes( vCorners, xCorners )[ 0 ];
+        return dataset_t::generateCoordSizes( vCorners, makeEntry() )[ 0 ];
     }
 
     /**
@@ -617,24 +603,16 @@ template <typename type_defs> class Index : public AbstractIndex
      * Here f is a factor proportional to the number of boxes used in the data structure.
      * See estimate_num_elements for a detailed description.
      *
-     * @param uiFrom index of first point that shall be included in the dataset
-     * @param uiTo index of first point that shall not be included in the dataset anymore
      * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
      * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
      * @return uint64_t The predicted best value for f
      */
-    uint64_t pickNumOverlays( coordinate_t uiFrom = 0, coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ),
-                              const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
+    uint64_t pickNumOverlays( const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
                               const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES, size_t uiVerbosity = 0 )
     {
-        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
-            uiTo = numPoints( );
-        typename corners_t::Entry xCorners;
-        xCorners.uiStartIndex = uiFrom;
-        xCorners.uiEndIndex = uiTo;
         progress_stream_t xProg( uiVerbosity );
-        return dataset_t::pickNumOverlays( vCorners, xCorners, uiNumOverlaySamples, uiNumPointSamples, xProg );
+        return dataset_t::pickNumOverlays( vCorners, makeEntry(), uiNumOverlaySamples, uiNumPointSamples, xProg );
     }
 
     /**
@@ -646,19 +624,11 @@ template <typename type_defs> class Index : public AbstractIndex
      * See estimate_num_elements for a detailed description.
      *
      * @param uiNumOverlays number of overlay blocks
-     * @param uiFrom index of first point that shall be included in the dataset
-     * @param uiTo index of first point that shall not be included in the dataset anymore
      * @return double f
      */
-    double toFactor( uint64_t uiNumOverlays, coordinate_t uiFrom = 0,
-                     coordinate_t uiTo = std::numeric_limits<coordinate_t>::max( ) )
+    double toFactor( uint64_t uiNumOverlays )
     {
-        if( uiTo == std::numeric_limits<coordinate_t>::max( ) )
-            uiTo = numPoints( );
-        typename corners_t::Entry xCorners;
-        xCorners.uiStartIndex = uiFrom;
-        xCorners.uiEndIndex = uiTo;
-        return dataset_t::toFactor( vCorners, xCorners, uiNumOverlays );
+        return dataset_t::toFactor( vCorners, makeEntry(), uiNumOverlays );
     }
 
     /**
@@ -781,7 +751,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     .. automethod:: count_size_limited
     .. automethod:: count_multiple
     .. automethod:: __str__
-    .. automethod:: __len__
     .. automethod:: clear
     .. automethod:: clear_keep_points
     .. automethod:: get_overlay_grid
@@ -855,7 +824,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :type end: list[int[)pbdoc" +
               std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
 
-    :param val: The value of the point.
+    :param val: The value of the )pbdoc" +
+              sPointName + R"pbdoc(.
     :type val: int
     
     :param desc: A description for the Point, defaults to "".
@@ -892,21 +862,13 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 )pbdoc" ) // constructor
         .def( "generate",
               &sps::Index<type_defs>::generate,
-              pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               pybind11::arg( "factor" ) = -1,
               pybind11::arg( "verbosity" ) = 1,
               pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
               pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
               R"pbdoc(
-    Generate a new dataset.
-    
-    :param from_points: Size of the index before adding the first point of this dataset, defaults to zero.
-    :type from_points: int
-    
-    :param to_points: Size of the index after adding all points of this dataset, defaults to the current size of the index.
-    :type to_points: int
-    
+    Generate a new dataset from the previously added points.
+
     :param verbosity: Degree of verbosity while creating the dataset, defaults to 1.
     :type verbosity: int
 
@@ -1007,7 +969,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               "Return a string describing the index. Very slow for large datasets." )
         .def( "max_prefix_value", &sps::Index<type_defs>::maxPrefixSumValue,
               "Return the maximal stored prefix sum. Intended for storage space optimization purposes." )
-        .def( "__len__", &sps::Index<type_defs>::numPoints, "Total number of points (among all datasets)." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
         .def( "clear_keep_points", &sps::Index<type_defs>::clearKeepPoints,
               "Clear the index datasets, but keep the points." )
@@ -1020,12 +981,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               "Returns the size of the dataset in bytes." )
         .def( "get_max_prefix_sum", &sps::Index<type_defs>::getMaxPrefixSum, "Get the largest stored prefix sum." )
         .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, pybind11::arg( "f" ),
-              pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
               pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
               R"pbdoc(
-    Predict the number of data structure elements stored in a dataset.
+    Predict the number of data structure elements stored in a dataset generated from the currently added points.
 
     Here f is proportional to the number of boxes used in the data structure.
     For any dataset, there is an optimal value for f that leads to the minimal data structure size.
@@ -1047,39 +1006,24 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :param f: list of factors that are proportional to the number of boxes within the data structure
     :type f: list[float]
 
-    :param from_points: index of first point that shall be included in the dataset
-    :type f: int
-
-    :param to_points: index of first point that shall not be included in the dataset anymore
-    :type f: int
-
     :return: The predicted number of dataset structure elements for each factor
     :rtype: list[tuple[int]]
 )pbdoc" )
-        .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays, pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
+        .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays,
               pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
               pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES, pybind11::arg( "verbosity" ) = 0,
               R"pbdoc(
-    Predict the best f.
+    Predict the best factor f for the currently added points.
 
     Here f is a factor proportional to the number of boxes used in the data structure.
     See estimate_num_elements for a detailed description. 
-
-    :param from_points: index of first point that shall be included in the dataset
-    :type f: int
-
-    :param to_points: index of first point that shall not be included in the dataset anymore
-    :type f: int
 
     :return: The predicted best value for f.
     :rtype: float
 )pbdoc" )
         .def( "to_factor", &sps::Index<type_defs>::toFactor, pybind11::arg( "num_overlays" ),
-              pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
               R"pbdoc(
-    Convert a given number of overlay blocks to the factor f.
+    Convert a given number of overlay blocks to the factor f for the currently added points.
 
     Here f is a factor proportional to the number of boxes used in the data structure.
     See estimate_num_elements for a detailed description. 
@@ -1087,25 +1031,12 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :param num_overlays: number of overlay blocks
     :type f: int
 
-    :param from_points: index of first point that shall be included in the dataset
-    :type f: int
-
-    :param to_points: index of first point that shall not be included in the dataset anymore
-    :type f: int
-
     :return: f.
     :rtype: float
 )pbdoc" )
-        .def( "grid_size", &sps::Index<type_defs>::gridSize, pybind11::arg( "from_points" ) = 0,
-              pybind11::arg( "to_points" ) = std::numeric_limits<typename type_defs::coordinate_t>::max( ),
+        .def( "grid_size", &sps::Index<type_defs>::gridSize,
               R"pbdoc(
-    Get the axis sizes of the area spanned by the given points.
-
-    :param from_points: index of first point that shall be included
-    :type f: int
-
-    :param to_points: index of first point that shall not be included anymore
-    :type f: int
+    Get the axis sizes of the area spanned by the currently added points.
 
     :return: a.
     :rtype: list[int]
