@@ -292,9 +292,6 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
   private:
-#pragma GCC diagnostic push
-// vPosTopRightActual not used with DEPENDANT_DIMENSION == false
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     static inline __attribute__( ( always_inline ) ) void
     countSizeLimitedInvariant( size_t uiD, pos_t vPos, size_t uiDistToTo, IntersectionType xInterType,
                                const dataset_vec_t& vDataSets, const sparse_coord_t& vSparseCoord,
@@ -364,7 +361,6 @@ template <typename type_defs> class Index : public AbstractIndex
         uiRet += uiCurr * uiFac;
     }
 
-#pragma GCC diagnostic pop
 
     static inline __attribute__( ( always_inline ) ) bool
     countSizeLimitedInvariantCond( coordinate_t uiPos, size_t /*uiD*/, bool /*bIsFrom*/ )

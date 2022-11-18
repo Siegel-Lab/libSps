@@ -348,14 +348,9 @@ template <typename type_defs> class Overlay
         return uiTotalOverlayPrefixSumSize;
     }
 
-#pragma GCC diagnostic push
-// uiOverlayGridStartIndex unused if DEPENDANT_DIMENSION = false
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     coordinate_t generateOverlaySparseCoords( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                              corners_t& vCorners,
                                               std::array<std::vector<coordinate_t>, D> vPredecessors,
-                                              std::vector<typename corners_t::Entry>& vSplitPoints,
-                                              size_t uiOverlayGridStartIndex, pos_t vMyBottomLeft, pos_t vPosTopRight,
+                                              pos_t vMyBottomLeft, pos_t vPosTopRight,
                                               progress_stream_t&
 #ifndef NDEBUG
                                                   xProg
@@ -399,28 +394,7 @@ template <typename type_defs> class Overlay
                                     std::cout << "from predecessor in dim " << uiI2 << " overlay: ", rSparseCoords )
                                     << std::endl;
 #endif
-                            if constexpr( DEPENDANT_DIMENSION )
-                                if( uiI == 1 && uiI2 != 1 /* <- cause this is done below anyways */ )
-                                // predecessors in dim 1 could reach below the start of this overlay ->
-                                // in that case their overlay coords are not sufficient & we also have to
-                                // use their internal coords (taking only the relevant coords from the points)
-                                {
-                                    vCorners.iterate(
-                                        [ & ]( const corner_t& rP ) {
-                                            if( rP.vPos[ uiJAct ] >= vMyBottomLeft[ uiJAct ] &&
-                                                rP.vPos[ uiJAct ] < vPosTopRight[ uiJAct ] )
-                                                vCollectedCoords.push_back( rP.vPos[ uiJAct ] );
-                                        },
-                                        vSplitPoints[ uiPred - uiOverlayGridStartIndex ] );
-                                }
                         }
-
-                if constexpr( DEPENDANT_DIMENSION )
-                {
-                    std::sort( vCollectedCoords.begin( ), vCollectedCoords.end( ) );
-                    vBegin.push_back( std::make_shared<MergeVecIt>( vCollectedCoords.begin( ) ) );
-                    vEnd.push_back( std::make_shared<MergeVecIt>( vCollectedCoords.end( ) ) );
-                }
 
                 // add coordinates from the points of the previous overlay to the overlay entries
                 for( coordinate_t uiPred : vPredecessors[ uiI ] )
@@ -463,7 +437,6 @@ template <typename type_defs> class Overlay
         }
         return getNumOverlayPrefixSums( rSparseCoords );
     }
-#pragma GCC diagnostic pop
 
     void generateInternalPrefixSums( const overlay_grid_t&, sparse_coord_t& rSparseCoords,
                                      prefix_sum_grid_t& rPrefixSums, corners_t& vCorners,
@@ -924,41 +897,36 @@ template <typename type_defs> class Overlay
                           const prefix_sum_grid_t& rPrefixSums, const dataset_t& rData ) const
     {
         os << "<";
-        if( rData.exists( rSparseCoords, vGridPos ) )
+        os << std::endl;
+        auto vPosActual = rData.actualFromGridPos( rSparseCoords, vGridPos );
+        os << "\tbottom left: " << vPosActual << "\n";
+        auto vPosTR = rData.actualTopRightFromGridPos( rSparseCoords, vGridPos );
+        os << "\ttop right: " << vPosTR << "\n";
+        os << "\tvSparseCoordsOverlay: ";
+        for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            os << std::endl;
-            auto vPosActual = rData.actualFromGridPos( rSparseCoords, vGridPos );
-            os << "\tbottom left: " << vPosActual << "\n";
-            auto vPosTR = rData.actualTopRightFromGridPos( rSparseCoords, vGridPos );
-            os << "\ttop right: " << vPosTR << "\n";
-            os << "\tvSparseCoordsOverlay: ";
-            for( size_t uiI = 0; uiI < D; uiI++ )
+            os << uiI << ":<";
+            for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
             {
-                os << uiI << ":<";
-                for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
-                {
-                    os << " " << ( uiJ + ( uiJ >= uiI ? 1 : 0 ) ) << ":";
-                    vSparseCoordsOverlay[ uiI ][ uiJ ].stream( os, rSparseCoords ) << " ";
-                }
-                os << "> ";
+                os << " " << ( uiJ + ( uiJ >= uiI ? 1 : 0 ) ) << ":";
+                vSparseCoordsOverlay[ uiI ][ uiJ ].stream( os, rSparseCoords ) << " ";
             }
-            os << std::endl;
-
-            os << "\tvSparseCoordsInternal: ";
-            for( size_t uiI = 0; uiI < D; uiI++ )
-                vSparseCoordsInternal[ uiI ].stream( os, rSparseCoords ) << " ";
-            os << std::endl;
-
-            os << "\tvOverlayEntries: ";
-            for( size_t uiI = 0; uiI < D; uiI++ )
-                vOverlayEntries[ uiI ].streamOp( os, rPrefixSums ) << " ";
-            os << std::endl;
-
-            os << "\txInternalEntires: ";
-            xInternalEntires.streamOp( os, rPrefixSums ) << std::endl;
+            os << "> ";
         }
-        else
-            os << "n/a";
+        os << std::endl;
+
+        os << "\tvSparseCoordsInternal: ";
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            vSparseCoordsInternal[ uiI ].stream( os, rSparseCoords ) << " ";
+        os << std::endl;
+
+        os << "\tvOverlayEntries: ";
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            vOverlayEntries[ uiI ].streamOp( os, rPrefixSums ) << " ";
+        os << std::endl;
+
+        os << "\txInternalEntires: ";
+        xInternalEntires.streamOp( os, rPrefixSums ) << std::endl;
 
         return os;
     }

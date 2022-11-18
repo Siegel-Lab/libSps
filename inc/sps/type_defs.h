@@ -95,7 +95,6 @@ class TypeDefs
 
     static constexpr bool EXPLAIN = _explain;
 
-    static constexpr bool DEPENDANT_DIMENSION = _dependant_dim;
 
     static constexpr bool UNIFORM_OVERLAY_GRID = _uniform_overlay_grid;
 
@@ -139,8 +138,6 @@ class TypeDefs
     NAMED_VEC_GEN_AND_SORTER_EXTRACT( prefix_sums )                                                                    \
                                                                                                                        \
     static constexpr bool EXPLAIN = type_defs::EXPLAIN;                                                                \
-                                                                                                                       \
-    static constexpr bool DEPENDANT_DIMENSION = type_defs::DEPENDANT_DIMENSION;                                        \
                                                                                                                        \
     static constexpr bool UNIFORM_OVERLAY_GRID = type_defs::UNIFORM_OVERLAY_GRID;                                      \
                                                                                                                        \

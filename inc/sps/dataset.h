@@ -32,8 +32,6 @@ template <typename type_defs> class Dataset
 
     std::array<typename sparse_coord_t::Entry, D> vSparseCoords;
 
-    typename sparse_coord_t::EntryArray xSparseCoordsDependantDimension;
-
     typename overlay_grid_t::template Entry<D> xOverlays;
 
     pos_t uiSizeOverlays; // only relevant if UNIFORM_OVERLAY_GRID is true
@@ -161,7 +159,7 @@ template <typename type_defs> class Dataset
 
 
   public:
-    Dataset( ) : vSparseCoords( ), xSparseCoordsDependantDimension( )
+    Dataset( ) : vSparseCoords( )
     {}
 
     typename sparse_coord_t::Entry
@@ -202,12 +200,9 @@ template <typename type_defs> class Dataset
         return rSparseCoords.template addStartEnd<true>( xStart, xEnd, uiFixedStart, uiFixedEnd );
     }
 
-#pragma GCC diagnostic push
-// vPosTopRightActual not used with DEPENDANT_DIMENSION == false
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     std::array<std::vector<coordinate_t>, D> getPredecessor( const overlay_grid_t& rOverlays,
                                                              const sparse_coord_t& rSparseCoords, pos_t vGridPos,
-                                                             pos_t vPosBottomLeftActual, pos_t vPosTopRightActual,
+                                                             pos_t vPosBottomLeftActual,
                                                              progress_stream_t xProg ) const
     {
 
@@ -217,50 +212,12 @@ template <typename type_defs> class Dataset
         {
             if( vbHasPredecessor[ uiD ] )
             {
-                if constexpr( DEPENDANT_DIMENSION )
-                {
-#ifndef NDEBUG
-                    coordinate_t uiIdx = rOverlays.indexOf( vGridPos, xOverlays );
-#endif
-                    if( uiD == 0 )
-                    {
-                        pos_t vItrPos = vPosBottomLeftActual;
-                        assert( vItrPos[ uiD ] > 0 );
-                        // move outside the current overlay
-                        --vItrPos[ uiD ];
-                        pos_t vItrTopRight;
-                        do
-                        {
-                            coordinate_t uiItrIndex = overlayIndex( rOverlays, rSparseCoords, vItrPos );
-                            vPredecessors[ uiD ].push_back( uiItrIndex );
-                            pos_t vItrGridPos = rOverlays.posOf( uiItrIndex, xOverlays );
-                            vItrTopRight = actualTopRightFromGridPos( rSparseCoords, vItrGridPos );
-
-                            xProg << Verbosity( 2 ) << "uiD " << uiD << " vItrPos " << vItrPos << " uiItrIndex "
-                                  << uiItrIndex << " vItrGridPos " << vItrGridPos << " vItrTopRight " << vItrTopRight
-                                  << " vPosBottomLeftActual " << vPosBottomLeftActual << " vPosTopRightActual "
-                                  << vPosTopRightActual << "\n";
-                            assert( uiItrIndex != uiIdx );
-                            assert( exists( rSparseCoords, vItrGridPos ) );
-
-                            // move upwards
-                            assert( vItrTopRight[ 1 ] > vItrPos[ 1 ] ||
-                                    vItrTopRight[ 1 ] == std::numeric_limits<coordinate_t>::max( ) );
-                            vItrPos[ 1 ] = vItrTopRight[ 1 ];
-                        } while( vItrTopRight[ 1 ] < vPosTopRightActual[ 1 ] &&
-                                 vItrTopRight[ 1 ] != std::numeric_limits<coordinate_t>::max( ) );
-
-                        continue;
-                    }
-                }
-
                 --vPosBottomLeftActual[ uiD ];
 
                 vPredecessors[ uiD ].push_back( overlayIndex( rOverlays, rSparseCoords, vPosBottomLeftActual ) );
 
                 xProg << Verbosity( 3 ) << "predecessor dim " << uiD << " pos " << vPosBottomLeftActual << " index "
                       << vPredecessors[ uiD ].back( ) << "\n";
-                assert( exists( rSparseCoords, rOverlays.posOf( vPredecessors[ uiD ].back( ), xOverlays ) ) );
 
                 ++vPosBottomLeftActual[ uiD ];
             }
@@ -269,7 +226,6 @@ template <typename type_defs> class Dataset
         }
         return vPredecessors;
     }
-#pragma GCC diagnostic pop
 
 
     coordinate_t generateSparseCoords( overlay_grid_t& rOverlays,
@@ -324,17 +280,6 @@ template <typename type_defs> class Dataset
                                                progress_stream_t xProg )
     {
         return generateSparseCoords( rOverlays, rSparseCoords, vCorners, xProg, [ & ]( size_t uiOverlayId ) {
-            // get bottom left position (compressed)
-            if constexpr( DEPENDANT_DIMENSION )
-                if( !exists( rSparseCoords, rOverlays.posOf( uiOverlayId, xOverlays ) ) )
-                {
-#ifndef NDEBUG
-                    xProg << Verbosity( 2 ) << "skipping nonexistant overlap\n";
-#endif
-                    // continue;
-                    return (coordinate_t)0;
-                }
-
             return rOverlays.vData[ uiOverlayId ].generateInternalSparseCoords(
                 rSparseCoords, vCorners, vSplitPoints[ uiOverlayId - xOverlays.uiStartIndex ], xProg );
         } );
@@ -348,13 +293,13 @@ template <typename type_defs> class Dataset
 
 
     coordinate_t generateOverlaySparseCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                              std::vector<typename corners_t::Entry>& vSplitPoints, corners_t& vCorners,
+                                              corners_t& vCorners,
                                               progress_stream_t xProgIn )
     {
         rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + ( 2 << 8 ) );
 
         auto xIterator =
-            rOverlays.template genIterator<D>( xOverlays, successors, *this, rOverlays, rSparseCoords, xOverlays );
+            rOverlays.template genIterator<D>( xOverlays, successors, rSparseCoords );
 
 
         size_t uiNumThreads = rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vCorners.THREADSAVE
@@ -367,15 +312,6 @@ template <typename type_defs> class Dataset
             progress_stream_t xProg = xProgIn;
             // get bottom left position (compressed)
             pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
-            if constexpr( DEPENDANT_DIMENSION )
-                if( !exists( rSparseCoords, vGridPos ) )
-                {
-#ifndef NDEBUG
-                    xProg << Verbosity( 2 ) << "skipping nonexistant overlap\n";
-#endif
-                    // continue;
-                    return;
-                }
 
             pos_t vPosBottomLeftActual = actualFromGridPos( rSparseCoords, vGridPos );
             pos_t vPosTopRightActual = actualTopRightFromGridPos( rSparseCoords, vGridPos );
@@ -387,11 +323,11 @@ template <typename type_defs> class Dataset
 
             // collect direct predecessor overlays for each dimension
             std::array<std::vector<coordinate_t>, D> vPredecessors =
-                getPredecessor( rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual, vPosTopRightActual, xProg );
+                getPredecessor( rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual, xProg );
 
 
             vPrefixSumSize[ uiTid ] += rOverlays.vData[ uiOverlayId ].generateOverlaySparseCoords(
-                rOverlays, rSparseCoords, vCorners, vPredecessors, vSplitPoints, xOverlays.uiStartIndex,
+                rOverlays, rSparseCoords, vPredecessors,
                 vPosBottomLeftActual, vPosTopRightActual, xProg );
         } );
         rSparseCoords.shrink_to_fit( );
@@ -434,9 +370,8 @@ template <typename type_defs> class Dataset
 
     // return vector of indices for successor overlays
     static std::vector<size_t> successors( size_t uiIdx, size_t uiDim,
-                                           const typename overlay_grid_t::template Entry<D>& xEntry, Dataset& rThis,
-                                           overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
-                                           typename overlay_grid_t::template Entry<D>& xOverlays )
+                                           const typename overlay_grid_t::template Entry<D>& xEntry, 
+                                           sparse_coord_t& rSparseCoords )
     {
         if constexpr( UNIFORM_OVERLAY_GRID )
         {
@@ -459,12 +394,7 @@ template <typename type_defs> class Dataset
             for( size_t uiI = 0; uiI < D && bFits; uiI++ )
             {
                 ++vPos[ uiI ];
-                if( DEPENDANT_DIMENSION && uiI == 1 )
-                {
-                    if( vPos[ 1 ] < xEntry.vAxisSizes[ 1 ] && rThis.exists( rSparseCoords, vPos ) )
-                        bFits = false;
-                }
-                else if( vPos[ uiI ] < xEntry.vAxisSizes[ uiI ] )
+                if( vPos[ uiI ] < xEntry.vAxisSizes[ uiI ] )
                     bFits = false;
                 --vPos[ uiI ];
             }
@@ -476,34 +406,7 @@ template <typename type_defs> class Dataset
 
             ++vPos[ uiDim ];
             if( vPos[ uiDim ] < xEntry.vAxisSizes[ uiDim ] )
-            {
-                if( DEPENDANT_DIMENSION && uiDim == 0 )
-                {
-                    --vPos[ uiDim ];
-
-                    pos_t vBottomLeft = rThis.actualFromGridPos( rSparseCoords, vPos );
-                    pos_t vTopRight = rThis.actualTopRightFromGridPos( rSparseCoords, vPos );
-
-                    pos_t vItrPos = vBottomLeft;
-                    vItrPos[ 0 ] = vTopRight[ 0 ];
-                    pos_t vItrTopRight;
-                    do
-                    {
-                        coordinate_t uiItrIndex = rThis.overlayIndex( rOverlays, rSparseCoords, vItrPos );
-                        pos_t vItrGridPos = rOverlays.posOf( uiItrIndex, xOverlays );
-                        vItrTopRight = rThis.actualTopRightFromGridPos( rSparseCoords, vItrGridPos );
-
-                        if( vItrTopRight[ 1 ] <= vTopRight[ 1 ] && rThis.exists( rSparseCoords, vItrGridPos ) )
-                            vRet.push_back( uiItrIndex );
-
-                        // move upwards
-                        vItrPos[ 1 ] = vItrTopRight[ 1 ];
-                    } while( vItrTopRight[ 1 ] < vTopRight[ 1 ] &&
-                             vItrTopRight[ 1 ] != std::numeric_limits<coordinate_t>::max( ) );
-                }
-                else if( rThis.exists( rSparseCoords, vPos ) )
-                    vRet.push_back( overlay_grid_t::indexOf( vPos, xEntry ) );
-            }
+                vRet.push_back( overlay_grid_t::indexOf( vPos, xEntry ) );
             return vRet;
         }
     }
@@ -515,7 +418,7 @@ template <typename type_defs> class Dataset
         rPrefixSums.vData.reserve( rPrefixSums.vData.size( ) + uiSizeOverlayPrefixSums );
 
         auto xIterator =
-            rOverlays.template genIterator<D>( xOverlays, successors, *this, rOverlays, rSparseCoords, xOverlays );
+            rOverlays.template genIterator<D>( xOverlays, successors, rSparseCoords );
         // actually process the overlays
         xIterator.process(
             rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && rPrefixSums.THREADSAVE
@@ -525,15 +428,12 @@ template <typename type_defs> class Dataset
             [ & ]( size_t /* uiTid */, size_t uiOverlayId ) {
                 progress_stream_t xProg = xProgIn;
                 pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
-                if constexpr( DEPENDANT_DIMENSION )
-                    assert( exists( rSparseCoords, vGridPos ) );
 
                 pos_t vPosBottomLeftActual = actualFromGridPos( rSparseCoords, vGridPos );
-                pos_t vPosTopRightActual = actualTopRightFromGridPos( rSparseCoords, vGridPos );
 
                 // collect direct predecessor overlays for each dimension
                 std::array<std::vector<coordinate_t>, D> vPredecessors = getPredecessor(
-                    rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual, vPosTopRightActual, xProg );
+                    rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual, xProg );
 
                 rOverlays.vData[ uiOverlayId ].generateOverlayPrefixSums(
                     rOverlays, rSparseCoords, rPrefixSums, vCorners, vPredecessors, vPosBottomLeftActual, this, xProg );
@@ -752,11 +652,10 @@ template <typename type_defs> class Dataset
 #pragma GCC diagnostic push
 // uiCoordinateSizes not used with UNIFORM_OVERLAY_GRID == false
 // vvCoords not used with UNIFORM_OVERLAY_GRID == true
-// vvDepDim not used with DEPENDANT_DIMENSION = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>
     estimateOverlay( const corners_t& vCorners, std::array<typename corners_t::Entry, D> xSortedPoints,
-                     std::array<std::vector<coordinate_t>, D> vvCoords, std::vector<std::vector<coordinate_t>> vvDepDim,
+                     std::array<std::vector<coordinate_t>, D> vvCoords,
                      size_t, pos_t uiCoordinateSizes, pos_t uiNumOverlays, uint64_t, pos_t uiP, pos_t uiMinPos,
                      const uint64_t uiNumPointSamples )
     {
@@ -776,34 +675,13 @@ template <typename type_defs> class Dataset
             }
             else
             {
-                if( DEPENDANT_DIMENSION && uiI == 1 )
-                {
-                    if( uiP[ 0 ] >= vvDepDim.size( ) )
-                    {
-                        uiFromGlob[ 1 ] = 0;
-                        uiToGlob[ 1 ] = 0;
-                    }
-                    else
-                    {
-                        uiFromGlob[ 1 ] =
-                            vvDepDim[ uiP[ 0 ] ][ ( uiP[ 1 ] * vvDepDim[ uiP[ 0 ] ].size( ) ) / uiNumOverlays[ 1 ] ];
-                        size_t uiEnd = ( ( 1 + uiP[ 1 ] ) * vvDepDim[ uiP[ 0 ] ].size( ) ) / uiNumOverlays[ 1 ];
-                        if( uiEnd < vvDepDim[ uiP[ 0 ] ].size( ) )
-                            uiToGlob[ 1 ] = vvDepDim[ uiP[ 0 ] ][ uiEnd ];
-                        else
-                            uiToGlob[ 1 ] = vvDepDim[ uiP[ 0 ] ].back( ) + 1;
-                    }
-                }
+                uiFromGlob[ uiI ] =
+                    vvCoords[ uiI ][ ( uiP[ uiI ] * vvCoords[ uiI ].size( ) ) / uiNumOverlays[ uiI ] ];
+                size_t uiEnd = ( ( 1 + uiP[ uiI ] ) * vvCoords[ uiI ].size( ) ) / uiNumOverlays[ uiI ];
+                if( uiEnd < vvCoords[ uiI ].size( ) )
+                    uiToGlob[ uiI ] = vvCoords[ uiI ][ uiEnd ];
                 else
-                {
-                    uiFromGlob[ uiI ] =
-                        vvCoords[ uiI ][ ( uiP[ uiI ] * vvCoords[ uiI ].size( ) ) / uiNumOverlays[ uiI ] ];
-                    size_t uiEnd = ( ( 1 + uiP[ uiI ] ) * vvCoords[ uiI ].size( ) ) / uiNumOverlays[ uiI ];
-                    if( uiEnd < vvCoords[ uiI ].size( ) )
-                        uiToGlob[ uiI ] = vvCoords[ uiI ][ uiEnd ];
-                    else
-                        uiToGlob[ uiI ] = vvCoords[ uiI ].back( ) + 1;
-                }
+                    uiToGlob[ uiI ] = vvCoords[ uiI ].back( ) + 1;
             }
         }
         pos_t uiNumDistinctInOverlay =
@@ -867,40 +745,6 @@ template <typename type_defs> class Dataset
         uint64_t uiNumOverlaysTotal = 1;
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
-        std::vector<std::vector<coordinate_t>> vvDepDim;
-        if constexpr( !UNIFORM_OVERLAY_GRID && DEPENDANT_DIMENSION )
-        {
-            typename corners_t::Entry xTmp = vCorners.copyEntry( xSortedPoints[ 0 ] );
-
-            size_t uiCurrOverlay = 0;
-            vCorners.iterate(
-                [ & ]( corner_t& rP ) {
-                    size_t uiEnd = ( ( 1 + uiCurrOverlay ) * vvCoords[ 0 ].size( ) ) / uiNumOverlays[ 0 ];
-                    if( uiEnd < vvCoords[ 0 ].size( ) && vvCoords[ 0 ][ uiEnd ] >= rP.vPos[ 0 ] )
-                        ++uiCurrOverlay;
-#ifndef NBEBUG
-                    uiEnd = ( ( 1 + uiCurrOverlay ) * vvCoords[ 0 ].size( ) ) / uiNumOverlays[ 0 ];
-                    assert( uiEnd >= vvCoords[ 0 ].size( ) || rP.vPos[ 0 ] < vvCoords[ 0 ][ uiEnd ] );
-#endif
-                    rP.vPos[ 0 ] = uiCurrOverlay;
-                },
-                xTmp );
-
-            vCorners.sortByDim( 0, 1, xTmp );
-
-            coordinate_t uiLastX = std::numeric_limits<coordinate_t>::max( );
-            vCorners.iterate(
-                [ & ]( const corner_t& rP ) {
-                    if( vvDepDim.size( ) == 0 || ( vvDepDim.back( ).size( ) > 0 && uiLastX != rP.vPos[ 0 ] ) )
-                        vvDepDim.emplace_back( );
-                    uiLastX = rP.vPos[ 0 ];
-                    if( vvDepDim.back( ).size( ) == 0 || rP.vPos[ 1 ] != vvDepDim.back( ).back( ) )
-                        vvDepDim.back( ).push_back( rP.vPos[ 1 ] );
-                },
-                xTmp );
-
-            vCorners.popEntry( xTmp );
-        }
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
@@ -917,7 +761,7 @@ template <typename type_defs> class Dataset
                         uiP[ uiI ] = xDis( xGen );
                     }
                     auto tCurr =
-                        estimateOverlay( vCorners, xSortedPoints, vvCoords, vvDepDim, uiNumPoints, uiCoordinateSizes,
+                        estimateOverlay( vCorners, xSortedPoints, vvCoords, uiNumPoints, uiCoordinateSizes,
                                          uiNumOverlays, uiNumOverlaysTotal, uiP, uiMinPos, uiNumPointSamples );
 
 
@@ -935,8 +779,6 @@ template <typename type_defs> class Dataset
         {
             for( size_t uiI = 0; uiI < D; uiI++ )
                 uiNumBlockLookup += uiCoordinateSizes[ uiI ];
-            if constexpr( DEPENDANT_DIMENSION )
-                uiNumBlockLookup += ( uiCoordinateSizes[ 1 ] ) * ( uiNumOverlays[ 0 ] - 1 );
         }
 
 
@@ -1205,9 +1047,6 @@ template <typename type_defs> class Dataset
         return std::array<pos_t, 3>{ uiCoordinateSizes, uiMaxCoords, uiMinCoords };
     }
 
-#pragma GCC diagnostic push
-// vPos not used with DEPENDANT_DIMENSION == false
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     void generateOverlayCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, corners_t& vCorners,
                                 typename corners_t::Entry xCorners,
                                 std::vector<typename corners_t::Entry>& vSplitPoints, double fFac,
@@ -1241,47 +1080,6 @@ template <typename type_defs> class Dataset
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
                 xProg << Verbosity( 0 );
-                if constexpr( DEPENDANT_DIMENSION )
-                {
-                    if( uiI == 1 )
-                    {
-                        coordinate_t uiAbsoluteStart = std::numeric_limits<coordinate_t>::max( );
-                        coordinate_t uiAbsoluteEnd = 0;
-                        vCorners.iterate(
-                            [ & ]( const corner_t& xCorner ) {
-                                uiAbsoluteStart = std::min( uiAbsoluteStart, xCorner.vPos[ 1 ] );
-                                uiAbsoluteEnd = std::max( uiAbsoluteEnd, xCorner.vPos[ 1 ] );
-                            },
-                            xCorners );
-
-                        coordinate_t uiNumBins = rSparseCoords.axisSize( vSparseCoords[ 0 ] );
-                        typename corners_t::Entry xCurrCorners{ };
-                        xCurrCorners.uiEndIndex = xCorners.uiStartIndex;
-                        vSparseCoords[ uiI ].uiStartIndex = std::numeric_limits<coordinate_t>::max( );
-                        for( size_t uiBin = 0; uiBin < uiNumBins; uiBin++ )
-                        {
-                            // collect points for overlay uiI (points still sorted by dim 0)
-                            xCurrCorners.uiStartIndex = xCurrCorners.uiEndIndex;
-                            while( xCurrCorners.uiEndIndex < xCorners.uiEndIndex &&
-                                   rSparseCoords.replace( vCorners.vData[ xCurrCorners.uiEndIndex ].vPos[ 0 ],
-                                                          vSparseCoords[ 0 ] ) == uiBin )
-                                ++xCurrCorners.uiEndIndex;
-
-                            auto xCurr =
-                                makeSparseCoords( rSparseCoords, vCorners, xCurrCorners, 1, uiNumOverlaysPerDim[ uiI ],
-                                                  xProg, uiAbsoluteStart, uiAbsoluteEnd );
-                            assert( rSparseCoords.axisSize( xCurr ) > 0 );
-                            if( vSparseCoords[ uiI ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) ||
-                                rSparseCoords.axisSize( vSparseCoords[ uiI ] ) < rSparseCoords.axisSize( xCurr ) )
-                                vSparseCoords[ uiI ] = xCurr;
-                            sparse_coord_t::append( xSparseCoordsDependantDimension, xCurr );
-                            xProg << Verbosity( 1 );
-                        }
-                        assert( xCurrCorners.uiEndIndex == xCorners.uiEndIndex );
-
-                        continue;
-                    }
-                }
                 vSparseCoords[ uiI ] =
                     makeSparseCoords( rSparseCoords, vCorners, xCorners, uiI, uiNumOverlaysPerDim[ uiI ], xProg );
             }
@@ -1289,11 +1087,7 @@ template <typename type_defs> class Dataset
             if( xProg.active( ) )
             {
                 vSparseCoords[ 0 ].stream( std::cout << "sparse coords 0: ", rSparseCoords ) << std::endl;
-                if constexpr( DEPENDANT_DIMENSION )
-                    xSparseCoordsDependantDimension.stream( std::cout << "sparse coords 1: ", rSparseCoords )
-                        << std::endl;
-                else
-                    vSparseCoords[ 1 ].stream( std::cout << "sparse coords 1: ", rSparseCoords ) << std::endl;
+                vSparseCoords[ 1 ].stream( std::cout << "sparse coords 1: ", rSparseCoords ) << std::endl;
                 for( size_t uiI = 2; uiI < D; uiI++ )
                     vSparseCoords[ uiI ].stream( std::cout << "sparse coords " << uiI << ": ", rSparseCoords )
                         << std::endl;
@@ -1331,12 +1125,11 @@ template <typename type_defs> class Dataset
         }
         assert( vSplitPoints[ uiNumTotal - 1 ].uiEndIndex == xCorners.uiEndIndex );
     }
-#pragma GCC diagnostic pop
 
     Dataset( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords, prefix_sum_grid_t& rPrefixSums,
              corners_t& vCorners, typename corners_t::Entry xCorners, double fFac, progress_stream_t xProg,
              const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
-        : vSparseCoords( ), xSparseCoordsDependantDimension( )
+        : vSparseCoords( )
     {
         if( xCorners.uiEndIndex == xCorners.uiStartIndex )
             return;
@@ -1353,7 +1146,7 @@ template <typename type_defs> class Dataset
 
         xProg << Verbosity( 0 ) << "generating overlay sparse coords.\n";
         coordinate_t uiSizeOverlayPrefixSums =
-            generateOverlaySparseCoords( rOverlays, rSparseCoords, vSplitPoints, vCorners, xProg );
+            generateOverlaySparseCoords( rOverlays, rSparseCoords, vCorners, xProg );
 
         xProg << Verbosity( 0 ) << "generating internal prefix sums.\n";
         generateInternalPrefixSums( rOverlays, rSparseCoords, rPrefixSums, vCorners, vSplitPoints,
@@ -1375,17 +1168,6 @@ template <typename type_defs> class Dataset
         return vRet;
     }
 
-#pragma GCC diagnostic push
-// vPos not used with DEPENDANT_DIMENSION == false
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-    bool exists( const sparse_coord_t& rSparseCoords, pos_t vPos ) const
-    {
-        if constexpr( DEPENDANT_DIMENSION )
-            return rSparseCoords.axisSize( sparse_coord_t::at( xSparseCoordsDependantDimension, vPos[ 0 ] ) ) >
-                   vPos[ 1 ];
-        return true;
-    }
-#pragma GCC diagnostic pop
 
     pos_t actualFromGridPos( const sparse_coord_t& rSparseCoords, pos_t vPos ) const
     {
@@ -1400,13 +1182,6 @@ template <typename type_defs> class Dataset
         {
             pos_t vRet = rSparseCoords.invSparse( vPos, vSparseCoords );
 
-            // fix dependant dimension
-            if constexpr( DEPENDANT_DIMENSION )
-                vRet[ 1 ] = rSparseCoords.invReplace(
-                    vPos[ 1 ],
-                    sparse_coord_t::at( xSparseCoordsDependantDimension,
-                                        std::min( vPos[ 0 ], rSparseCoords.axisSize( vSparseCoords[ 0 ] ) - 1 ) ) );
-
             return vRet;
         }
     }
@@ -1417,11 +1192,6 @@ template <typename type_defs> class Dataset
             ++vPos[ uiI ];
 
         pos_t vRet = actualFromGridPos( rSparseCoords, vPos );
-
-        // fix dependant dimension
-        if constexpr( DEPENDANT_DIMENSION )
-            vRet[ 1 ] = rSparseCoords.invReplace(
-                vPos[ 1 ], sparse_coord_t::at( xSparseCoordsDependantDimension, vPos[ 0 ] - 1 ) );
 
         return vRet;
     }
@@ -1442,19 +1212,6 @@ template <typename type_defs> class Dataset
         else
         {
             pos_t vRet = rSparseCoords.sparse( vPos, vSparseCoords );
-
-            // fix dependant dimension
-            if constexpr( DEPENDANT_DIMENSION )
-            {
-                if( vRet[ 0 ] != std::numeric_limits<coordinate_t>::max( ) )
-                    vRet[ 1 ] = rSparseCoords.replace(
-                        vPos[ 1 ], sparse_coord_t::at( xSparseCoordsDependantDimension, vRet[ 0 ] ) );
-                else
-                    vRet[ 1 ] =
-                        rSparseCoords.replace( vPos[ 1 ],
-                                               sparse_coord_t::at( xSparseCoordsDependantDimension,
-                                                                   rSparseCoords.axisSize( vSparseCoords[ 0 ] ) - 1 ) );
-            }
 
             return vRet;
         }
@@ -1483,7 +1240,7 @@ template <typename type_defs> class Dataset
             vRet.back( ).vTopRight = actualTopRightFromGridPos( rSparseCoords, vRet.back( ).vGridPos );
             vRet.back( ).vPredIds =
                 getPredecessor( rOverlays, rSparseCoords, vRet.back( ).vGridPos, vRet.back( ).vBottomLeft,
-                                vRet.back( ).vTopRight, typename type_defs::progress_stream_t( 0 ) );
+                                typename type_defs::progress_stream_t( 0 ) );
             // vCorners.iterate( [ & ]( const corner_t& xP ) { vRet.back( ).vvCorners.push_back( xP.vPos ); },
             //                  rOverlays.vData[ uiI ].xCorners );
         }
@@ -1601,11 +1358,7 @@ template <typename type_defs> class Dataset
         if constexpr( !UNIFORM_OVERLAY_GRID )
         {
             for( size_t uiI = 0; uiI < D; uiI++ )
-                if( uiI != 1 || !DEPENDANT_DIMENSION )
-                    uiRet += 1 + vSparseCoords[ uiI ].uiEndCord - vSparseCoords[ uiI ].uiStartCord;
-            if constexpr( DEPENDANT_DIMENSION )
-                uiRet += xSparseCoordsDependantDimension.uiNum * ( 1 + xSparseCoordsDependantDimension.uiEndCord -
-                                                                   xSparseCoordsDependantDimension.uiStartCord );
+                uiRet += 1 + vSparseCoords[ uiI ].uiEndCord - vSparseCoords[ uiI ].uiStartCord;
         }
         return uiRet;
     }
@@ -1652,12 +1405,6 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             vSparseCoords[ uiI ].stream( os, rSparseCoords ) << " ";
         os << std::endl;
-        if constexpr( DEPENDANT_DIMENSION )
-        {
-            os << "\txSparseCoordsDependantDimension: ";
-            xSparseCoordsDependantDimension.stream( os, rSparseCoords ) << " ";
-            os << std::endl;
-        }
 
         os << "\txOverlayGrid: ";
         xOverlays.stream( os, rOverlays, rSparseCoords, rPrefixSums, *this, vCorners, vDesc ) << std::endl;
