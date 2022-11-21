@@ -631,7 +631,7 @@ template <typename type_defs> class Dataset
         pos_t uiNumDistinctInOverlay =
             sampleNumDistinct( vCorners, uiFromGlob, uiToGlob, uiNumPointSamples, xSortedPoints );
         pos_t uiSampledIntervalSize;
-        if constexpr(BINARY_SEARCH_BASED_SPARSE) // @todo seems not to be working properly yet
+        if constexpr(BINARY_SEARCH_BASED_SPARSE)
             uiSampledIntervalSize = sampleNumDistinct( vCorners, uiFromGlob, uiToGlob, uiNumPointSamples,
                                                         xSortedPoints );
         else
