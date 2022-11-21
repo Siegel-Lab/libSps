@@ -699,6 +699,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
+        uiNumOverlaySamples = std::min(uiNumOverlaySamples, uiNumOverlaysTotal);
+        uiNumPointSamples = std::min(uiNumPointSamples, xSortedPoints[0].uiEndIndex - xSortedPoints[0].uiStartIndex);
+
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
             ThreadPool xPool( vCorners.THREADSAVE ? std::thread::hardware_concurrency( ) : 0 );

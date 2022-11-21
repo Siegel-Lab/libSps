@@ -379,7 +379,8 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                D, //
                                default_class_key_t, //
                                DiskVecGenerator, //
-                               CachedVecGenerator, //
+                               typename std::conditional<BINARY_SEARCH_BASED_SPARSE, 
+                                                         DiskVecGenerator, CachedVecGenerator>::type, //
                                DiskVecGenerator, //
                                DiskVecGenerator, //
                                DiskVecGenerator, //
