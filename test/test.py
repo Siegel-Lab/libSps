@@ -193,7 +193,7 @@ def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
         for _ in range(min(2*x*2, 200)):
             #tree.clear()
             points = []
-            for _ in range(x):
+            for _ in range(x**5):
                 pos_s = []
                 pos_e = []
                 pos_e_i = []

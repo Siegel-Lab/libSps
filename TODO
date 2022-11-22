@@ -1,17 +1,12 @@
 - biocontainer instead of yaml file?
 - think about caching the overlay prefix sums during construction...
-    - would yeld another giant speedup!
-- make columns of overlays share same sparse coords lookup array?
-    - by checking if sparse coords are exactly the same -> should actually happen quite soon
+    - would yield another giant speedup!
     - requires size estimation adjustment
 - think about the sparse coordinate arrays
     - right now they are double -> once for the overlay once for the internal prefix sums
     - the internal sparse coords could be computed form the overlay sparse coords
     - price: 1 more lookup; gain: less coords storage
 
-    - sparse coords could also be a binary searchable list instead
-        - no more O(1) complexity
-        - much less storage
 
 - store list of individual points for each poision of the prefix sum array
     - requires one additional vector

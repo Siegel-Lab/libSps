@@ -631,9 +631,9 @@ template <typename type_defs> class Dataset
         pos_t uiNumDistinctInOverlay =
             sampleNumDistinct( vCorners, uiFromGlob, uiToGlob, uiNumPointSamples, xSortedPoints );
         pos_t uiSampledIntervalSize;
-        if constexpr(BINARY_SEARCH_BASED_SPARSE)
-            uiSampledIntervalSize = sampleNumDistinct( vCorners, uiFromGlob, uiToGlob, uiNumPointSamples,
-                                                        xSortedPoints );
+        if constexpr( BINARY_SEARCH_BASED_SPARSE )
+            uiSampledIntervalSize =
+                sampleNumDistinct( vCorners, uiFromGlob, uiToGlob, uiNumPointSamples, xSortedPoints );
         else
             uiSampledIntervalSize = sampleIntervalSize( vCorners, uiFromGlob, uiToGlob, xSortedPoints );
 
@@ -662,11 +662,10 @@ template <typename type_defs> class Dataset
                             ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
                             sampleNumDistinct( vCorners, uiFrom, uiTo, uiNumPointSamples, xSortedPoints[ uiJ ], uiJ );
 
-                        if constexpr(BINARY_SEARCH_BASED_SPARSE)
-                            uiNumLookUpTablesOverlay +=
-                                ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
-                                sampleNumDistinct( vCorners, uiFrom, uiTo, uiNumPointSamples, 
-                                                    xSortedPoints[ uiJ ], uiJ );
+                        if constexpr( BINARY_SEARCH_BASED_SPARSE )
+                            uiNumLookUpTablesOverlay += ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
+                                                        sampleNumDistinct( vCorners, uiFrom, uiTo, uiNumPointSamples,
+                                                                           xSortedPoints[ uiJ ], uiJ );
                         else
                             uiNumLookUpTablesOverlay +=
                                 ( uiP[ uiJ ] > 0 ? 1 : 0 ) +
@@ -693,14 +692,15 @@ template <typename type_defs> class Dataset
     static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
     estimateDataStructureElements( corners_t& vCorners, std::array<typename corners_t::Entry, D> xSortedPoints,
                                    pos_t uiNumOverlays, pos_t uiCoordinateSizes, pos_t uiMinPos,
-                                   const uint64_t uiNumOverlaySamples, const uint64_t uiNumPointSamples )
+                                   uint64_t uiNumOverlaySamples, uint64_t uiNumPointSamples )
     {
         uint64_t uiNumOverlaysTotal = 1;
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
-        uiNumOverlaySamples = std::min(uiNumOverlaySamples, uiNumOverlaysTotal);
-        uiNumPointSamples = std::min(uiNumPointSamples, xSortedPoints[0].uiEndIndex - xSortedPoints[0].uiStartIndex);
+        uiNumOverlaySamples = std::min( uiNumOverlaySamples, uiNumOverlaysTotal );
+        uiNumPointSamples =
+            std::min( uiNumPointSamples, xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex );
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {

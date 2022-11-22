@@ -47,6 +47,10 @@ template <typename type_defs> class Overlay
         {
             return 0;
         }
+        virtual const coordinate_t subtract( const std::shared_ptr<MergableIterator> /*pOther*/ ) const
+        {
+            return 0;
+        }
         virtual bool operator!=( const std::shared_ptr<MergableIterator> /*pOther*/ ) const
         {
             return true;
@@ -55,6 +59,10 @@ template <typename type_defs> class Overlay
         friend std::ostream& operator<<( std::ostream& os, const MergableIterator& /*rIt*/ )
         {
             return os;
+        }
+        virtual std::shared_ptr<MergableIterator> copy( ) const
+        {
+            return nullptr;
         }
     };
 
@@ -71,6 +79,14 @@ template <typename type_defs> class Overlay
         void operator++( )
         {
             ++xIt;
+        }
+
+        const coordinate_t subtract( const std::shared_ptr<MergableIterator> pOther ) const
+        {
+            auto pCasted = std::dynamic_pointer_cast<CordIterator>( pOther );
+            if( pOther == nullptr )
+                return 0;
+            return xIt.subtract( pCasted->xIt );
         }
 
         const coordinate_t operator*( ) const
@@ -95,7 +111,13 @@ template <typename type_defs> class Overlay
         {
             return os << rIt.xIt;
         }
+
+        std::shared_ptr<MergableIterator> copy( ) const
+        {
+            return std::make_shared<CordIterator>( cord_it_t(xIt) );
+        }
     };
+
     class MergeIterator
     {
         std::vector<std::shared_ptr<MergableIterator>> vBegin;
@@ -253,8 +275,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -346,6 +368,66 @@ template <typename type_defs> class Overlay
         return uiTotalOverlayPrefixSumSize;
     }
 
+    size_t allSubsetOfOne( std::vector<std::shared_ptr<MergableIterator>> vBegin,
+                           std::vector<std::shared_ptr<MergableIterator>>
+                               vEnd,
+                           coordinate_t uiStart,
+                           coordinate_t uiEnd )
+    {
+        assert( vBegin.size( ) == vEnd.size( ) );
+
+        std::vector<std::shared_ptr<MergableIterator>> vCurr;
+        for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
+        {
+            vCurr.push_back( vBegin[ uiI ]->copy( ) );
+            while(*vCurr[ uiI ] != vEnd[ uiI ] && **vCurr[ uiI ] < uiStart)
+                ++( *vCurr[ uiI ] );
+
+            assert( !(*vCurr[ uiI ] != vEnd[ uiI ]) || **vCurr[ uiI ] >= uiStart );
+        }
+
+
+        size_t uiLargest = 0;
+        size_t uiLargestIdx = 0;
+        for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
+        {
+            size_t uiL = vEnd[ uiI ]->subtract( vCurr[ uiI ] );
+            if( uiL > uiLargest )
+            {
+                uiLargest = uiL;
+                uiLargestIdx = uiI;
+            }
+        }
+
+        if( uiLargest == 0 )
+            return vBegin.size( );
+
+
+        while( *vCurr[ uiLargestIdx ] != vEnd[ uiLargestIdx ] )
+        {
+            coordinate_t uiCurr = **vCurr[ uiLargestIdx ];
+            assert( uiCurr < uiEnd );
+            // no iterator can be smaller than uiCurr
+            // otherwise we have found an element that is not in uiLargestIdx
+            for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
+                if( *vCurr[ uiI ] != vEnd[ uiI ] && **vCurr[ uiI ] < uiCurr )
+                    return vBegin.size( );
+
+            // inc all iterators equal to uiCurr
+            for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
+                while( *vCurr[ uiI ] != vEnd[ uiI ] && **vCurr[ uiI ] == uiCurr )
+                    ++( *vCurr[ uiI ] );
+        }
+
+        // all iterators must have reached the end
+        // otherwise we have found an element that is not in uiLargestIdx
+        for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
+            if( *vCurr[ uiI ] != vEnd[ uiI ] )
+                return vBegin.size( );
+
+        return uiLargestIdx;
+    }
+
     coordinate_t generateOverlaySparseCoords( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                               std::array<std::vector<coordinate_t>, D> vPredecessors,
                                               pos_t vMyBottomLeft, pos_t vPosTopRight,
@@ -374,6 +456,7 @@ template <typename type_defs> class Overlay
 #endif
                 std::vector<std::shared_ptr<MergableIterator>> vBegin{ };
                 std::vector<std::shared_ptr<MergableIterator>> vEnd{ };
+                std::vector<typename sparse_coord_t::Entry> vPrev{ };
                 std::vector<coordinate_t> vCollectedCoords;
 
                 // add coordinates from previous overlays to the overlay entries
@@ -382,6 +465,7 @@ template <typename type_defs> class Overlay
                         for( coordinate_t uiPred : vPredecessors[ uiI2 ] )
                         {
                             const Overlay* pPred = &rOverlays.vData[ uiPred ];
+                            vPrev.push_back( pPred->vSparseCoordsOverlay[ uiI ][ uiJ ] );
                             vBegin.push_back( std::make_shared<CordIterator>(
                                 rSparseCoords.cbegin( pPred->vSparseCoordsOverlay[ uiI ][ uiJ ] ) ) );
                             vEnd.push_back( std::make_shared<CordIterator>(
@@ -395,7 +479,7 @@ template <typename type_defs> class Overlay
                         }
 
                 // add coordinates from the points of the previous overlay to the overlay entries
-                for( coordinate_t uiPred : vPredecessors[ uiI ] )
+                for( coordinate_t uiPred : vPredecessors[ uiI ] ) // with uniform overlays this is only ever one!
                 {
                     const Overlay* pPred = &rOverlays.vData[ uiPred ];
                     vBegin.push_back( std::make_shared<CordIterator>(
@@ -413,18 +497,30 @@ template <typename type_defs> class Overlay
                 xProg << "from bottom left: { " << vMyBottomLeft[ uiJAct ] - 1 << " }\n";
 #endif
 
-                MergeIterator xBegin( vBegin, vEnd, vPosTopRight[ uiJAct ] );
-                MergeIterator xEnd( vEnd, vEnd, vPosTopRight[ uiJAct ] );
-
-                // skip over positions that are before and after this overlay
-                while( xBegin != xEnd && *xBegin < vMyBottomLeft[ uiJAct ] )
-                    ++xBegin;
-
-                if( vPredecessors[ uiJAct ].size( ) > 0 )
-                    vSparseCoordsOverlay[ uiI ][ uiJ ] =
-                        rSparseCoords.addStartEnd( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
+                size_t uiSubsetOf = allSubsetOfOne( vBegin, vEnd, vMyBottomLeft[ uiJAct ], vPosTopRight[ uiJAct ] );
+                if( uiSubsetOf < vPrev.size( ) )
+                {
+#ifndef NDEBUG
+                    xProg << Verbosity( 2 ) << "using previous sparse coord lookup table " << uiSubsetOf << "\n";
+#endif
+                    // this exact set of sparse coords does exist
+                    vSparseCoordsOverlay[ uiI ][ uiJ ] = vPrev[ uiSubsetOf ];
+                }
                 else
-                    vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
+                { // this exact set of sparse coords does not yet exist
+                    MergeIterator xBegin( vBegin, vEnd, vPosTopRight[ uiJAct ] );
+                    MergeIterator xEnd( vEnd, vEnd, vPosTopRight[ uiJAct ] );
+
+                    // skip over positions that are before and after this overlay
+                    while( xBegin != xEnd && *xBegin < vMyBottomLeft[ uiJAct ] )
+                        ++xBegin;
+
+                    if( vPredecessors[ uiJAct ].size( ) > 0 )
+                        vSparseCoordsOverlay[ uiI ][ uiJ ] =
+                            rSparseCoords.addStartEnd( xBegin, xEnd, vMyBottomLeft[ uiJAct ] - 1 );
+                    else
+                        vSparseCoordsOverlay[ uiI ][ uiJ ] = rSparseCoords.add( xBegin, xEnd );
+                }
 
 #ifndef NDEBUG
                 xProg << Verbosity( 2 );

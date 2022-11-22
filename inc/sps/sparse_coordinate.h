@@ -406,6 +406,10 @@ template <typename type_defs> class SparseCoordLookupArray
             : rCord( rCord ), rInfo( rInfo ), uiI( 0 )
         {}
 
+        EntryIterator( const EntryIterator& rOther )
+            : rCord( rOther.rCord ), rInfo( rOther.rInfo ), uiI( rOther.uiI )
+        {}
+
         void operator++( )
         {
             if( uiI <= rInfo.uiEndCord - rInfo.uiStartCord )
@@ -438,6 +442,11 @@ template <typename type_defs> class SparseCoordLookupArray
             os << rIt.rInfo;
 
             return os;
+        }
+
+        const coordinate_t subtract( const EntryIterator& rOther ) const
+        {
+            return uiI - rOther.uiI;
         }
 
         friend class SparseCoordLookupArray;
@@ -519,7 +528,7 @@ template <typename type_defs> class SparseCoordBinSearch
         auto xSearch = std::upper_bound( xStart, xStart + rInfo.uiSize, uiX );
         if( xSearch == xStart )
             return std::numeric_limits<coordinate_t>::max( );
-        return (xSearch-1) - xStart;
+        return ( xSearch - 1 ) - xStart;
     }
 
     coordinate_t invReplace( coordinate_t uiX, const Entry& rInfo ) const
@@ -610,6 +619,10 @@ template <typename type_defs> class SparseCoordBinSearch
             : rCord( rCord ), rInfo( rInfo ), uiI( 0 )
         {}
 
+        EntryIterator( const EntryIterator& rOther )
+            : rCord( rOther.rCord ), rInfo( rOther.rInfo ), uiI( rOther.uiI )
+        {}
+
         void operator++( )
         {
             if( uiI < rInfo.uiSize )
@@ -638,6 +651,11 @@ template <typename type_defs> class SparseCoordBinSearch
             os << rIt.rInfo;
 
             return os;
+        }
+
+        const coordinate_t subtract( const EntryIterator& rOther ) const
+        {
+            return uiI - rOther.uiI;
         }
 
         friend class SparseCoordBinSearch;
