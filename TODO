@@ -1,30 +1,30 @@
-- biocontainer instead of yaml file?
+Bug:
+
+- second coord system fails for anno coords
+- divide by col & row giving wired results
+- all computational nodes should also know what dependencies are from previous nodes (to make sure no dep is forgotten)
+
+
+Features (ranked)
+
+- check fastest way to export dict via pybind11
+
 - think about caching the overlay prefix sums during construction...
     - would yield another giant speedup!
     - requires size estimation adjustment
+
 - think about the sparse coordinate arrays
     - right now they are double -> once for the overlay once for the internal prefix sums
     - the internal sparse coords could be computed form the overlay sparse coords
     - price: 1 more lookup; gain: less coords storage
-
 
 - store list of individual points for each poision of the prefix sum array
     - requires one additional vector
     - then points can be searched by iteration at smallest resolution
     - try other sparse coords arrays before trying this
 
+- biocontainer instead of yaml file?
 
-
-
-
-     === summary before vacation ===
-
-- dependant dim makes file smaller from 1.75Gb to 1.2Gb
-    - worth the effort? :/
-    - thinking of dropping it
-
-- shekalyan et. al's. size prediction seems to hit the optimum actually
-    - at least for Hi-C data
-    - for own distributions i can make examples where he is suboptimal
+- conditions in the computational graph of libCm???
 
 
