@@ -880,7 +880,7 @@ template <typename type_defs> class Dataset
         // fund the minumum between 0 and fEnd
         const double fSampleSteps = 10;
         uint64_t uiMin = std::numeric_limits<uint64_t>::max( );
-        while( toAmount( toNumbers( vNumRatios, fStart ) ) != toAmount( toNumbers( vNumRatios, fEnd ) ) )
+        for(size_t uiI = 0; uiI < 5 && toAmount( toNumbers( vNumRatios, fStart ) ) != toAmount( toNumbers( vNumRatios, fEnd ) ); uiI++)
         {
             xProg << Verbosity( 0 ) << "searching factors [" << fStart << ", " << fEnd << ")\n";
             double fMin = 0;
