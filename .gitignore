@@ -22,3 +22,5 @@ core.*
 callgrind.out.*
 settings.json
 *.prof
+perf.data
+perf.data.old

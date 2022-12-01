@@ -56,9 +56,6 @@ enum IntersectionType
     slice,
 };
 
-#define DEFAULT_NUM_OVERLAY_SAMPLES 10000
-#define DEFAULT_NUM_POINT_SAMPLES 10000
-
 /**
  * @brief The main sparse prefix sum index class.
  *
@@ -254,9 +251,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return class_key_t The id of the generated dataset.
      */
     class_key_t generate( double fFac = -1,
-                          size_t uiVerbosity = 1,
-                          const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
-                          const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
+                          size_t uiVerbosity = 1 )
     {
 #ifdef DO_PROFILE
         ProfilerStart( "gperftools.generate.prof" );
@@ -266,8 +261,7 @@ template <typename type_defs> class Index : public AbstractIndex
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
         // does not unload the memory half way through the initialization. (not relevant for std::vector
         // implementations)
-        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, makeEntry( ), fFac, xProg,
-                        uiNumOverlaySamples, uiNumPointSamples );
+        dataset_t xNew( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vCorners, makeEntry( ), fFac, xProg );
         class_key_t uiRet = vDataSets.size( );
         vDataSets.push_back( xNew );
 
@@ -576,12 +570,9 @@ template <typename type_defs> class Index : public AbstractIndex
      *         The predicted number of dataset structure elements for each factor
      */
     std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
-    estimateDataStructureElements( std::vector<double> vFac,
-                                   const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
-                                   const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES )
+    estimateDataStructureElements( std::vector<double> vFac )
     {
-        return dataset_t::estimateDataStructureElements( vCorners, makeEntry( ), vFac, uiNumOverlaySamples,
-                                                         uiNumPointSamples );
+        return dataset_t::estimateDataStructureElements( vCorners, makeEntry( ), vFac );
     }
 
 
@@ -608,11 +599,10 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
      * @return uint64_t The predicted best value for f
      */
-    uint64_t pickNumOverlays( const uint64_t uiNumOverlaySamples = DEFAULT_NUM_OVERLAY_SAMPLES,
-                              const uint64_t uiNumPointSamples = DEFAULT_NUM_POINT_SAMPLES, size_t uiVerbosity = 0 )
+    uint64_t pickNumOverlays( size_t uiVerbosity = 0 )
     {
         progress_stream_t xProg( uiVerbosity );
-        return dataset_t::pickNumOverlays( vCorners, makeEntry( ), uiNumOverlaySamples, uiNumPointSamples, xProg );
+        return dataset_t::pickNumOverlays( vCorners, makeEntry( ), xProg );
     }
 
     /**
@@ -864,8 +854,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               &sps::Index<type_defs>::generate,
               pybind11::arg( "factor" ) = -1,
               pybind11::arg( "verbosity" ) = 1,
-              pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
-              pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
               R"pbdoc(
     Generate a new dataset from the previously added points.
 
@@ -981,8 +969,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
               "Returns the size of the dataset in bytes." )
         .def( "get_max_prefix_sum", &sps::Index<type_defs>::getMaxPrefixSum, "Get the largest stored prefix sum." )
         .def( "estimate_num_elements", &sps::Index<type_defs>::estimateDataStructureElements, pybind11::arg( "f" ),
-              pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
-              pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES,
               R"pbdoc(
     Predict the number of data structure elements stored in a dataset generated from the currently added points.
 
@@ -1010,8 +996,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :rtype: list[tuple[int]]
 )pbdoc" )
         .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays,
-              pybind11::arg( "num_overlay_samples" ) = DEFAULT_NUM_OVERLAY_SAMPLES,
-              pybind11::arg( "num_points_samples" ) = DEFAULT_NUM_POINT_SAMPLES, pybind11::arg( "verbosity" ) = 0,
+              pybind11::arg( "verbosity" ) = 0,
               R"pbdoc(
     Predict the best factor f for the currently added points.
 

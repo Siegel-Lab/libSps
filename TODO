@@ -2,12 +2,9 @@ Bug:
 
 - second coord system fails for anno coords
 - divide by col & row giving wired results
-- all computational nodes should also know what dependencies are from previous nodes (to make sure no dep is forgotten)
 
 
 Features (ranked)
-
-- check fastest way to export dict via pybind11
 
 - think about caching the overlay prefix sums during construction...
     - would yield another giant speedup!

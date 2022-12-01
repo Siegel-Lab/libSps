@@ -372,7 +372,7 @@ template <typename type_defs> class Overlay
                            std::vector<std::shared_ptr<MergableIterator>>
                                vEnd,
                            coordinate_t uiStart,
-                           coordinate_t uiEnd )
+                           coordinate_t /*uiEnd*/ )
     {
         assert( vBegin.size( ) == vEnd.size( ) );
 
@@ -406,7 +406,7 @@ template <typename type_defs> class Overlay
         while( *vCurr[ uiLargestIdx ] != vEnd[ uiLargestIdx ] )
         {
             coordinate_t uiCurr = **vCurr[ uiLargestIdx ];
-            assert( uiCurr < uiEnd );
+            //assert( uiCurr < uiEnd );
             // no iterator can be smaller than uiCurr
             // otherwise we have found an element that is not in uiLargestIdx
             for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )

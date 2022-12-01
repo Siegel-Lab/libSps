@@ -11,12 +11,10 @@ from bokeh.plotting import figure, save, reset_output
 from bokeh.layouts import gridplot
 from bokeh.models import Div
 
-MIN_FILL = 3# 1
-MAX_FILL = 4# 8
+MIN_FILL = 2# 1
+MAX_FILL = 6# 8
 N_QUERY = 10000 #100k
 #N_QUERY = 10000000 #10,000k
-QUAL_OVERLAY = 1000
-QUAL_PTS = 1000
 
 files = [".prefix_sums", ".coords", ".overlays", ".datsets"]
 files_full = files
@@ -158,7 +156,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                                 density, distrib, asp_ratio, offset)
 
                             size_estimates = index.estimate_num_elements(
-                                    [fac_base ** _fac - 1 for _fac in range(0, 10)], QUAL_OVERLAY, QUAL_PTS) 
+                                    [fac_base ** _fac - 1 for _fac in range(0, 10)]) 
                             
                             for fac, (opsp, ipsp, oscp, iscp, num_overlays, _, file_size_estimate) in zip(
                                             [fac_base ** _fac - 1 for _fac in range(0, 10)], size_estimates):
@@ -166,7 +164,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                 fsp.append(file_size_estimate)
 
                                 if file_size_estimate < max_pred_file_size:
-                                    id = index.generate(fac, 0, QUAL_OVERLAY, QUAL_PTS)
+                                    id = index.generate(fac, 0)
                                     query(index, id, param[0], n)
                                     ipsa = index.get_num_internal_prefix_sums(id)
                                     ipsas.append(ipsa)
@@ -182,7 +180,6 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     opsas.append(float('NaN'))
                                     iscas.append(float('NaN'))
                                     oscas.append(float('NaN'))
-                                    las.append(float('NaN'))
                                     gcs.append(float('NaN'))
                                 
                                 opsps.append(opsp)
@@ -213,19 +210,19 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     print("!", end="", flush=True)
 
                             print(" ", end="", flush=True)
-                            picked_num = index.pick_num_overlays(QUAL_OVERLAY, QUAL_PTS)
+                            picked_num = index.pick_num_overlays()
                             print(".", end="", flush=True)
                             picked_size = index.estimate_num_elements( 
-                                    [index.to_factor(picked_num)],
-                                    QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                                    [index.to_factor(picked_num)]
+                                    )[0][-1] / 10**9 # in GB
                             print(".", end="", flush=True)
                             picked_size_s = index.estimate_num_elements( 
-                                    [index.to_factor(int(num_cells ** ( 1/(param[0]+param[1])) ))],
-                                    QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                                    [index.to_factor(int(num_cells ** ( 1/(param[0]+param[1])) ))]
+                                    )[0][-1] / 10**9 # in GB
                             print(".", end="", flush=True)
                             picked_size_g = index.estimate_num_elements( 
-                                    [index.to_factor(int(num_cells ** ( 1/2 )))],
-                                    QUAL_OVERLAY, QUAL_PTS)[0][-1] / 10**9 # in GB
+                                    [index.to_factor(int(num_cells ** ( 1/2 )))]
+                                    )[0][-1] / 10**9 # in GB
                             print(".")
                             del index
                             if plot:
