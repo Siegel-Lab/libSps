@@ -8,11 +8,9 @@ import os
 import time
 
 
-# N_QUERY = 10000 # 10K
-# REPEAT_QUERY = 1000
+N_QUERY = 10000 # 10K
+REPEAT_QUERY = 1000
 
-N_QUERY = 1000 # 1K
-REPEAT_QUERY = 100
 FILLS = [10000, 1000000] # 10K and 1G
 AREAS = [10000, 1000000] # 10K and 1G
 
@@ -21,7 +19,7 @@ print("#N_QUERY", N_QUERY)
 print("#REPEAT_QUERY", REPEAT_QUERY)
 print("this will run for a long while...")
 
-files = [".prefix_sums", ".coords", ".overlays", ".datsets", ".desc", ".points"]
+files = [".prefix_sums", ".coords", ".overlays", ".datsets"]
 
 def query(index, id, dims, genome_size, n=N_QUERY):
     t1 = 0
@@ -36,9 +34,9 @@ def query(index, id, dims, genome_size, n=N_QUERY):
                 y = random.randrange(genome_size)
                 pos_s.append(min(x, y))
                 pos_e.append(max(x, y))
-            bins.append((pos_s, pos_e))
+            bins.append((id, pos_s, pos_e))
         t1 += time.perf_counter()
-        index.count_multiple(id, bins)
+        index.count_multiple(bins)
         t2 += time.perf_counter()
     # querytime
     print( ( n * REPEAT_QUERY / (t2-t1) ) / 1000, end="\t")
@@ -79,7 +77,9 @@ def make_indices():
     for dims in [2, 3]:
         for ort_dim in [False, True]:
             num_ort_dims = 2 if ort_dim else 0
+            #for bin_search in [True]:
             for bin_search in [False, True]:
+                #for storage in ["Disk"]:
                 for storage in ["Disk", "Cached"]:
                     xs = [
                         str(dims) + "d", 

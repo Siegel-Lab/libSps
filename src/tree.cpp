@@ -66,12 +66,10 @@ std::string exportSparseCoords( pybind11::module& m, std::string sPref, std::str
 {
     std::string sRet = "";
 #ifdef W_BIN_SEARCH_SPARSE
-    if constexpr( D >= 3 )
-        sRet += exportStorage<D, orthope, true>( m, sPref + "BinSearch", sSuff );
+    sRet += exportStorage<D, orthope, true>( m, sPref + "BinSearch", sSuff );
 #endif
 #ifdef WO_BIN_SEARCH_SPARSE
-    if constexpr( D >= 2 )
-        sRet += exportStorage<D, orthope, false>( m, sPref + "LookupArr", sSuff );
+    sRet += exportStorage<D, orthope, false>( m, sPref + "LookupArr", sSuff );
 #endif
     return sRet;
 }
@@ -291,6 +289,12 @@ Documentation for the Python Module
 
     :param num_dimensions: Number of dimensions for datapoints in the index, defaults to 2.
     :type num_dimensions: int
+
+    :param num_orthotope_dimensions: Number of orthotope dimensions for the index (i.e. in how many dimensions do the data-hyperrectangles have thickness), defaults to 0.
+    :type num_orthotope_dimensions: int
+
+    :param bin_search_sparse: store sparse coordinates in a compressed format that makes queries slower but the index smaller, defaults to true.
+    :type bin_search_sparse: bool
 
     :param storage_type: The way the datastructure interacts with the filesystem, defaults to Ram.
     :type storage_type: str
