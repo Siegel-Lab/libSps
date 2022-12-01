@@ -19,18 +19,18 @@ template <size_t D> std::string exportStorageSimpleVec( pybind11::module& m, std
 {
     std::string sRet = "";
 #ifdef DISK
-    sRet += exportSimpleVector<DiskTypeDef<D, D>>( m, ( "DiskSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<DiskTypeDef<D, D, true>>( m, ( "DiskSimpleVector" + sSuff ).c_str( ) );
 #endif
 #ifdef CACHED
-    sRet += exportSimpleVector<CachedTypeDef<D, D>>( m, ( "CachedSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<CachedTypeDef<D, D, true>>( m, ( "CachedSimpleVector" + sSuff ).c_str( ) );
 #endif
 #ifdef RAM
-    sRet += exportSimpleVector<InMemTypeDef<D, D>>( m, ( "RamSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<InMemTypeDef<D, D, true>>( m, ( "RamSimpleVector" + sSuff ).c_str( ) );
 #endif
     return sRet;
 }
 
-template <size_t D, size_t orthope>
+template <size_t D, size_t orthope, bool bBinSearchSparse>
 std::string exportStorage( pybind11::module& m, std::string sPref, std::string sSuff )
 {
     std::string sDesc = "for";
@@ -47,13 +47,31 @@ std::string exportStorage( pybind11::module& m, std::string sPref, std::string s
     sDesc += " in " + std::to_string( D - orthope ) + "-dimensional space";
     std::string sRet = "";
 #ifdef DISK
-    sRet += exportIndex<DiskTypeDef<D, orthope>>( m, ( "Disk" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
+    sRet += exportIndex<DiskTypeDef<D, orthope, bBinSearchSparse>>(
+        m, ( "Disk" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
 #endif
 #ifdef CACHED
-    sRet += exportIndex<CachedTypeDef<D, orthope>>( m, ( "Cached" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
+    sRet += exportIndex<CachedTypeDef<D, orthope, bBinSearchSparse>>(
+        m, ( "Cached" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
 #endif
 #ifdef RAM
-    sRet += exportIndex<InMemTypeDef<D, orthope>>( m, ( "Ram" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
+    sRet += exportIndex<InMemTypeDef<D, orthope, bBinSearchSparse>>(
+        m, ( "Ram" + sPref + "PrefixSum" + sSuff ).c_str( ), sDesc );
+#endif
+    return sRet;
+}
+
+template <size_t D, size_t orthope>
+std::string exportSparseCoords( pybind11::module& m, std::string sPref, std::string sSuff )
+{
+    std::string sRet = "";
+#ifdef W_BIN_SEARCH_SPARSE
+    if constexpr( D >= 3 )
+        sRet += exportStorage<D, orthope, true>( m, sPref + "BinSearch", sSuff );
+#endif
+#ifdef WO_BIN_SEARCH_SPARSE
+    if constexpr( D >= 2 )
+        sRet += exportStorage<D, orthope, false>( m, sPref + "LookupArr", sSuff );
 #endif
     return sRet;
 }
@@ -63,17 +81,17 @@ template <size_t D> std::string exportOrthope( pybind11::module& m, std::string 
     std::string sRet = "";
 #ifdef W_CUBES
     if constexpr( D >= 3 )
-        sRet += exportStorage<D + 3, 3>( m, "Cubes", sSuff );
+        sRet += exportSparseCoords<D + 3, 3>( m, "Cubes", sSuff );
 #endif
 #ifdef W_RECTANGLES
     if constexpr( D >= 2 )
-        sRet += exportStorage<D + 2, 2>( m, "Rectangles", sSuff );
+        sRet += exportSparseCoords<D + 2, 2>( m, "Rectangles", sSuff );
 #endif
 #ifdef W_INTERVALS
-    sRet += exportStorage<D + 1, 1>( m, "Intervals", sSuff );
+    sRet += exportSparseCoords<D + 1, 1>( m, "Intervals", sSuff );
 #endif
 #ifdef W_POINTS
-    sRet += exportStorage<D, 0>( m, "Points", sSuff );
+    sRet += exportSparseCoords<D, 0>( m, "Points", sSuff );
 #endif
     return sRet;
 }
@@ -114,16 +132,16 @@ size_t getTotalSystemMemory( )
     return pages * page_size;
 }
 
-template <size_t D, size_t orthope, template <size_t, size_t> typename storage_t>
+template <size_t D, size_t orthope, bool bBinSearchSparse, template <size_t, size_t, bool> typename storage_t>
 std::unique_ptr<AbstractIndex> factoryHelperFinal( std::string sPrefix, bool bWrite, bool bSimpleVec )
 {
     if( bSimpleVec )
-        return std::make_unique<sps::SimpleVector<storage_t<D, D>>>( sPrefix, bWrite );
+        return std::make_unique<sps::SimpleVector<storage_t<D, D, true>>>( sPrefix, bWrite );
     else
-        return std::make_unique<sps::Index<storage_t<D, orthope>>>( sPrefix, bWrite );
+        return std::make_unique<sps::Index<storage_t<D, orthope, bBinSearchSparse>>>( sPrefix, bWrite );
 }
 
-template <size_t D, size_t orthope>
+template <size_t D, size_t orthope, bool bBinSearchSparse>
 std::unique_ptr<AbstractIndex> factoryHelper( std::string sStorageType, std::string sPrefix, bool bWrite,
                                               bool bSimpleVec )
 {
@@ -132,77 +150,96 @@ std::unique_ptr<AbstractIndex> factoryHelper( std::string sStorageType, std::str
     if( sStorageType == "PickByFileSize" )
     {
         if( bWrite ) // cached
-            return factoryHelperFinal<D, orthope, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
+            return factoryHelperFinal<D, orthope, bBinSearchSparse, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
 
         std::ifstream::pos_type uiTotalSize = filesize( ( sPrefix + ".prefix_sums" ).c_str( ) ) + //
                                               filesize( ( sPrefix + ".coords" ).c_str( ) );
 
         if( (size_t)uiTotalSize * 2 < getTotalSystemMemory( ) ) // Disk
-            return factoryHelperFinal<D, orthope, DiskTypeDef>( sPrefix, bWrite, bSimpleVec );
+            return factoryHelperFinal<D, orthope, bBinSearchSparse, DiskTypeDef>( sPrefix, bWrite, bSimpleVec );
         else // CACHED
-            return factoryHelperFinal<D, orthope, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
+            return factoryHelperFinal<D, orthope, bBinSearchSparse, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
     }
 #endif
 #endif
 
 #ifdef DISK
     if( sStorageType == "Disk" )
-        return factoryHelperFinal<D, orthope, DiskTypeDef>( sPrefix, bWrite, bSimpleVec );
+        return factoryHelperFinal<D, orthope, bBinSearchSparse, DiskTypeDef>( sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef CACHED
     if( sStorageType == "Cached" )
-        return factoryHelperFinal<D, orthope, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
+        return factoryHelperFinal<D, orthope, bBinSearchSparse, CachedTypeDef>( sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef RAM
     if( sStorageType == "Ram" )
-        return factoryHelperFinal<D, orthope, InMemTypeDef>( sPrefix, bWrite, bSimpleVec );
+        return factoryHelperFinal<D, orthope, bBinSearchSparse, InMemTypeDef>( sPrefix, bWrite, bSimpleVec );
 #endif
     throw std::invalid_argument( "libSps has not been compiled with the requested storage type." );
 }
 
-template <size_t D>
-std::unique_ptr<AbstractIndex> factoryHelper( size_t uiOrthtopeDims, std::string sStorageType, std::string sPrefix,
+template <size_t D, size_t orthope>
+std::unique_ptr<AbstractIndex> factoryHelper( bool bBinSearchSparse, std::string sStorageType, std::string sPrefix,
                                               bool bWrite, bool bSimpleVec )
+{
+#ifdef W_BIN_SEARCH_SPARSE
+    if( bBinSearchSparse )
+        return factoryHelper<D, orthope, true>( sStorageType, sPrefix, bWrite, bSimpleVec );
+#endif
+#ifdef WO_BIN_SEARCH_SPARSE
+    if( !bBinSearchSparse )
+        return factoryHelper<D, orthope, false>( sStorageType, sPrefix, bWrite, bSimpleVec );
+#endif
+    throw std::invalid_argument( "libSps has not been compiled with the requested lookup array approach." );
+}
+
+template <size_t D>
+std::unique_ptr<AbstractIndex> factoryHelper( size_t uiOrthtopeDims, bool bBinSearchSparse, std::string sStorageType,
+                                              std::string sPrefix, bool bWrite, bool bSimpleVec )
 {
 #ifdef W_CUBES
     if( uiOrthtopeDims == 3 )
-        return factoryHelper<D + 3, 3>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D + 3, 3>( bBinSearchSparse, sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_RECTANGLES
     if( uiOrthtopeDims == 2 )
-        return factoryHelper<D + 2, 2>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D + 2, 2>( bBinSearchSparse, sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_INTERVALS
     if( uiOrthtopeDims == 1 )
-        return factoryHelper<D + 1, 1>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D + 1, 1>( bBinSearchSparse, sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
 #ifdef W_POINTS
     if( uiOrthtopeDims == 0 )
-        return factoryHelper<D, 0>( sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<D, 0>( bBinSearchSparse, sStorageType, sPrefix, bWrite, bSimpleVec );
 #endif
     throw std::invalid_argument( "libSps has not been compiled with the requested number of orthotope dimensions." );
 }
 
 
-std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t uiOrthtopeDims,
+std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t uiOrthtopeDims, bool bBinSearchSparse,
                                         std::string sStorageType, bool bWrite )
 {
     bool bSimpleVec = false;
 #if NUM_DIMENSIONS_A != 0
     if( NUM_DIMENSIONS_A == uiD )
-        return factoryHelper<NUM_DIMENSIONS_A>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<NUM_DIMENSIONS_A>( uiOrthtopeDims, bBinSearchSparse, sStorageType, sPrefix, bWrite,
+                                                bSimpleVec );
 #endif
 #if NUM_DIMENSIONS_B != 0
     if( NUM_DIMENSIONS_B == uiD )
-        return factoryHelper<NUM_DIMENSIONS_B>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<NUM_DIMENSIONS_B>( uiOrthtopeDims, bBinSearchSparse, sStorageType, sPrefix, bWrite,
+                                                bSimpleVec );
 #endif
 #if NUM_DIMENSIONS_C != 0
     if( NUM_DIMENSIONS_C == uiD )
-        return factoryHelper<NUM_DIMENSIONS_C>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<NUM_DIMENSIONS_C>( uiOrthtopeDims, bBinSearchSparse, sStorageType, sPrefix, bWrite,
+                                                bSimpleVec );
 #endif
 #if NUM_DIMENSIONS_D != 0
     if( NUM_DIMENSIONS_D == uiD )
-        return factoryHelper<NUM_DIMENSIONS_D>( uiOrthtopeDims, sStorageType, sPrefix, bWrite, bSimpleVec );
+        return factoryHelper<NUM_DIMENSIONS_D>( uiOrthtopeDims, bBinSearchSparse, sStorageType, sPrefix, bWrite,
+                                                bSimpleVec );
 #endif
     throw std::invalid_argument( "libSps has not been compiled with the requested number of dimensions." );
 }
@@ -244,8 +281,8 @@ Documentation for the Python Module
 
     // export the factory function
     m.def( "make_sps_index", &factory, pybind11::arg( "filepath_prefix" ) = "", pybind11::arg( "num_dimensions" ) = 2,
-           pybind11::arg( "num_orthotope_dimensions" ) = 0, pybind11::arg( "storage_type" ) = "Ram",
-           pybind11::arg( "open_in_write_mode" ) = true,
+           pybind11::arg( "num_orthotope_dimensions" ) = 0, pybind11::arg( "bin_search_sparse" ) = true,
+           pybind11::arg( "storage_type" ) = "Ram", pybind11::arg( "open_in_write_mode" ) = true,
            R"pbdoc(
     Factory for the sparse prefix sum indices.
     

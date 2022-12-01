@@ -138,7 +138,6 @@ using default_coordinate_t = uint64_t;
 using default_val_t = uint32_t;
 using default_class_key_t = uint16_t;
 static const bool EXPLAIN = false;
-static const bool BINARY_SEARCH_BASED_SPARSE = true;
 
 /**
  * @brief Type definitions for a RAM Index
@@ -148,7 +147,7 @@ static const bool BINARY_SEARCH_BASED_SPARSE = true;
  * @tparam D number of dimensions
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, size_t orthope>
+template <size_t D, size_t orthope, bool bin_search_sparse>
 using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               default_val_t, //
                               D, //
@@ -159,7 +158,7 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               RamVecGenerator, //
                               RamVecGenerator, //
                               RamVecGenerator, //
-                              BINARY_SEARCH_BASED_SPARSE, //
+                              bin_search_sparse, //
                               orthope, //
                               EXPLAIN, //
                               StdOutProgressStream>;
@@ -346,7 +345,7 @@ template <typename val_t> struct DiskVecGenerator
  * @tparam D number of dimensions
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, size_t orthope>
+template <size_t D, size_t orthope, bool bin_search_sparse>
 using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              default_val_t, //
                              D, //
@@ -357,7 +356,7 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              DiskVecGenerator, //
                              DiskVecGenerator, //
                              DiskVecGenerator, //
-                             BINARY_SEARCH_BASED_SPARSE, //
+                             bin_search_sparse, //
                              orthope, //
                              EXPLAIN, //
                              StdOutProgressStream>;
@@ -373,7 +372,7 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
  * @tparam D number of dimensions
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, size_t orthope>
+template <size_t D, size_t orthope, bool bin_search_sparse>
 using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                default_val_t, //
                                D, //
@@ -386,7 +385,7 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                DiskVecGenerator, //
                                DiskVecGenerator, //
                                CachedVecGenerator, //
-                               BINARY_SEARCH_BASED_SPARSE, //
+                               bin_search_sparse, //
                                orthope, //
                                EXPLAIN, //
                                StdOutProgressStream>;

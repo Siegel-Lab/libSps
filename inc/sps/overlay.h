@@ -114,7 +114,7 @@ template <typename type_defs> class Overlay
 
         std::shared_ptr<MergableIterator> copy( ) const
         {
-            return std::make_shared<CordIterator>( cord_it_t(xIt) );
+            return std::make_shared<CordIterator>( cord_it_t( xIt ) );
         }
     };
 
@@ -275,8 +275,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -380,10 +380,10 @@ template <typename type_defs> class Overlay
         for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
         {
             vCurr.push_back( vBegin[ uiI ]->copy( ) );
-            while(*vCurr[ uiI ] != vEnd[ uiI ] && **vCurr[ uiI ] < uiStart)
+            while( *vCurr[ uiI ] != vEnd[ uiI ] && **vCurr[ uiI ] < uiStart )
                 ++( *vCurr[ uiI ] );
 
-            assert( !(*vCurr[ uiI ] != vEnd[ uiI ]) || **vCurr[ uiI ] >= uiStart );
+            assert( !( *vCurr[ uiI ] != vEnd[ uiI ] ) || **vCurr[ uiI ] >= uiStart );
         }
 
 
@@ -406,9 +406,9 @@ template <typename type_defs> class Overlay
         while( *vCurr[ uiLargestIdx ] != vEnd[ uiLargestIdx ] )
         {
             coordinate_t uiCurr = **vCurr[ uiLargestIdx ];
-            //assert( uiCurr < uiEnd );
-            // no iterator can be smaller than uiCurr
-            // otherwise we have found an element that is not in uiLargestIdx
+            // assert( uiCurr < uiEnd );
+            //  no iterator can be smaller than uiCurr
+            //  otherwise we have found an element that is not in uiLargestIdx
             for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
                 if( *vCurr[ uiI ] != vEnd[ uiI ] && **vCurr[ uiI ] < uiCurr )
                     return vBegin.size( );

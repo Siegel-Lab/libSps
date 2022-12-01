@@ -6,6 +6,8 @@ Bug:
 
 Features (ranked)
 
+- list based compilation parameter system
+
 - think about caching the overlay prefix sums during construction...
     - would yield another giant speedup!
     - requires size estimation adjustment

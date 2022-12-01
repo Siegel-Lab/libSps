@@ -16,11 +16,12 @@ option(W_RECTANGLES "Build datastructures with rectangles as data-elements" OFF)
 option(W_INTERVALS "Build datastructures with intervals as data-elements" OFF)
 option(W_POINTS "Build datastructures with points as data-elements" ON)
 
+option(W_BIN_SEARCH_SPARSE "Build datastructures binary search sparse coords" ON)
+option(WO_BIN_SEARCH_SPARSE "Build datastructures lookup array sparse coords" ON)
+
 option(DISK "Build disk based datastructures (IO on load & unload)." OFF)
 option(CACHED "Build cached datastructures (IO during runtime)." ON)
 option(RAM "Build ram datastructures (Non-persistent)." ON)
-
-option(DO_PROFILE "Add profileing code to the llibrary. Uses gperftools." OFF)
 
 # disallow in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -88,6 +89,13 @@ if(WITH_PYTHON)
     target_compile_definitions( libSps PRIVATE NUM_DIMENSIONS_C=${NUM_DIMENSIONS_C} )
     target_compile_definitions( libSps PRIVATE NUM_DIMENSIONS_D=${NUM_DIMENSIONS_D} )
 
+    if(${W_BIN_SEARCH_SPARSE})
+        target_compile_definitions( libSps PRIVATE W_BIN_SEARCH_SPARSE )
+    endif()
+    if(${WO_BIN_SEARCH_SPARSE})
+        target_compile_definitions( libSps PRIVATE WO_BIN_SEARCH_SPARSE )
+    endif()
+
     if(${DISK})
         target_compile_definitions( libSps PRIVATE DISK )
     endif()
@@ -115,37 +123,6 @@ if(WITH_PYTHON)
     add_dependencies(libSps sps_config_version sps_config_build_time)
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake) 
-if(DO_PROFILE)
-    # build a cpp only test project (this wll show any linker errors that might be hidden with the python build)
-    #find_package(Gperftools REQUIRED)
-    add_executable ( test src/main.cpp )
-    target_include_directories( test PUBLIC inc )
-    target_include_directories( test SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
-    target_link_libraries(test PUBLIC stxxl )
-    target_include_directories( test PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
-    add_dependencies(test sps_config_version sps_config_build_time)
-
-    # build benchmakring
-    add_executable ( benchmark src/benchmark.cpp )
-
-    target_compile_definitions( benchmark PRIVATE NUM_DIMENSIONS_A=2 )
-    target_compile_definitions( benchmark PRIVATE NUM_DIMENSIONS_B=0 )
-    target_compile_definitions( benchmark PRIVATE NUM_DIMENSIONS_C=0 )
-    target_compile_definitions( benchmark PRIVATE NUM_DIMENSIONS_D=0 )
-    target_compile_definitions( benchmark PRIVATE RAM )
-    target_compile_definitions( benchmark PRIVATE W_POINTS )
-    target_compile_definitions( benchmark PRIVATE DO_PROFILE )
-
-    target_include_directories( benchmark PUBLIC /usr/include )
-    target_include_directories( benchmark PUBLIC inc )
-    target_include_directories( benchmark SYSTEM PUBLIC ${STXXL_INCLUDE_DIRS} )
-
-    target_link_libraries(benchmark PUBLIC stxxl )
-    target_link_libraries( benchmark PUBLIC profiler )
-
-    add_dependencies(benchmark sps_config_version sps_config_build_time)
-endif()
 
 add_library( Sps INTERFACE )
 target_include_directories( Sps SYSTEM INTERFACE inc )

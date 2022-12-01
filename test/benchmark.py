@@ -8,8 +8,11 @@ import os
 import time
 
 
-N_QUERY = 10000 # 10K
-REPEAT_QUERY = 1000
+# N_QUERY = 10000 # 10K
+# REPEAT_QUERY = 1000
+
+N_QUERY = 1000 # 1K
+REPEAT_QUERY = 100
 FILLS = [10000, 1000000] # 10K and 1G
 AREAS = [10000, 1000000] # 10K and 1G
 
@@ -41,6 +44,7 @@ def query(index, id, dims, genome_size, n=N_QUERY):
     print( ( n * REPEAT_QUERY / (t2-t1) ) / 1000, end="\t")
 
 def fill(n, index, name, dims, is_ort, area, _area):
+    print(*name, _area, n, sep="\t", end="\t")
     index.clear()
     t1 = time.perf_counter()
     for _ in range(n):
@@ -55,17 +59,17 @@ def fill(n, index, name, dims, is_ort, area, _area):
             for _ in range(2, dims):
                 pos_s.append(random.randrange(area))
             pos_e += pos_s[2:]
-            index.add_point(pos_s, pos_e, "")
+            index.add_point(pos_s, pos_e)
         else:
             pos_s = []
             for _ in range(0, dims):
                 pos_s.append(random.randrange(area))
-            index.add_point(pos_s, "")
+            index.add_point(pos_s)
     t2 = time.perf_counter()
-    id = index.generate(0, len(index), verbosity=0)
+    id = index.generate(verbosity=0)
     t3 = time.perf_counter()
     # index_name, filltime, generatetime
-    print(*name, _area, n, (t2-t1), (t3-t2), sep="\t", end="\t")
+    print((t2-t1), (t3-t2), sep="\t", end="\t")
     return id
 
 def make_indices():
@@ -75,20 +79,23 @@ def make_indices():
     for dims in [2, 3]:
         for ort_dim in [False, True]:
             num_ort_dims = 2 if ort_dim else 0
-            for storage in ["Disk", "Cached"]:
-                xs = [
-                    str(dims) + "d", 
-                    ("rect" if ort_dim else "point"), 
-                    ("ram" if storage == "Disk" else "cached"), 
-                ]
-                index_names.append(xs)
-                indices.append(("test/benchmark_index", dims, False, True, num_ort_dims, storage))
-                params.append((dims, ort_dim))
+            for bin_search in [False, True]:
+                for storage in ["Disk", "Cached"]:
+                    xs = [
+                        str(dims) + "d", 
+                        ("rect" if ort_dim else "point"), 
+                        ("bin_search" if bin_search else "lookup_arr"), 
+                        ("ram" if storage == "Disk" else "cached"), 
+                    ]
+                    index_names.append(xs)
+                    indices.append(("test/benchmark_index", dims, num_ort_dims, bin_search, storage))
+                    params.append((dims, ort_dim))
     return indices, index_names, params
 
 def test():
     indices, index_names, params = make_indices()
-    print("dims", "ort", "storage", "area", "n", "filltime [s]", "generatetime [s]", "speed [queries / ms]", 
+    print("dims", "ort", "sparse_coords", 
+          "storage", "area", "n", "filltime [s]", "generatetime [s]", "speed [queries / ms]", 
           "filesize [gb]", sep="\t")
 
     for index_params, name, param in zip(indices, index_names, params):
@@ -96,7 +103,7 @@ def test():
         for _area in AREAS:
             area = int(_area ** ( 1 / (param[0] + param[1])))
             for n in FILLS:
-                id = fill(n, index, name if n == FILLS[0] and _area == AREAS[0] else [""]*3, *param, area, _area)
+                id = fill(n, index, name if n == FILLS[0] and _area == AREAS[0] else [""]*4, *param, area, _area)
                 query(index, id, param[0], area)
                 # filesize
                 print(index.get_size(id)/ 10**9) # in GB

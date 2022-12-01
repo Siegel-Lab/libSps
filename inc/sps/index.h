@@ -25,9 +25,6 @@
 #include <pybind11/stl.h>
 #endif
 
-#ifdef DO_PROFILE
-#include <gperftools/profiler.h>
-#endif
 
 namespace sps
 {
@@ -250,12 +247,8 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @return class_key_t The id of the generated dataset.
      */
-    class_key_t generate( double fFac = -1,
-                          size_t uiVerbosity = 1 )
+    class_key_t generate( double fFac = -1, size_t uiVerbosity = 1 )
     {
-#ifdef DO_PROFILE
-        ProfilerStart( "gperftools.generate.prof" );
-#endif
 
         progress_stream_t xProg( uiVerbosity );
         // generate the dataset in ram then push it into the index to make sure that the cache of the vector
@@ -267,10 +260,6 @@ template <typename type_defs> class Index : public AbstractIndex
 
         vCorners.clear( );
 
-#ifdef DO_PROFILE
-        ProfilerFlush( );
-        ProfilerStop( );
-#endif
 #ifndef NDEBUG
         xProg << Verbosity( 1 ) << "\n\nMaximal prefix sum value: " << maxPrefixSumValue( ) << ".\n";
 #endif
@@ -443,19 +432,12 @@ template <typename type_defs> class Index : public AbstractIndex
                                       IntersectionType xInterType = IntersectionType::enclosed,
                                       size_t uiVerbosity = 0 ) const
     {
-#ifdef DO_PROFILE
-        ProfilerStart( "gperftools.countMultiple.prof" );
-#endif
 
         std::vector<val_t> vRet( vRegions.size( ) );
 
         for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
             vRet[ uiI ] = count( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
                                  std::get<2>( vRegions[ uiI ] ), xInterType, uiVerbosity );
-#ifdef DO_PROFILE
-        ProfilerFlush( );
-        ProfilerStop( );
-#endif
         return vRet;
     }
 
@@ -995,8 +977,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :return: The predicted number of dataset structure elements for each factor
     :rtype: list[tuple[int]]
 )pbdoc" )
-        .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays,
-              pybind11::arg( "verbosity" ) = 0,
+        .def( "pick_num_overlays", &sps::Index<type_defs>::pickNumOverlays, pybind11::arg( "verbosity" ) = 0,
               R"pbdoc(
     Predict the best factor f for the currently added points.
 

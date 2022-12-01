@@ -406,8 +406,7 @@ template <typename type_defs> class SparseCoordLookupArray
             : rCord( rCord ), rInfo( rInfo ), uiI( 0 )
         {}
 
-        EntryIterator( const EntryIterator& rOther )
-            : rCord( rOther.rCord ), rInfo( rOther.rInfo ), uiI( rOther.uiI )
+        EntryIterator( const EntryIterator& rOther ) : rCord( rOther.rCord ), rInfo( rOther.rInfo ), uiI( rOther.uiI )
         {}
 
         void operator++( )
@@ -619,8 +618,7 @@ template <typename type_defs> class SparseCoordBinSearch
             : rCord( rCord ), rInfo( rInfo ), uiI( 0 )
         {}
 
-        EntryIterator( const EntryIterator& rOther )
-            : rCord( rOther.rCord ), rInfo( rOther.rInfo ), uiI( rOther.uiI )
+        EntryIterator( const EntryIterator& rOther ) : rCord( rOther.rCord ), rInfo( rOther.rInfo ), uiI( rOther.uiI )
         {}
 
         void operator++( )
