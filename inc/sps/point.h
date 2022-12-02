@@ -138,40 +138,47 @@ inline void forAllCombinations(
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter" // do not warn about vFrom and vTo
 
-template <typename pos_t, size_t N, size_t NE, typename fDo_t, typename fCond_t, typename... extra_t>
+template <typename pos_t, size_t N, size_t NE, template <size_t, size_t, size_t> class fDo_t, size_t uiDistTo,
+          size_t uiNum, size_t uiFirstZero, typename fCond_t, typename... extra_t>
 inline __attribute__( ( always_inline ) ) void forAllCombinationsHelperTmpl( pos_t& vCurr, pos_t& vFrom, pos_t& vTo,
-                                                                             size_t uiDistTo, size_t uiNum, fDo_t&& fDo,
                                                                              fCond_t&& fCond, extra_t&&... rExtra )
 {
     if constexpr /* <- required to prevent infinite unrolling of loop in compiler */ ( N == NE )
-        fDo( uiNum, vCurr, uiDistTo, rExtra... );
+        fDo_t<uiNum, uiDistTo, uiFirstZero>::count( vCurr, rExtra... );
     else
     {
         vCurr[ N ] = vFrom[ N ];
         if( fCond( vCurr[ N ], N, true ) )
-            forAllCombinationsHelperTmpl<pos_t, N + 1, NE>( vCurr, vFrom, vTo, uiDistTo + 1, uiNum, fDo, fCond,
-                                                            rExtra... );
+        {
+            if constexpr( uiFirstZero == NE )
+                forAllCombinationsHelperTmpl<pos_t, N + 1, NE, fDo_t, uiDistTo + 1, uiNum, N>( vCurr, vFrom, vTo, fCond,
+                                                                                               rExtra... );
+            else
+                forAllCombinationsHelperTmpl<pos_t, N + 1, NE, fDo_t, uiDistTo + 1, uiNum, uiFirstZero>(
+                    vCurr, vFrom, vTo, fCond, rExtra... );
+        }
         vCurr[ N ] = vTo[ N ];
         if( fCond( vCurr[ N ], N, false ) )
-            forAllCombinationsHelperTmpl<pos_t, N + 1, NE>(
-                vCurr, vFrom, vTo, uiDistTo, uiNum + ( 1 << ( NE - ( N + 1 ) ) ), fDo, fCond, rExtra... );
+            forAllCombinationsHelperTmpl<pos_t, N + 1, NE, fDo_t, uiDistTo, uiNum + ( 1 << ( NE - ( N + 1 ) ) ),
+                                         uiFirstZero>( vCurr, vFrom, vTo, fCond, rExtra... );
     }
 }
 #pragma GCC diagnostic pop
 
-template <typename pos_t, size_t N, typename fDo_t, typename fCond_t, typename... extra_t>
-inline __attribute__( ( always_inline ) ) void forAllCombinationsNTmpl( pos_t& vFrom, pos_t& vTo, fDo_t&& fDo,
-                                                                        fCond_t&& fCond, extra_t&&... rExtra )
+template <typename pos_t, size_t N, template <size_t, size_t, size_t> class fDo_t, typename fCond_t,
+          typename... extra_t>
+inline __attribute__( ( always_inline ) ) void forAllCombinationsNTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond,
+                                                                        extra_t&&... rExtra )
 {
     pos_t vCurr{ };
-    forAllCombinationsHelperTmpl<pos_t, 0, N>( vCurr, vFrom, vTo, 0, 0, fDo, fCond, rExtra... );
+    forAllCombinationsHelperTmpl<pos_t, 0, N, fDo_t, 0, 0, N>( vCurr, vFrom, vTo, fCond, rExtra... );
 }
 
-template <typename pos_t, typename fDo_t, typename fCond_t, typename... extra_t>
-inline __attribute__( ( always_inline ) ) void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fDo_t&& fDo,
-                                                                       fCond_t&& fCond, extra_t&&... rExtra )
+template <typename pos_t, template <size_t, size_t, size_t> class fDo_t, typename fCond_t, typename... extra_t>
+inline __attribute__( ( always_inline ) ) void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond,
+                                                                       extra_t&&... rExtra )
 {
-    forAllCombinationsNTmpl<pos_t, array_size<pos_t>::size>( vFrom, vTo, fDo, fCond, rExtra... );
+    forAllCombinationsNTmpl<pos_t, array_size<pos_t>::size, fDo_t>( vFrom, vTo, fCond, rExtra... );
 }
 
 } // namespace sps

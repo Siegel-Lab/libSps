@@ -697,9 +697,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
-        uint64_t uiNumOverlaySamples = std::max(1ul, (uint64_t)std::log2( uiNumOverlaysTotal ));
+        uint64_t uiNumOverlaySamples = std::max( 1ul, (uint64_t)std::log2( uiNumOverlaysTotal ) );
         uint64_t uiNumPointSamples =
-            std::max(1ul, (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ));
+            std::max( 1ul, (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {

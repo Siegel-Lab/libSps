@@ -4,10 +4,10 @@
 #include "sps/nd_grid.h"
 #include "sps/sparse_coordinate.h"
 #include "sps/thread_pool.h"
+#include <bitset>
 #include <cassert>
 #include <functional>
 #include <string>
-
 
 namespace sps
 {
@@ -123,39 +123,40 @@ template <typename type_defs> class Overlay
         std::vector<std::shared_ptr<MergableIterator>> vBegin;
         std::vector<std::shared_ptr<MergableIterator>> vEnd;
         coordinate_t uiEnd;
+        size_t uiSmallestValid;
 
       public:
         MergeIterator( std::vector<std::shared_ptr<MergableIterator>> vBegin,
                        std::vector<std::shared_ptr<MergableIterator>> vEnd, coordinate_t uiEnd )
             : vBegin( vBegin ), vEnd( vEnd ), uiEnd( uiEnd )
-        {}
-
-        size_t getSmallestValid( ) const
         {
-            size_t uiSmallestValid = 0;
+            setSmallestValid( );
+        }
+
+        void setSmallestValid( )
+        {
+            uiSmallestValid = 0;
             while( uiSmallestValid < vBegin.size( ) && !( *vBegin[ uiSmallestValid ] != vEnd[ uiSmallestValid ] ) )
                 ++uiSmallestValid;
             assert( uiSmallestValid < vBegin.size( ) );
             for( size_t uiI = uiSmallestValid + 1; uiI < vBegin.size( ); uiI++ )
                 if( *vBegin[ uiI ] != vEnd[ uiI ] && **vBegin[ uiI ] < **vBegin[ uiSmallestValid ] )
                     uiSmallestValid = uiI;
-            return uiSmallestValid;
         }
 
         void operator++( )
         {
-            size_t uiSmallestValid = getSmallestValid( );
-
             for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
                 if( uiI != uiSmallestValid && *vBegin[ uiI ] != vEnd[ uiI ] &&
                     !( **vBegin[ uiSmallestValid ] < **vBegin[ uiI ] ) )
                     ++*vBegin[ uiI ];
             ++*vBegin[ uiSmallestValid ];
+            setSmallestValid( );
         }
 
         const coordinate_t operator*( ) const
         {
-            return **vBegin[ getSmallestValid( ) ];
+            return **vBegin[ uiSmallestValid ];
         }
 
         bool operator!=( const MergeIterator& rOther ) const
@@ -275,8 +276,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -673,137 +674,140 @@ template <typename type_defs> class Overlay
             }
     }
 
-#define SANITY 1 //! NDEBUG
-
+#define SANITY !NDEBUG
 #pragma GCC diagnostic push
 // uiCornerIdx unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-    static inline __attribute__( ( always_inline ) ) void
-    getCombinationsInvariant( size_t, pos_t vPos, size_t uiDistToTo, val_t& uiRet, pos_t& vMyBottomLeft,
-                              const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
-                              const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
-                              const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
-                              size_t uiCornerIdx, sps_t uiBottomLeftPrefixSum
-#if GET_PROG_PRINTS
-                              ,
-                              progress_stream_t& xProg
-#endif
-    )
+    template <size_t, size_t uiDistToTo, size_t uiFirstZero> struct CombinationsInvariant
     {
-        if( uiDistToTo == 0 || D == 1 )
-            return;
-        size_t uiI = 0;
-        while( uiI < D && ( vPos[ uiI ] != vMyBottomLeft[ uiI ] || vSparseCoordsOverlay[ uiI ][ 0 ].uiStartIndex ==
-                                                                       std::numeric_limits<coordinate_t>::max( ) ) )
-            ++uiI;
-
-        if( uiI == D )
-            return;
-
+        static inline __attribute__( ( always_inline ) ) void
+        count( pos_t vPos, val_t& uiRet, pos_t& /*vMyBottomLeft*/,
+               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
+               const prefix_sum_grid_t& rPrefixSums,
+               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+               size_t uiCornerIdx, sps_t uiBottomLeftPrefixSum
 #if GET_PROG_PRINTS
-        xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiI << "\n";
+               ,
+               progress_stream_t& xProg
 #endif
-        red_pos_t vRelevant = relevant( vPos, uiI );
-        red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiI ] );
-
-        bool bValid = true;
-        for( size_t uiI = 0; uiI < D - 1; uiI++ )
-            bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
-
-#if GET_PROG_PRINTS
-        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << " valid: " << ( bValid ? "true" : "false" )
-              << "\n";
-#endif
-        // in release mode query with sanity=false to avoid sanity checks
-        sps_t uiCurrArr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
-
-        val_t uiCurr;
-        if( bValid )
+        )
         {
-            if constexpr( IS_ORTHOTOPE )
-                uiCurr = uiCurrArr[ uiCornerIdx ];
-            else
-                uiCurr = uiCurrArr;
-        }
-        else
-        {
-            if constexpr( IS_ORTHOTOPE )
-                uiCurr = uiBottomLeftPrefixSum[ uiCornerIdx ];
-            else
-                uiCurr = uiBottomLeftPrefixSum;
-        }
+            if constexpr( uiDistToTo == 0 || D == 1 )
+                return;
+            if constexpr( uiFirstZero == D )
+                return;
 
 #if GET_PROG_PRINTS
-        xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << " (" << uiCurrArr << ")\n";
+            xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiFirstZero << "\n";
 #endif
-        uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? -1 : 1 );
-    }
+            red_pos_t vRelevant = relevant( vPos, uiFirstZero );
+            red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
 
+            bool bValid = true;
+            for( size_t uiI = 0; uiI < D - 1; uiI++ )
+                bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
+
+#if GET_PROG_PRINTS
+            xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse
+                  << " valid: " << ( bValid ? "true" : "false" ) << "\n";
+#endif
+            // in release mode query with sanity=false to avoid sanity checks
+            sps_t uiCurrArr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiFirstZero ] );
+
+            val_t uiCurr;
+            if( bValid )
+            {
+                if constexpr( IS_ORTHOTOPE )
+                    uiCurr = uiCurrArr[ uiCornerIdx ];
+                else
+                    uiCurr = uiCurrArr;
+            }
+            else
+            {
+                if constexpr( IS_ORTHOTOPE )
+                    uiCurr = uiBottomLeftPrefixSum[ uiCornerIdx ];
+                else
+                    uiCurr = uiBottomLeftPrefixSum;
+            }
+
+#if GET_PROG_PRINTS
+            xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << " (" << uiCurrArr << ")\n";
+#endif
+            if constexpr( uiDistToTo % 2 == 0 )
+                uiRet -= uiCurr;
+            else
+                uiRet += uiCurr;
+        }
+    };
 #pragma GCC diagnostic pop
 
-    static inline __attribute__( ( always_inline ) ) void getCombinationsInvariantAll(
-        size_t, pos_t vPos, size_t uiDistToTo, sps_t& uiRet, pos_t& vMyBottomLeft,
-        const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
-        const prefix_sum_grid_t& rPrefixSums,
-        const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
-        sps_t uiBottomLeftPrefixSum,
-        progress_stream_t&
-#if GET_PROG_PRINTS
-            xProg
-#endif
-    )
+
+    template <size_t /*uiD*/, size_t uiDistToTo, size_t uiFirstZero> struct CombinationsInvariantAll
     {
-        if( uiDistToTo == 0 )
-            return;
-        size_t uiI = 0;
-        while( uiI < D && ( vPos[ uiI ] != vMyBottomLeft[ uiI ] || vSparseCoordsOverlay[ uiI ][ 0 ].uiStartIndex ==
-                                                                       std::numeric_limits<coordinate_t>::max( ) ) )
-            ++uiI;
-
-        if( uiI == D )
-            return;
-
+        static inline __attribute__( ( always_inline ) ) void
+        count( pos_t vPos, sps_t& uiRet, pos_t& /*vMyBottomLeft*/,
+               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
+               const prefix_sum_grid_t& rPrefixSums,
+               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+               sps_t uiBottomLeftPrefixSum,
+               progress_stream_t&
 #if GET_PROG_PRINTS
-        xProg << Verbosity( 3 ) << "\t\tALL: query: " << vPos << " in overlay " << uiI << "\n";
+                   xProg
 #endif
-        red_pos_t vRelevant = relevant( vPos, uiI );
-        red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiI ] );
+        )
+        {
+            if constexpr( uiDistToTo == 0 || D == 1 )
+                return;
+            if constexpr( uiFirstZero == D )
+                return;
 
-        bool bValid = true;
-        for( size_t uiI = 0; uiI < D - 1; uiI++ )
-            bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
 
 #if GET_PROG_PRINTS
-        xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse << " valid: " << ( bValid ? "true" : "false" )
-              << "\n";
+            xProg << Verbosity( 3 ) << "\t\tALL: query: " << vPos << " in overlay " << uiFirstZero << "\n";
 #endif
-        sps_t uiCurr;
-        if( bValid )
-            // in release mode query with sanity=false to avoid sanity checks
-            uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiI ] );
-        else
-            uiCurr = uiBottomLeftPrefixSum;
+            red_pos_t vRelevant = relevant( vPos, uiFirstZero );
+            red_pos_t vSparse =
+                rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
+
+            bool bValid = true;
+            for( size_t uiI = 0; uiI < D - 1; uiI++ )
+                bValid = bValid && vSparse[ uiI ] != std::numeric_limits<coordinate_t>::max( );
 
 #if GET_PROG_PRINTS
-        xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
+            xProg << "\t\trelevant: " << vRelevant << " sparse: " << vSparse
+                  << " valid: " << ( bValid ? "true" : "false" ) << "\n";
+#endif
+            sps_t uiCurr;
+            if( bValid )
+                // in release mode query with sanity=false to avoid sanity checks
+                uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiFirstZero ] );
+            else
+                uiCurr = uiBottomLeftPrefixSum;
+
+#if GET_PROG_PRINTS
+            xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << "\n";
 #endif
 
 #ifndef NDEBUG
-        if constexpr( IS_ORTHOTOPE )
-        {
-            for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
-                if( uiCurr[ uiX ] >= std::numeric_limits<val_t>::max( ) / 2 )
+            if constexpr( IS_ORTHOTOPE )
+            {
+                for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
+                    if( uiCurr[ uiX ] >= std::numeric_limits<val_t>::max( ) / 2 )
+                        throw std::runtime_error( "unrealistic value for uiCurr" );
+            }
+            else
+            {
+                if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
                     throw std::runtime_error( "unrealistic value for uiCurr" );
-        }
-        else
-        {
-            if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
-                throw std::runtime_error( "unrealistic value for uiCurr" );
-        }
+            }
 #endif
 
-        uiRet += uiCurr * ( uiDistToTo % 2 == 0 ? -1 : 1 );
-    }
+            if constexpr( uiDistToTo % 2 == 0 )
+                uiRet -= uiCurr;
+            else
+                uiRet += uiCurr;
+        }
+    };
 
     static inline __attribute__( ( always_inline ) ) bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/,
                                                                                bool /*bIsFrom*/ )
@@ -833,12 +837,12 @@ template <typename type_defs> class Overlay
         xProg << Verbosity( 3 ) << "\t\tvMyBottomLeft " << vMyBottomLeft << "\n";
 #endif
 
-        forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariant, getCombinationsCond, uiRet,
-                                       vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
-                                       uiCornerIdx, uiBottomLeftPrefixSum
+        forAllCombinationsTmpl<pos_t, CombinationsInvariant>(
+            vMyBottomLeft, vCoords, getCombinationsCond, uiRet, vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords,
+            rPrefixSums, vOverlayEntries, uiCornerIdx, uiBottomLeftPrefixSum
 #if GET_PROG_PRINTS
-                                       ,
-                                       xProg
+            ,
+            xProg
 #endif
 
         );
@@ -888,12 +892,13 @@ template <typename type_defs> class Overlay
 
         for( size_t uiI = 0; uiI < D; uiI++ )
             --vMyBottomLeft[ uiI ]; // will turn zero values into max values
+
 #if GET_PROG_PRINTS
         xProg << Verbosity( 3 ) << "\t\tvMyBottomLeft " << vMyBottomLeft << "\n";
 #endif
-        forAllCombinationsTmpl<pos_t>( vMyBottomLeft, vCoords, getCombinationsInvariantAll, getCombinationsCond, uiRet,
-                                       vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords, rPrefixSums, vOverlayEntries,
-                                       uiBottomLeftPrefixSum, xProg
+        forAllCombinationsTmpl<pos_t, CombinationsInvariantAll>(
+            vMyBottomLeft, vCoords, getCombinationsCond, uiRet, vMyBottomLeft, vSparseCoordsOverlay, rSparseCoords,
+            rPrefixSums, vOverlayEntries, uiBottomLeftPrefixSum, xProg
 
         );
 

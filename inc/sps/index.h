@@ -267,74 +267,76 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
   private:
-    static inline __attribute__( ( always_inline ) ) void
-    countSizeLimitedInvariant( size_t uiD, pos_t vPos, size_t uiDistToTo, IntersectionType xInterType,
-                               const dataset_vec_t& vDataSets, const sparse_coord_t& vSparseCoord,
-                               const prefix_sum_grid_t& vPrefixSumGrid, const overlay_grid_t& vOverlayGrid,
-                               const class_key_t xDatasetId, val_t& uiRet
-#if GET_PROG_PRINTS
-                               ,
-                               progress_stream_t& xProg
-#endif
-    )
+    template <size_t uiD, size_t uiDistToTo, size_t> struct SizeLimitedInvariant
     {
-        for( size_t uiI = 0; uiI < D; uiI++ )
-            --vPos[ uiI ];
-
+        static inline __attribute__( ( always_inline ) ) void
+        count( pos_t vPos, IntersectionType xInterType, const dataset_vec_t& vDataSets,
+               const sparse_coord_t& vSparseCoord, const prefix_sum_grid_t& vPrefixSumGrid,
+               const overlay_grid_t& vOverlayGrid, const class_key_t xDatasetId, val_t& uiRet
 #if GET_PROG_PRINTS
-        xProg << "query: " << xDatasetId << " " << vPos << "\n";
+               ,
+               progress_stream_t& xProg
 #endif
-
-        size_t uiCornerIndex = 0;
-        if constexpr( IS_ORTHOTOPE )
+        )
         {
-            size_t uiDLookup;
-            switch( xInterType )
-            {
-                default:
-                case IntersectionType::points_only:
-                case IntersectionType::first:
-                    uiDLookup = 0;
-                    break;
-                case IntersectionType::last:
-                    uiDLookup = ( ( 1 << D ) - 1 );
-                    break;
-                case IntersectionType::enclosed:
-                case IntersectionType::encloses:
-                    uiDLookup = uiD;
-                    break;
-                case IntersectionType::overlaps:
-                    // invert the last D bits of uiD
-                    // set all other bits to 0
-                    uiDLookup = ( ~uiD ) & ( ( 1 << D ) - 1 );
-                    break;
-            }
-            // uiDLookup / 2 ^ (D - ORTHOTOPE_DIMS)
-            uiCornerIndex = uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) );
-        }
-        val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, uiCornerIndex
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                --vPos[ uiI ];
+
 #if GET_PROG_PRINTS
-                                                    ,
-                                                    xProg
+            xProg << "query: " << xDatasetId << " " << vPos << "\n";
 #endif
-        );
+
+            size_t uiCornerIndex = 0;
+            if constexpr( IS_ORTHOTOPE )
+            {
+                size_t uiDLookup;
+                switch( xInterType )
+                {
+                    default:
+                    case IntersectionType::points_only:
+                    case IntersectionType::first:
+                        uiDLookup = 0;
+                        break;
+                    case IntersectionType::last:
+                        uiDLookup = ( ( 1 << D ) - 1 );
+                        break;
+                    case IntersectionType::enclosed:
+                    case IntersectionType::encloses:
+                        uiDLookup = uiD;
+                        break;
+                    case IntersectionType::overlaps:
+                        // invert the last D bits of uiD
+                        // set all other bits to 0
+                        uiDLookup = ( ~uiD ) & ( ( 1 << D ) - 1 );
+                        break;
+                }
+                // uiDLookup / 2 ^ (D - ORTHOTOPE_DIMS)
+                uiCornerIndex = uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) );
+            }
+            val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, uiCornerIndex
+#if GET_PROG_PRINTS
+                                                        ,
+                                                        xProg
+#endif
+            );
 
 #ifndef NDEBUG
-        if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
-            throw std::runtime_error( "unrealistic value for uiCurr" );
+            if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
+                throw std::runtime_error( "unrealistic value for uiCurr" );
 #endif
 
-        val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
-        if constexpr( IS_ORTHOTOPE )
-            if( xInterType == IntersectionType::encloses )
-                uiFac *= -1;
+            val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
+            if constexpr( IS_ORTHOTOPE )
+                if( xInterType == IntersectionType::encloses )
+                    uiFac *= -1;
 #if GET_PROG_PRINTS
-        xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/" << ( 1 << ( D - ORTHOTOPE_DIMS ) )
-              << "]"
-              << "\n";
+            xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
+                  << ( 1 << ( D - ORTHOTOPE_DIMS ) ) << "]"
+                  << "\n";
 #endif
-        uiRet += uiCurr * uiFac;
-    }
+            uiRet += uiCurr * uiFac;
+        }
+    };
 
 
     static inline __attribute__( ( always_inline ) ) bool
@@ -373,11 +375,12 @@ template <typename type_defs> class Index : public AbstractIndex
 #pragma GCC diagnostic push
 // uiD unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-        forAllCombinationsTmpl<pos_t>( vFrom, vTo, countSizeLimitedInvariant, countSizeLimitedInvariantCond, xInterType,
-                                       vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid, xDatasetId, uiRet
+        forAllCombinationsTmpl<pos_t, SizeLimitedInvariant>( vFrom, vTo, countSizeLimitedInvariantCond, xInterType,
+                                                             vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid,
+                                                             xDatasetId, uiRet
 #if GET_PROG_PRINTS
-                                       ,
-                                       xProg
+                                                             ,
+                                                             xProg
 #endif
         );
 
