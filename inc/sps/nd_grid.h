@@ -122,12 +122,13 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return uiRet;
     }
 
-    template <size_t N, bool SANITY = true>
+    template <size_t N, bool SANITY_UNINITIALIZED = true, bool SANITY_OUT_OF_BOUND = true>
     const data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo ) const
     {
-        auto uiIdx = indexOf<N, SANITY>( vX, rInfo );
-        if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
-            return uiZero;
+        auto uiIdx = indexOf<N, SANITY_UNINITIALIZED>( vX, rInfo );
+        if constexpr(SANITY_OUT_OF_BOUND)
+            if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
+                return uiZero;
         return vData[ uiIdx ];
     }
 

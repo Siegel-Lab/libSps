@@ -1072,11 +1072,14 @@ template <typename type_defs> class Dataset
     {
         pos_t vRet;
         for( size_t uiI = 0; uiI < D; uiI++ )
-            if( vPos[ uiI ] < uiMinCoords[ uiI ] || uiSizeOverlays[ uiI ] == 0 )
+        {
+            assert(uiSizeOverlays[ uiI ] != 0);
+            if( vPos[ uiI ] < uiMinCoords[ uiI ] )
                 vRet[ uiI ] = std::numeric_limits<coordinate_t>::max( );
             else
                 vRet[ uiI ] = std::min( xOverlays.vAxisSizes[ uiI ] - 1,
                                         ( vPos[ uiI ] - uiMinCoords[ uiI ] ) / uiSizeOverlays[ uiI ] );
+        }
         return vRet;
     }
 
@@ -1150,7 +1153,7 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vSparsePos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
                 return val_t{ };
-        return rOverlays.get( vSparsePos, xOverlays )
+        return rOverlays.template get<D, false, false>( vSparsePos, xOverlays )
             .get( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( vSparsePos ), uiCornerIdx
 #if GET_PROG_PRINTS
                   ,
@@ -1176,7 +1179,7 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             if( vSparsePos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
                 return sps_t{ };
-        return rOverlays.get( vSparsePos, xOverlays )
+        return rOverlays.template get<D, false, false>( vSparsePos, xOverlays )
             .getAll( rSparseCoords, rPrefixSums, vPos, actualFromGridPos( vSparsePos ), xProg );
     }
 

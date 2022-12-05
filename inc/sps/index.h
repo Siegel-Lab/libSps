@@ -279,9 +279,6 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
         )
         {
-            for( size_t uiI = 0; uiI < D; uiI++ )
-                --vPos[ uiI ];
-
 #if GET_PROG_PRINTS
             xProg << "query: " << xDatasetId << " " << vPos << "\n";
 #endif
@@ -342,7 +339,7 @@ template <typename type_defs> class Index : public AbstractIndex
     static inline __attribute__( ( always_inline ) ) bool
     countSizeLimitedInvariantCond( coordinate_t uiPos, size_t /*uiD*/, bool /*bIsFrom*/ )
     {
-        return uiPos > 0;
+        return uiPos != std::numeric_limits<coordinate_t>::max();
     }
 
   public:
@@ -372,6 +369,11 @@ template <typename type_defs> class Index : public AbstractIndex
         xProg << "countSizeLimited " << vFrom << " to " << vTo << "\n";
 #endif
         val_t uiRet = 0;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            --vFrom[ uiI ];
+            --vTo[ uiI ];
+        }
 #pragma GCC diagnostic push
 // uiD unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
@@ -436,11 +438,12 @@ template <typename type_defs> class Index : public AbstractIndex
                                       size_t uiVerbosity = 0 ) const
     {
 
-        std::vector<val_t> vRet( vRegions.size( ) );
+        std::vector<val_t> vRet;
+        vRet.reserve(vRegions.size( ));
 
         for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
-            vRet[ uiI ] = count( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
-                                 std::get<2>( vRegions[ uiI ] ), xInterType, uiVerbosity );
+            vRet.push_back(count( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
+                                 std::get<2>( vRegions[ uiI ] ), xInterType, uiVerbosity ));
         return vRet;
     }
 
