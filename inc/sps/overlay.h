@@ -123,7 +123,7 @@ template <typename type_defs> class Overlay
         std::vector<std::shared_ptr<MergableIterator>> vBegin;
         std::vector<std::shared_ptr<MergableIterator>> vEnd;
         coordinate_t uiEnd;
-        size_t uiSmallestValid;
+        size_t uiSmallestValid = std::numeric_limits<size_t>::max();
 
       public:
         MergeIterator( std::vector<std::shared_ptr<MergableIterator>> vBegin,
@@ -135,22 +135,27 @@ template <typename type_defs> class Overlay
 
         void setSmallestValid( )
         {
-            uiSmallestValid = 0;
-            while( uiSmallestValid < vBegin.size( ) && !( *vBegin[ uiSmallestValid ] != vEnd[ uiSmallestValid ] ) )
-                ++uiSmallestValid;
-            assert( uiSmallestValid < vBegin.size( ) );
-            for( size_t uiI = uiSmallestValid + 1; uiI < vBegin.size( ); uiI++ )
-                if( *vBegin[ uiI ] != vEnd[ uiI ] && **vBegin[ uiI ] < **vBegin[ uiSmallestValid ] )
-                    uiSmallestValid = uiI;
+            if(vBegin.size( ) > 0)
+            {
+                uiSmallestValid = 0;
+                while( uiSmallestValid < vBegin.size( ) && !( *vBegin[ uiSmallestValid ] != vEnd[ uiSmallestValid ] ) )
+                    ++uiSmallestValid;
+                for( size_t uiI = uiSmallestValid + 1; uiI < vBegin.size( ); uiI++ )
+                    if( *vBegin[ uiI ] != vEnd[ uiI ] && **vBegin[ uiI ] < **vBegin[ uiSmallestValid ] )
+                        uiSmallestValid = uiI;
+            }
         }
 
         void operator++( )
         {
-            for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
-                if( uiI != uiSmallestValid && *vBegin[ uiI ] != vEnd[ uiI ] &&
-                    !( **vBegin[ uiSmallestValid ] < **vBegin[ uiI ] ) )
-                    ++*vBegin[ uiI ];
-            ++*vBegin[ uiSmallestValid ];
+            if( uiSmallestValid < vBegin.size( ) )
+            {
+                for( size_t uiI = 0; uiI < vBegin.size( ); uiI++ )
+                    if( uiI != uiSmallestValid && *vBegin[ uiI ] != vEnd[ uiI ] &&
+                        !( **vBegin[ uiSmallestValid ] < **vBegin[ uiI ] ) )
+                        ++*vBegin[ uiI ];
+                ++*vBegin[ uiSmallestValid ];
+            }
             setSmallestValid( );
         }
 
@@ -674,7 +679,12 @@ template <typename type_defs> class Overlay
             }
     }
 
-#define SANITY !NDEBUG
+#ifdef NDEBUG
+    #define SANITY 0
+#else
+    #define SANITY 1
+#endif
+
 #pragma GCC diagnostic push
 // uiCornerIdx unused if IS_ORTHOTOPE = false
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
@@ -695,6 +705,8 @@ template <typename type_defs> class Overlay
             if constexpr( uiDistToTo == 0 || D == 1 )
                 return;
             if constexpr( uiFirstZero == D )
+                return;
+            if( vOverlayEntries[ uiFirstZero ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
                 return;
 
 #if GET_PROG_PRINTS
@@ -759,6 +771,8 @@ template <typename type_defs> class Overlay
             if constexpr( uiDistToTo == 0 || D == 1 )
                 return;
             if constexpr( uiFirstZero == D )
+                return;
+            if( vOverlayEntries[ uiFirstZero ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
                 return;
 
 

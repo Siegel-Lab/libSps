@@ -697,9 +697,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
-        uint64_t uiNumOverlaySamples = std::max( 1ul, (uint64_t)std::log2( uiNumOverlaysTotal ) );
+        uint64_t uiNumOverlaySamples = std::max( 1ul, 10*(uint64_t)std::log2( uiNumOverlaysTotal ) );
         uint64_t uiNumPointSamples =
-            std::max( 1ul, (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
+            std::max( 1ul, 10*(uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
@@ -876,7 +876,7 @@ template <typename type_defs> class Dataset
         const double fSampleSteps = 10;
         uint64_t uiMin = std::numeric_limits<uint64_t>::max( );
         for( size_t uiI = 0;
-             uiI < 5 && toAmount( toNumbers( vNumRatios, fStart ) ) != toAmount( toNumbers( vNumRatios, fEnd ) );
+             uiI < 10 && toAmount( toNumbers( vNumRatios, fStart ) ) != toAmount( toNumbers( vNumRatios, fEnd ) );
              uiI++ )
         {
             xProg << Verbosity( 0 ) << "searching factors [" << fStart << ", " << fEnd << ")\n";
@@ -904,7 +904,7 @@ template <typename type_defs> class Dataset
         xProg << Verbosity( 0 ) << "picked factor " << fStart << " -> expected index size is "
               << uiMin / (double)std::pow( 10, 9 ) << "Gb\n";
 
-        return fStart;
+        return (fStart + fEnd) / 2;
     }
 
     static coordinate_t pickNumOverlays( corners_t& vCorners, const typename corners_t::Entry xCorners,
