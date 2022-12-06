@@ -9,7 +9,7 @@ import time
 
 
 N_QUERY = 10000 # 10K
-REPEAT_QUERY = 1000
+REPEAT_QUERY = 50
 
 FILLS = [10000, 1000000] # 10K and 1G
 AREAS = [10000, 1000000] # 10K and 1G
@@ -17,13 +17,12 @@ AREAS = [10000, 1000000] # 10K and 1G
 print("#VERSION", VERSION)
 print("#N_QUERY", N_QUERY)
 print("#REPEAT_QUERY", REPEAT_QUERY)
-print("this will run for a long while...")
+print("this will run for a while...")
 
 files = [".prefix_sums", ".coords", ".overlays", ".datsets"]
 
 def query(index, id, dims, genome_size, n=N_QUERY):
-    t1 = 0
-    t2 = 0
+    ts = []
     for _ in range(REPEAT_QUERY):
         bins = []
         for _ in range(n):
@@ -35,11 +34,14 @@ def query(index, id, dims, genome_size, n=N_QUERY):
                 pos_s.append(min(x, y))
                 pos_e.append(max(x, y))
             bins.append((id, pos_s, pos_e))
-        t1 += time.perf_counter()
+        t1 = time.perf_counter()
         index.count_multiple(bins)
-        t2 += time.perf_counter()
+        t2 = time.perf_counter()
+        ts.append(t2-t1)
+
+    tm = sorted(ts)[len(ts)//2]
     # querytime
-    print( ( n * REPEAT_QUERY / (t2-t1) ) / 1000, end="\t")
+    print( ( n / tm ) / 1000, end="\t")
 
 def fill(n, index, name, dims, is_ort, area, _area):
     print(*name, _area, n, sep="\t", end="\t")
@@ -77,8 +79,8 @@ def make_indices():
     for dims in [2, 3]:
         for ort_dim in [False, True]:
             num_ort_dims = 2 if ort_dim else 0
-            #for bin_search in [True]:
-            for bin_search in [False, True]:
+            for bin_search in [False]:
+            #for bin_search in [False, True]:
                 #for storage in ["Disk"]:
                 for storage in ["Disk", "Cached"]:
                     xs = [
@@ -101,6 +103,7 @@ def test():
     for index_params, name, param in zip(indices, index_names, params):
         index = make_sps_index(*index_params)
         for _area in AREAS:
+            # d-th root of area
             area = int(_area ** ( 1 / (param[0] + param[1])))
             for n in FILLS:
                 id = fill(n, index, name if n == FILLS[0] and _area == AREAS[0] else [""]*4, *param, area, _area)
@@ -140,16 +143,18 @@ def test_max_io(n_query=N_QUERY):
         vec_c = ValCachedSimpleVector_2D("test/benchmark_index_c", True)
         for _ in range(area):
             vec_c.add(random.choice(range(area)))
-        t1 = 0
-        t2 = 0
+        ts = []
         for _ in range(REPEAT_QUERY):
             bins = []
             for _ in range(n_query):
                 bins.append(random.choice(range(area)))
-            t1 += time.perf_counter()
+            t1 = time.perf_counter()
             vec_c.get_multiple(bins)
-            t2 += time.perf_counter()
-        print("", "cached", area, ( n_query * REPEAT_QUERY / (t2-t1) ) / 1000, sep="\t")
+            t2 = time.perf_counter()
+            ts.append(t2-t1)
+            
+        tm = sorted(ts)[len(ts)//2]
+        print("", "cached", area, ( n_query / tm) / 1000, sep="\t")
 
         del vec_c
         
@@ -158,3 +163,5 @@ def test_max_io(n_query=N_QUERY):
 random.seed(6846854546132)
 test_max_io()
 test()
+
+# py test/benchmark.py

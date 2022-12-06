@@ -101,6 +101,9 @@ class TypeDefs
 
     static constexpr bool IS_ORTHOTOPE = ORTHOTOPE_DIMS > 0;
 
+    static constexpr bool IS_ORTHOTOPE_CAT = ORTHOTOPE_DIMS > 1;
+    using ret_pos_cat_t = std::array<coordinate_t, D - ORTHOTOPE_DIMS - 1>;
+
     using sps_t = typename std::conditional<IS_ORTHOTOPE, std::op_array<val_t, 1 << ORTHOTOPE_DIMS>, val_t>::type;
 
     using progress_stream_t = _progress_stream_t;

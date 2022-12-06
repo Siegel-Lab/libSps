@@ -24,3 +24,4 @@ settings.json
 *.prof
 perf.data
 perf.data.old
+firefox.perf

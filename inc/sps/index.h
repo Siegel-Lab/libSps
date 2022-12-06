@@ -230,6 +230,46 @@ template <typename type_defs> class Index : public AbstractIndex
         vCorners.add( vP[ 0 ], vP[ 1 ], uiVal );
     }
 
+    template <bool trigger = !IS_ORTHOTOPE_CAT>
+    typename std::enable_if_t<trigger> addPoint( ret_pos_cat_t vPos, std::vector<bool> vCategories, val_t uiVal = 1 )
+    {
+        ret_pos_t vPosFrom;
+        ret_pos_t vPosTo;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            vPosFrom[uiI] = vPos[uiI];
+            vPosTo[uiI] = vPos[uiI];
+        }
+
+        std::vector<std::array<size_t, 2>> vIntervals;
+        for( size_t uiI = 0; uiI < vCategories.size(); uiI++ )
+            if(vCategories[uiI])
+            {
+                if(vIntervals.size() == 0 || vIntervals.back()[1] < uiI)
+                    vIntervals.push_back({uiI, uiI + 1});
+                if(vIntervals.back()[1] >= uiI)
+                    vIntervals.back()[1] = uiI + 1;
+            }
+
+        for( size_t uiI = 0; uiI < vIntervals.size(); uiI++ )
+        {
+            vPosFrom[D - 1] = vIntervals[uiI][0];
+            vPosTo[D - 1] = vIntervals[uiI][1];
+            addPoint(vPosFrom, vPosTo, uiVal);
+            if(uiI + 1 < vIntervals.size())
+            {
+                vPosTo[D - 1] = vIntervals[uiI + 1][1];
+                addPoint(vPosFrom, vPosTo, -uiVal);
+            }
+        }
+    }
+
+    template <bool trigger = IS_ORTHOTOPE_CAT>
+    typename std::enable_if_t<trigger> addPoint( ret_pos_cat_t vStart, ret_pos_cat_t vEnd, 
+                                                 std::vector<bool> vCategories, val_t uiVal = 1 )
+    {
+    }
+
 
     /**
      * @brief Generate a new dataset.
