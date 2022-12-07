@@ -29,7 +29,7 @@ def query_index(id, index, d, n):
     index.count_multiple(qs)
 
 t0 = time.perf_counter()
-for _ in range(1000):
+for _ in range(10000):
     id, index = create_index(3, 0, 8)
 t1 = time.perf_counter()
 #query_index(id, index, 3, 1000000)

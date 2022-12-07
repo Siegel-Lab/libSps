@@ -236,9 +236,10 @@ template <typename type_defs> class Dataset
         size_t uiFrom = xOverlays.uiStartIndex;
         size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
-            ThreadPool xPool( rOverlays.THREADSAVE && rSparseCoords.THREADSAVE && vCorners.THREADSAVE
-                                  ? std::thread::hardware_concurrency( )
-                                  : 0 );
+            ThreadPool xPool(
+                rOverlays.THREADSAVE && rSparseCoords.THREADSAVE && vCorners.THREADSAVE
+                    ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ), (size_t)std::thread::hardware_concurrency( ) )
+                    : 0 );
             vPrefixSumSize.resize( std::max( xPool.numThreads( ), (size_t)1 ) );
 
             std::mutex xPrintMutex;
@@ -295,9 +296,10 @@ template <typename type_defs> class Dataset
         auto xIterator = rOverlays.template genIterator<D>( xOverlays, successors );
 
 
-        size_t uiNumThreads = rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vCorners.THREADSAVE
-                                  ? std::thread::hardware_concurrency( )
-                                  : 0;
+        size_t uiNumThreads =
+            rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vCorners.THREADSAVE
+                ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ), (size_t)std::thread::hardware_concurrency( ) )
+                : 0;
         std::vector<coordinate_t> vPrefixSumSize( std::max( (size_t)1, uiNumThreads ) );
         // actually process the overlays
         xIterator.process( uiNumThreads, xProgIn, [ & ]( size_t uiTid, size_t uiOverlayId ) {
@@ -340,9 +342,10 @@ template <typename type_defs> class Dataset
         size_t uiFrom = xOverlays.uiStartIndex;
         size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
-            ThreadPool xPool( rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vCorners.THREADSAVE
-                                  ? std::thread::hardware_concurrency( )
-                                  : 0 );
+            ThreadPool xPool(
+                rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vCorners.THREADSAVE
+                    ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ), (size_t)std::thread::hardware_concurrency( ) )
+                    : 0 );
 
             for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
@@ -382,24 +385,24 @@ template <typename type_defs> class Dataset
 
         auto xIterator = rOverlays.template genIterator<D>( xOverlays, successors );
         // actually process the overlays
-        xIterator.process( rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && rPrefixSums.THREADSAVE
-                               ? std::thread::hardware_concurrency( )
-                               : 0,
-                           xProgIn,
-                           [ & ]( size_t /* uiTid */, size_t uiOverlayId ) {
-                               progress_stream_t xProg = xProgIn;
-                               pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
+        xIterator.process(
+            rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && rPrefixSums.THREADSAVE
+                ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ), (size_t)std::thread::hardware_concurrency( ) )
+                : 0,
+            xProgIn,
+            [ & ]( size_t /* uiTid */, size_t uiOverlayId ) {
+                progress_stream_t xProg = xProgIn;
+                pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
 
-                               pos_t vPosBottomLeftActual = actualFromGridPos( vGridPos );
+                pos_t vPosBottomLeftActual = actualFromGridPos( vGridPos );
 
-                               // collect direct predecessor overlays for each dimension
-                               std::array<std::vector<coordinate_t>, D> vPredecessors =
-                                   getPredecessor( rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual, xProg );
+                // collect direct predecessor overlays for each dimension
+                std::array<std::vector<coordinate_t>, D> vPredecessors =
+                    getPredecessor( rOverlays, rSparseCoords, vGridPos, vPosBottomLeftActual, xProg );
 
-                               rOverlays.vData[ uiOverlayId ].generateOverlayPrefixSums(
-                                   rOverlays, rSparseCoords, rPrefixSums, vCorners, vPredecessors, vPosBottomLeftActual,
-                                   this, xProg );
-                           } );
+                rOverlays.vData[ uiOverlayId ].generateOverlayPrefixSums(
+                    rOverlays, rSparseCoords, rPrefixSums, vCorners, vPredecessors, vPosBottomLeftActual, this, xProg );
+            } );
     }
 
     static void pickRandomDistinct( size_t uiN, size_t uiMax, std::function<void( size_t )> fDo )
@@ -697,9 +700,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
-        uint64_t uiNumOverlaySamples = std::max( 1ul, 2*(uint64_t)std::log2( uiNumOverlaysTotal ) );
-        uint64_t uiNumPointSamples =
-            std::max( 1ul, 10*(uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
+        uint64_t uiNumOverlaySamples = std::max( 1ul, 2 * (uint64_t)std::log2( uiNumOverlaysTotal ) );
+        uint64_t uiNumPointSamples = std::max(
+            1ul, 10 * (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
@@ -849,7 +852,7 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiArea *= uiCoordinateSizes[ uiI ];
 
-        if(uiArea < 100000)
+        if( uiArea < 100000 )
             return 0;
 
         std::array<typename corners_t::Entry, D> xSortedPoints;

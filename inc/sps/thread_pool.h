@@ -87,7 +87,7 @@ class ThreadPool
         std::future<return_type> xFuture = task->get_future( );
 
         // if the threadpool is set to have 0 threads then execute the task in the main thread
-        if( threads == 0 )
+        if( threads <= 1 )
         {
             ( *task )( 0 );
             return xFuture;
@@ -125,7 +125,7 @@ inline ThreadPool::ThreadPool( size_t threads = std::thread::hardware_concurrenc
     // if the threadpool is set to have 0 threads, we will execute every task in the main thread
     // immediately, thus we dont need to setup threads at all.
     // this can be used to disable multithreading simply setting the pool to have 0 threads
-    if( threads == 0 )
+    if( threads <= 1 )
         return;
     for( size_t i = 0; i < threads; ++i )
         workers.emplace_back( [ this, i ] {
@@ -187,7 +187,7 @@ inline ThreadPool::~ThreadPool( )
     // if the threadpool is set to have 0 threads, we will execute every task in the main thread
     // immediately, thus we dont need to setup threads at all.
     // this can be used to disable multithreading simply setting the pool to have 0 threads
-    if( threads == 0 )
+    if( threads <= 1 )
         return;
 
     {

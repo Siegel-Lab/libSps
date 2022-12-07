@@ -286,7 +286,7 @@ template <typename type_defs> class SparseCoordLookupArray
         if constexpr( SANITY )
             if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
                 return std::numeric_limits<coordinate_t>::max( );
-        assert(rInfo.uiStartIndex != std::numeric_limits<coordinate_t>::max( ));
+        assert( rInfo.uiStartIndex != std::numeric_limits<coordinate_t>::max( ) );
         const size_t uiBase = rInfo.uiStartIndex - rInfo.uiStartCord;
         const size_t uiEnd = uiBase + rInfo.uiEndCord;
         assert( rOuter.vData.size( ) > uiEnd );

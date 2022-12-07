@@ -84,7 +84,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
         if constexpr( SANITY )
             if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
                 return std::numeric_limits<coordinate_t>::max( );
-        assert(rInfo.uiStartIndex != std::numeric_limits<coordinate_t>::max( ));
+        assert( rInfo.uiStartIndex != std::numeric_limits<coordinate_t>::max( ) );
         coordinate_t uiRet = 0;
         for( size_t uiI = 0; uiI < N; uiI++ )
         {
@@ -130,7 +130,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
         if constexpr( SANITY_OUT_OF_BOUND )
             if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
                 return uiZero;
-        assert(uiIdx != std::numeric_limits<coordinate_t>::max( ));
+        assert( uiIdx != std::numeric_limits<coordinate_t>::max( ) );
         return vData[ uiIdx ];
     }
 
@@ -321,7 +321,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
                               << "%.\n";
                 }
             };
-            if( uiNumThreads == 0 || vNumPredComputed.size( ) == 0 )
+            if( uiNumThreads <= 1 || vNumPredComputed.size( ) == 0 )
                 fTask( this, 0, fDo );
             else
             {

@@ -655,14 +655,14 @@ template <typename type_defs> class Overlay
 
                 coordinate_t uiArea = 1;
                 for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
-                    uiArea *= vAxisSizes[uiJ];
+                    uiArea *= vAxisSizes[ uiJ ];
 
-                if(uiArea > 0)
+                if( uiArea > 0 )
                 {
 #ifndef NDEBUG
                     for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
-                        assert(vSparseCoordsOverlay[ uiI ][ uiJ ].uiStartIndex != 
-                                std::numeric_limits<coordinate_t>::max( ));
+                        assert( vSparseCoordsOverlay[ uiI ][ uiJ ].uiStartIndex !=
+                                std::numeric_limits<coordinate_t>::max( ) );
 #endif
 
                     // no zero initialization needed -> every value will be overridden
@@ -722,7 +722,8 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiFirstZero << "\n";
 #endif
             red_pos_t vRelevant = relevant( vPos, uiFirstZero );
-            red_pos_t vSparse = rSparseCoords.template sparse<D - 1, false>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
+            red_pos_t vSparse =
+                rSparseCoords.template sparse<D - 1, false>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
 
             bool bValid = true;
             for( size_t uiI = 0; uiI < D - 1; uiI++ )
