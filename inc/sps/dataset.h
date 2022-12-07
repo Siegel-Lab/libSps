@@ -697,9 +697,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
-        uint64_t uiNumOverlaySamples = std::max( 1ul, 10*(uint64_t)std::log2( uiNumOverlaysTotal ) );
-        uint64_t uiNumPointSamples =
-            std::max( 1ul, 10*(uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
+        uint64_t uiNumOverlaySamples = std::max( 1ul, 10 * (uint64_t)std::log2( uiNumOverlaysTotal ) );
+        uint64_t uiNumPointSamples = std::max(
+            1ul, 10 * (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
@@ -904,7 +904,7 @@ template <typename type_defs> class Dataset
         xProg << Verbosity( 0 ) << "picked factor " << fStart << " -> expected index size is "
               << uiMin / (double)std::pow( 10, 9 ) << "Gb\n";
 
-        return (fStart + fEnd) / 2;
+        return ( fStart + fEnd ) / 2;
     }
 
     static coordinate_t pickNumOverlays( corners_t& vCorners, const typename corners_t::Entry xCorners,
@@ -1073,7 +1073,7 @@ template <typename type_defs> class Dataset
         pos_t vRet;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            assert(uiSizeOverlays[ uiI ] != 0);
+            assert( uiSizeOverlays[ uiI ] != 0 );
             if( vPos[ uiI ] < uiMinCoords[ uiI ] )
                 vRet[ uiI ] = std::numeric_limits<coordinate_t>::max( );
             else

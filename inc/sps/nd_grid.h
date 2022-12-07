@@ -126,7 +126,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
     const data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo ) const
     {
         auto uiIdx = indexOf<N, SANITY_UNINITIALIZED>( vX, rInfo );
-        if constexpr(SANITY_OUT_OF_BOUND)
+        if constexpr( SANITY_OUT_OF_BOUND )
             if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
                 return uiZero;
         return vData[ uiIdx ];

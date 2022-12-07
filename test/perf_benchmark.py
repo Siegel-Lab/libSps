@@ -12,7 +12,7 @@ def create_index(d, o, n):
         for _ in range(0, d):
             pos_s.append(random.randrange(n))
         index.add_point(pos_s)
-    id = index.generate()
+    id = index.generate(verbosity=0)
     return id, index
 
 def query_index(id, index, d, n):
@@ -29,9 +29,10 @@ def query_index(id, index, d, n):
     index.count_multiple(qs)
 
 t0 = time.perf_counter()
-id, index = create_index(3, 0, 10000)
+for _ in range(1000):
+    id, index = create_index(3, 0, 8)
 t1 = time.perf_counter()
-query_index(id, index, 3, 1000000)
+#query_index(id, index, 3, 1000000)
 t2 = time.perf_counter()
 
 print("took", t1 - t0, "and", t2-t1)

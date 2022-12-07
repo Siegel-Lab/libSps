@@ -121,6 +121,8 @@ class TypeDefs
     /** @brief position of a point */                                                                                  \
     using ret_pos_t = typename type_defs::ret_pos_t;                                                                   \
                                                                                                                        \
+    using ret_pos_cat_t = typename type_defs::ret_pos_cat_t;                                                           \
+                                                                                                                       \
     /** @brief position of a point (with dependent dimensions; used internally) */                                     \
     using pos_t = typename type_defs::pos_t;                                                                           \
                                                                                                                        \
@@ -141,6 +143,8 @@ class TypeDefs
     static constexpr coordinate_t ORTHOTOPE_DIMS = type_defs::ORTHOTOPE_DIMS;                                          \
                                                                                                                        \
     static constexpr bool IS_ORTHOTOPE = type_defs::IS_ORTHOTOPE;                                                      \
+                                                                                                                       \
+    static constexpr bool IS_ORTHOTOPE_CAT = type_defs::IS_ORTHOTOPE_CAT;                                              \
                                                                                                                        \
     using sps_t = typename type_defs::sps_t;                                                                           \
                                                                                                                        \

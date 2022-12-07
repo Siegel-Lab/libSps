@@ -230,44 +230,55 @@ template <typename type_defs> class Index : public AbstractIndex
         vCorners.add( vP[ 0 ], vP[ 1 ], uiVal );
     }
 
+  private:
+    void addPointHelper( ret_pos_t vStart, ret_pos_t vEnd, std::vector<bool> vCategories, val_t uiVal = 1 )
+    {
+        size_t uiLastCat = std::numeric_limits<size_t>::max( );
+
+        for( size_t uiI = 0; uiI < vCategories.size( ); uiI++ )
+            if( vCategories[ uiI ] )
+            {
+                vStart[ D - ORTHOTOPE_DIMS - 1 ] = uiI;
+                vEnd[ D - ORTHOTOPE_DIMS - 1 ] = uiI + 1;
+                addPoint( vStart, vEnd, uiVal );
+                if( uiLastCat != std::numeric_limits<size_t>::max( ) )
+                {
+                    vStart[ D - ORTHOTOPE_DIMS - 1 ] = uiLastCat;
+                    vEnd[ D - ORTHOTOPE_DIMS - 1 ] = uiI + 1;
+                    addPoint( vStart, vEnd, -uiVal );
+                }
+                uiLastCat = std::numeric_limits<size_t>::max( );
+            }
+    }
+
+  public:
     template <bool trigger = !IS_ORTHOTOPE_CAT>
     typename std::enable_if_t<trigger> addPoint( ret_pos_cat_t vPos, std::vector<bool> vCategories, val_t uiVal = 1 )
     {
         ret_pos_t vPosFrom;
         ret_pos_t vPosTo;
-        for( size_t uiI = 0; uiI < D; uiI++ )
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS - 1; uiI++ )
         {
-            vPosFrom[uiI] = vPos[uiI];
-            vPosTo[uiI] = vPos[uiI];
+            vPosFrom[ uiI ] = vPos[ uiI ];
+            vPosTo[ uiI ] = vPos[ uiI ] + 1;
         }
 
-        std::vector<std::array<size_t, 2>> vIntervals;
-        for( size_t uiI = 0; uiI < vCategories.size(); uiI++ )
-            if(vCategories[uiI])
-            {
-                if(vIntervals.size() == 0 || vIntervals.back()[1] < uiI)
-                    vIntervals.push_back({uiI, uiI + 1});
-                if(vIntervals.back()[1] >= uiI)
-                    vIntervals.back()[1] = uiI + 1;
-            }
-
-        for( size_t uiI = 0; uiI < vIntervals.size(); uiI++ )
-        {
-            vPosFrom[D - 1] = vIntervals[uiI][0];
-            vPosTo[D - 1] = vIntervals[uiI][1];
-            addPoint(vPosFrom, vPosTo, uiVal);
-            if(uiI + 1 < vIntervals.size())
-            {
-                vPosTo[D - 1] = vIntervals[uiI + 1][1];
-                addPoint(vPosFrom, vPosTo, -uiVal);
-            }
-        }
+        addPointHelper( vPosFrom, vPosTo, vCategories, uiVal );
     }
 
     template <bool trigger = IS_ORTHOTOPE_CAT>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_cat_t vStart, ret_pos_cat_t vEnd, 
+    typename std::enable_if_t<trigger> addPoint( ret_pos_cat_t vStart, ret_pos_cat_t vEnd,
                                                  std::vector<bool> vCategories, val_t uiVal = 1 )
     {
+        ret_pos_t vPosFrom;
+        ret_pos_t vPosTo;
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS - 1; uiI++ )
+        {
+            vPosFrom[ uiI ] = vStart[ uiI ];
+            vPosTo[ uiI ] = vEnd[ uiI ];
+        }
+
+        addPointHelper( vPosFrom, vPosTo, vCategories, uiVal );
     }
 
 
@@ -379,7 +390,7 @@ template <typename type_defs> class Index : public AbstractIndex
     static inline __attribute__( ( always_inline ) ) bool
     countSizeLimitedInvariantCond( coordinate_t uiPos, size_t /*uiD*/, bool /*bIsFrom*/ )
     {
-        return uiPos != std::numeric_limits<coordinate_t>::max();
+        return uiPos != std::numeric_limits<coordinate_t>::max( );
     }
 
   public:
@@ -462,6 +473,54 @@ template <typename type_defs> class Index : public AbstractIndex
         return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
     }
 
+    val_t count( class_key_t xDatasetId, ret_pos_cat_t vFromR, ret_pos_cat_t vToR, std::vector<bool> vCategories,
+                 // @todo per dimension intersection type needed
+                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
+    {
+        ret_pos_t vFrom;
+        ret_pos_t vTo;
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS - 1; uiI++ )
+        {
+            vFrom[ uiI ] = vFromR[ uiI ];
+            vTo[ uiI ] = vToR[ uiI ];
+        }
+
+        size_t uiF = 0;
+        size_t uiT = vCategories.size( );
+        bool bPos = true;
+        val_t uiRet = 0;
+        while( uiF < uiT )
+        {
+            while( uiF < uiT && vCategories[ uiF ] != bPos )
+                ++uiF;
+            while( uiF < uiT && vCategories[ uiT - 1 ] != bPos )
+                --uiT;
+
+            if( uiF < uiT )
+            {
+                vFrom[ D - ORTHOTOPE_DIMS - 1 ] = uiF;
+                vTo[ D - ORTHOTOPE_DIMS - 1 ] = uiT;
+                if( bPos )
+                    uiRet += count( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
+                else
+                    uiRet -= count( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
+            }
+
+            bPos = !bPos;
+        }
+        return uiRet;
+    }
+
+  private:
+#define COUNT_MULTIPLE( args... )                                                                                      \
+    std::vector<val_t> vRet;                                                                                           \
+    vRet.reserve( vRegions.size( ) );                                                                                  \
+                                                                                                                       \
+    for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )                                                               \
+        vRet.push_back( count( args ) );                                                                               \
+    return vRet;
+
+  public:
     /**
      * @brief Count the number of points between from and to and in the given dataset.
      *
@@ -477,14 +536,47 @@ template <typename type_defs> class Index : public AbstractIndex
                                       IntersectionType xInterType = IntersectionType::enclosed,
                                       size_t uiVerbosity = 0 ) const
     {
+        COUNT_MULTIPLE( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), std::get<2>( vRegions[ uiI ] ),
+                        xInterType, uiVerbosity );
+    }
 
-        std::vector<val_t> vRet;
-        vRet.reserve(vRegions.size( ));
+    std::vector<val_t> countMultiple( class_key_t uiDatasetId, std::vector<std::tuple<ret_pos_t, ret_pos_t>> vRegions,
+                                      IntersectionType xInterType = IntersectionType::enclosed,
+                                      size_t uiVerbosity = 0 ) const
+    {
+        COUNT_MULTIPLE( uiDatasetId, std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), xInterType,
+                        uiVerbosity );
+    }
 
-        for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
-            vRet.push_back(count( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
-                                 std::get<2>( vRegions[ uiI ] ), xInterType, uiVerbosity ));
-        return vRet;
+    std::vector<val_t>
+    countMultiple( std::vector<std::tuple<class_key_t, ret_pos_cat_t, ret_pos_cat_t, std::vector<bool>>> vRegions,
+                   IntersectionType xInterType = IntersectionType::enclosed,
+                   size_t uiVerbosity = 0 ) const
+    {
+        COUNT_MULTIPLE( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), std::get<2>( vRegions[ uiI ] ),
+                        std::get<3>( vRegions[ uiI ] ), xInterType, uiVerbosity );
+    }
+
+    std::vector<val_t> countMultiple( class_key_t uiDatasetId,
+                                      std::vector<std::tuple<ret_pos_cat_t, ret_pos_cat_t, std::vector<bool>>>
+                                          vRegions,
+                                      IntersectionType xInterType = IntersectionType::enclosed,
+                                      size_t uiVerbosity = 0 ) const
+    {
+        COUNT_MULTIPLE( uiDatasetId, std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
+                        std::get<2>( vRegions[ uiI ] ), xInterType, uiVerbosity );
+    }
+
+    std::vector<val_t> countMultiple( class_key_t uiDatasetId,
+                                      std::vector<std::tuple<ret_pos_cat_t, ret_pos_cat_t>>
+                                          vRegions,
+                                      std::vector<bool>
+                                          vCategories,
+                                      IntersectionType xInterType = IntersectionType::enclosed,
+                                      size_t uiVerbosity = 0 ) const
+    {
+        COUNT_MULTIPLE( uiDatasetId, std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), vCategories,
+                        xInterType, uiVerbosity );
     }
 
     val_t maxPrefixSumValue( ) const
@@ -897,11 +989,17 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 
     This function is multithreaded.
 )pbdoc" )
-        .def( "count", &sps::Index<type_defs>::count, pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
-              pybind11::arg( "to_pos" ), //
-              pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
-              pybind11::arg( "verbosity" ) = 0,
-              ( R"pbdoc(
+        .def(
+            "count",
+            []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
+                typename type_defs::ret_pos_t vFromR, typename type_defs::ret_pos_t vToR,
+                sps::IntersectionType xInterType,
+                size_t uiVerbosity ) { return rM.count( xDatasetId, vFromR, vToR, xInterType, uiVerbosity ); },
+            pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
+            pybind11::arg( "to_pos" ), //
+            pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
+            pybind11::arg( "verbosity" ) = 0,
+            ( R"pbdoc(
     Count the number of points between from and to in the given dataset.
     
     :param dataset_id: The id of the dataset to query
@@ -909,11 +1007,11 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     
     :param from_pos: The bottom left position of the query region.
     :type from_pos: list[int[)pbdoc" +
-                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
     
     :param to_pos: The top right position of the query region.
     :type to_pos: list[int[)pbdoc" +
-                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
     
     :param verbosity: Degree of verbosity while counting, defaults to 0.
     :type verbosity: int
@@ -923,12 +1021,19 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
-                  .c_str( ) )
-        .def( "count_multiple", &sps::Index<type_defs>::countMultiple,
-              pybind11::arg( "regions" ), //
-              pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
-              pybind11::arg( "verbosity" ) = 0,
-              ( R"pbdoc(
+                .c_str( ) )
+        .def(
+            "count_multiple",
+            []( const sps::Index<type_defs>& rM,
+                std::vector<std::tuple<typename type_defs::class_key_t, typename type_defs::ret_pos_t,
+                                       typename type_defs::ret_pos_t>>
+                    vRegions,
+                sps::IntersectionType xInterType,
+                size_t uiVerbosity ) { return rM.countMultiple( vRegions, xInterType, uiVerbosity ); },
+            pybind11::arg( "regions" ), //
+            pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
+            pybind11::arg( "verbosity" ) = 0,
+            ( R"pbdoc(
     Count the number of points between from and to in the given dataset.
 
     Counts for multiple regions.
@@ -938,8 +1043,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     
     :param regions: The bottom left and top right positions of the queried regions. Given as a list (individual regions) of tuples (bottom-left, top-right) of lists (individual coordinates). The top right of each region must be larger equal the bottom left.
     :type regions: list[tuple[list[int[)pbdoc" +
-                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]], list[int[)pbdoc" +
-                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]]]
+              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]], list[int[)pbdoc" +
+              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]]]
     
     :param verbosity: Degree of verbosity while counting, defaults to 0.
     :type verbosity: int
@@ -949,7 +1054,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
 
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
-                  .c_str( ) )
+                .c_str( ) )
         .def( "count_size_limited", &sps::Index<type_defs>::countSizeLimited, pybind11::arg( "dataset_id" ),
               pybind11::arg( "from_pos" ), pybind11::arg( "to_pos" ), //
               pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //

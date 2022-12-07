@@ -123,7 +123,7 @@ template <typename type_defs> class Overlay
         std::vector<std::shared_ptr<MergableIterator>> vBegin;
         std::vector<std::shared_ptr<MergableIterator>> vEnd;
         coordinate_t uiEnd;
-        size_t uiSmallestValid = std::numeric_limits<size_t>::max();
+        size_t uiSmallestValid = std::numeric_limits<size_t>::max( );
 
       public:
         MergeIterator( std::vector<std::shared_ptr<MergableIterator>> vBegin,
@@ -135,7 +135,7 @@ template <typename type_defs> class Overlay
 
         void setSmallestValid( )
         {
-            if(vBegin.size( ) > 0)
+            if( vBegin.size( ) > 0 )
             {
                 uiSmallestValid = 0;
                 while( uiSmallestValid < vBegin.size( ) && !( *vBegin[ uiSmallestValid ] != vEnd[ uiSmallestValid ] ) )
@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -680,9 +680,9 @@ template <typename type_defs> class Overlay
     }
 
 #ifdef NDEBUG
-    #define SANITY 0
+#define SANITY 0
 #else
-    #define SANITY 1
+#define SANITY 1
 #endif
 
 #pragma GCC diagnostic push
@@ -713,7 +713,8 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiFirstZero << "\n";
 #endif
             red_pos_t vRelevant = relevant( vPos, uiFirstZero );
-            red_pos_t vSparse = rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
+            red_pos_t vSparse =
+                rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
 
             bool bValid = true;
             for( size_t uiI = 0; uiI < D - 1; uiI++ )
