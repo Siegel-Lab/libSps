@@ -652,38 +652,47 @@ template <typename type_defs> class Overlay
 #endif
 
                 red_pos_t vAxisSizes = rSparseCoords.axisSizes( vSparseCoordsOverlay[ uiI ] );
-                // no zero initialization needed -> every value will be overridden
-                vOverlayEntries[ uiI ] = rPrefixSums.template add<D - 1, false>( vAxisSizes );
 
-                assert( vMyBottomLeft[ uiI ] > 0 );
-                // if( prefix_sum_grid_t::sizeOf( vOverlayEntries[ uiI ] ) > 0 )
-                //{
+                coordinate_t uiArea = 1;
+                for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
+                    uiArea *= vAxisSizes[uiJ];
 
-                rSparseCoords.template iterate<D - 1>(
-                    [ & ]( const red_pos_t& vFrom, const red_pos_t& vTo ) {
-                        pos_t vFullFrom = expand( vFrom, uiI );
-                        vFullFrom[ uiI ] = vMyBottomLeft[ uiI ] - 1;
-
+                if(uiArea > 0)
+                {
 #ifndef NDEBUG
-                        xProg << Verbosity( 3 ) << "query " << vFullFrom << "\n";
-#endif
-                        sps_t uiRet = pDataset->getAll( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, xProg );
-#ifndef NDEBUG
-                        xProg << Verbosity( 3 ) << "query " << vFullFrom << ": " << uiRet << "\n";
+                    for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
+                        assert(vSparseCoordsOverlay[ uiI ][ uiJ ].uiStartIndex != 
+                                std::numeric_limits<coordinate_t>::max( ));
 #endif
 
-                        rPrefixSums.get( vTo, vOverlayEntries[ uiI ] ) = uiRet;
-                    },
-                    vSparseCoordsOverlay[ uiI ] );
-                //}
+                    // no zero initialization needed -> every value will be overridden
+                    vOverlayEntries[ uiI ] = rPrefixSums.template add<D - 1, false>( vAxisSizes );
+
+                    assert( vMyBottomLeft[ uiI ] > 0 );
+                    // if( prefix_sum_grid_t::sizeOf( vOverlayEntries[ uiI ] ) > 0 )
+                    //{
+
+                    rSparseCoords.template iterate<D - 1>(
+                        [ & ]( const red_pos_t& vFrom, const red_pos_t& vTo ) {
+                            pos_t vFullFrom = expand( vFrom, uiI );
+                            vFullFrom[ uiI ] = vMyBottomLeft[ uiI ] - 1;
+
+#ifndef NDEBUG
+                            xProg << Verbosity( 3 ) << "query " << vFullFrom << "\n";
+#endif
+                            sps_t uiRet = pDataset->getAll( rOverlays, rSparseCoords, rPrefixSums, vFullFrom, xProg );
+#ifndef NDEBUG
+                            xProg << Verbosity( 3 ) << "query " << vFullFrom << ": " << uiRet << "\n";
+#endif
+
+                            rPrefixSums.get( vTo, vOverlayEntries[ uiI ] ) = uiRet;
+                        },
+                        vSparseCoordsOverlay[ uiI ] );
+                    //}
+                }
             }
     }
 
-#ifdef NDEBUG
-#define SANITY 0
-#else
-#define SANITY 1
-#endif
 
 #pragma GCC diagnostic push
 // uiCornerIdx unused if IS_ORTHOTOPE = false
@@ -713,8 +722,7 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiFirstZero << "\n";
 #endif
             red_pos_t vRelevant = relevant( vPos, uiFirstZero );
-            red_pos_t vSparse =
-                rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
+            red_pos_t vSparse = rSparseCoords.template sparse<D - 1, false>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
 
             bool bValid = true;
             for( size_t uiI = 0; uiI < D - 1; uiI++ )
@@ -725,7 +733,7 @@ template <typename type_defs> class Overlay
                   << " valid: " << ( bValid ? "true" : "false" ) << "\n";
 #endif
             // in release mode query with sanity=false to avoid sanity checks
-            sps_t uiCurrArr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiFirstZero ] );
+            sps_t uiCurrArr = rPrefixSums.template get<D - 1, false>( vSparse, vOverlayEntries[ uiFirstZero ] );
 
             val_t uiCurr;
             if( bValid )
@@ -782,7 +790,7 @@ template <typename type_defs> class Overlay
 #endif
             red_pos_t vRelevant = relevant( vPos, uiFirstZero );
             red_pos_t vSparse =
-                rSparseCoords.template sparse<D - 1, SANITY>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
+                rSparseCoords.template sparse<D - 1, false>( vRelevant, vSparseCoordsOverlay[ uiFirstZero ] );
 
             bool bValid = true;
             for( size_t uiI = 0; uiI < D - 1; uiI++ )
@@ -794,8 +802,7 @@ template <typename type_defs> class Overlay
 #endif
             sps_t uiCurr;
             if( bValid )
-                // in release mode query with sanity=false to avoid sanity checks
-                uiCurr = rPrefixSums.template get<D - 1, SANITY>( vSparse, vOverlayEntries[ uiFirstZero ] );
+                uiCurr = rPrefixSums.template get<D - 1, false>( vSparse, vOverlayEntries[ uiFirstZero ] );
             else
                 uiCurr = uiBottomLeftPrefixSum;
 
@@ -864,9 +871,8 @@ template <typename type_defs> class Overlay
 
         if( rPrefixSums.sizeOf( xInternalEntires ) > 0 )
         {
-            auto vSparseCoords = rSparseCoords.template sparse<D, SANITY>( vCoords, vSparseCoordsInternal );
-            // in release mode query with sanity=false to avoid sanity checks
-            auto uiCurrArr = rPrefixSums.template get<D, SANITY>( vSparseCoords, xInternalEntires );
+            auto vSparseCoords = rSparseCoords.template sparse<D, false>( vCoords, vSparseCoordsInternal );
+            auto uiCurrArr = rPrefixSums.template get<D, false>( vSparseCoords, xInternalEntires );
             val_t uiCurr;
             if constexpr( IS_ORTHOTOPE )
                 uiCurr = uiCurrArr[ uiCornerIdx ];
@@ -919,9 +925,9 @@ template <typename type_defs> class Overlay
 
         if( rPrefixSums.sizeOf( xInternalEntires ) > 0 )
         {
-            auto vSparseCoords = rSparseCoords.template sparse<D, SANITY>( vCoords, vSparseCoordsInternal );
+            auto vSparseCoords = rSparseCoords.template sparse<D, false>( vCoords, vSparseCoordsInternal );
             // in release mode query with sanity=false to avoid sanity checks
-            sps_t uiCurr = rPrefixSums.template get<D, SANITY>( vSparseCoords, xInternalEntires );
+            sps_t uiCurr = rPrefixSums.template get<D, false>( vSparseCoords, xInternalEntires );
 #if GET_PROG_PRINTS
             xProg << Verbosity( 2 ) << "\tquerying internal " << vCoords << " -> " << vSparseCoords << ": +" << uiCurr
                   << "\n";
