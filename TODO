@@ -6,6 +6,11 @@ Bug:
 
 Features (ranked)
 
+- separate counts by annotation
+    - each annotation becomes several +-1 intervals
+    - filters to display only counts of specific type
+    - anno coord system
+
 - list based compilation parameter system
 
 - think about caching the overlay prefix sums during construction...

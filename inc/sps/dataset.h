@@ -697,7 +697,7 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
-        uint64_t uiNumOverlaySamples = std::max( 1ul, 10*(uint64_t)std::log2( uiNumOverlaysTotal ) );
+        uint64_t uiNumOverlaySamples = std::max( 1ul, 2*(uint64_t)std::log2( uiNumOverlaysTotal ) );
         uint64_t uiNumPointSamples =
             std::max( 1ul, 10*(uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
 
@@ -844,6 +844,14 @@ template <typename type_defs> class Dataset
     static double pickOverlayFactor( corners_t& vCorners, const typename corners_t::Entry xCorners,
                                      pos_t uiCoordinateSizes, pos_t uiMinPos, progress_stream_t xProg )
     {
+        coordinate_t uiArea = 1;
+
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            uiArea *= uiCoordinateSizes[ uiI ];
+
+        if(uiArea < 100000)
+            return 0;
+
         std::array<typename corners_t::Entry, D> xSortedPoints;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
