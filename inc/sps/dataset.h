@@ -236,10 +236,10 @@ template <typename type_defs> class Dataset
         size_t uiFrom = xOverlays.uiStartIndex;
         size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
-            ThreadPool xPool(
-                rOverlays.THREADSAVE && rSparseCoords.THREADSAVE && vCorners.THREADSAVE
-                    ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ), (size_t)std::thread::hardware_concurrency( ) )
-                    : 0 );
+            ThreadPool xPool( rOverlays.THREADSAVE && rSparseCoords.THREADSAVE && vCorners.THREADSAVE
+                                  ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ),
+                                              (size_t)std::thread::hardware_concurrency( ) )
+                                  : 0 );
             vPrefixSumSize.resize( std::max( xPool.numThreads( ), (size_t)1 ) );
 
             std::mutex xPrintMutex;
@@ -342,10 +342,10 @@ template <typename type_defs> class Dataset
         size_t uiFrom = xOverlays.uiStartIndex;
         size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
         {
-            ThreadPool xPool(
-                rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vCorners.THREADSAVE
-                    ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ), (size_t)std::thread::hardware_concurrency( ) )
-                    : 0 );
+            ThreadPool xPool( rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && vCorners.THREADSAVE
+                                  ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ),
+                                              (size_t)std::thread::hardware_concurrency( ) )
+                                  : 0 );
 
             for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
@@ -853,7 +853,10 @@ template <typename type_defs> class Dataset
             uiArea *= uiCoordinateSizes[ uiI ];
 
         if( uiArea < 100000 )
+        {
+            xProg << Verbosity( 0 ) << "data-area smaller than 100,000. Picking factor 0.\n";
             return 0;
+        }
 
         std::array<typename corners_t::Entry, D> xSortedPoints;
         for( size_t uiI = 0; uiI < D; uiI++ )
@@ -1026,7 +1029,10 @@ template <typename type_defs> class Dataset
              corners_t& vCorners, typename corners_t::Entry xCorners, double fFac, progress_stream_t xProg )
     {
         if( xCorners.uiEndIndex == xCorners.uiStartIndex )
+        {
+            xProg << Verbosity( 0 ) << "done generating empty index.\n";
             return;
+        }
 
         std::vector<typename corners_t::Entry> vSplitPoints;
 

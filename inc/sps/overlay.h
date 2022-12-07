@@ -281,11 +281,51 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
+    }
+
+    template <size_t I, size_t N>
+    inline void iterateDiagHelper( const size_t uiDiag, const size_t uiTotal, const std::array<coordinate_t, N>& rEnds,
+                                   std::function<void( size_t, const std::array<coordinate_t, N>& )>
+                                       fDo,
+                                   size_t uiCurr,
+                                   std::array<coordinate_t, N>& rCurr) const
+    {
+        uiCurr *= rEnds[ I ];
+        if constexpr( I >= N )
+            throw std::runtime_error( "unreachable statement!" );
+        if constexpr( I + 1 == N )
+        {
+            assert( uiTotal == rEnds[ I ] );
+            assert( uiDiag < uiTotal );
+            rCurr[ I ] = uiDiag;
+            fDo( uiCurr + uiDiag, rCurr);
+        }
+        else
+            for( coordinate_t uiI = uiDiag > uiTotal - rEnds[ I ] ? uiDiag - ( uiTotal - rEnds[ I ] ) : 0;
+                 uiI < std::min( uiDiag + 1, rEnds[ I ] );
+                 uiI++ )
+            {
+                rCurr[ I ] = uiI;
+                iterateDiagHelper<I + 1, N>( uiDiag - uiI, uiTotal - ( rEnds[ I ] - 1 ), rEnds, fDo, 
+                                             uiCurr + uiI, rCurr );
+            }
+    }
+
+    template <size_t N>
+    void iterateDiag( const size_t uiDiag, const std::array<coordinate_t, N>& rEnds,
+                      std::function<void( size_t, const std::array<coordinate_t, N>& )> fDo ) const
+    {
+        std::array<coordinate_t, N> rCurr;
+        size_t uiCurr = 0;
+        coordinate_t uiTotal = 1;
+        for( coordinate_t uiX : rEnds )
+            uiTotal += uiX - 1;
+        iterateDiagHelper<0, N>( uiDiag, uiTotal, rEnds, fDo, uiCurr, rCurr );
     }
 
     coordinate_t getNumInternalSparseCoords( ) const
@@ -550,11 +590,17 @@ template <typename type_defs> class Overlay
         pos_t vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
 
         coordinate_t uiNumTotal = 1;
+        coordinate_t uiMaxDiag = 0;
         for( coordinate_t uiC : vInternalAxisSizes )
+        {
             uiNumTotal *= uiC;
-        coordinate_t uiNumDone = 0;
+            uiMaxDiag += uiC - 1;
+        }
         std::vector<sps_t> vTmp( uiNumTotal, sps_t{ } );
 
+#ifndef NDEBUG
+        xProg << Verbosity( 1 ) << "constructing internal prefix sums: adding corner counts\n";
+#endif
         vCorners.iterate(
             [ & ]( const corner_t& xCorner ) {
                 // compute index of prefix sum entry
@@ -573,50 +619,51 @@ template <typename type_defs> class Overlay
             },
             xCorners );
 
-        // compute internal prefix sum
+        pos_t vSizes;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
+            size_t uiJ = D - uiI - 1;
+            vSizes[uiJ] = (uiJ + 1 < D ? vSizes[uiJ + 1] * vInternalAxisSizes[uiJ + 1] : 1);
+        }
 #ifndef NDEBUG
-            xProg << Verbosity( 3 ) << "computing prefix sums over dimension " << uiI << "\n";
-#endif
-            red_pos_t vRelevantInternalAxisSizes = relevant( vInternalAxisSizes, uiI );
-
-            std::vector<red_pos_t> vvTos;
-            std::vector<coordinate_t> vuiTos;
-            iterate<D - 1>( vRelevantInternalAxisSizes, [ & ]( const red_pos_t& vTo ) {
-                pos_t vFullTo = expand( vTo, uiI );
-                sps_t uiPrefixSum = sps_t{ };
-
-#ifndef NDEBUG
-                xProg << Verbosity( 3 ) << "starting...: " << vFullTo << ": " << uiPrefixSum << "\n";
+            xProg << Verbosity( 3 ) << "vSizes: " << vSizes << " vInternalAxisSizes: " << vInternalAxisSizes << "\n";
 #endif
 
-                iterate( vInternalAxisSizes[ uiI ], [ & ]( coordinate_t uiTo ) {
-                    vFullTo[ uiI ] = uiTo;
-
-                    // compute index of prefix sum entry
-                    coordinate_t uiIdx = 0;
-                    for( size_t uiJ = 0; uiJ < D; uiJ++ )
-                    {
-                        assert( vFullTo[ uiJ ] != std::numeric_limits<coordinate_t>::max( ) );
-                        assert( vFullTo[ uiJ ] < vInternalAxisSizes[ uiJ ] );
-                        uiIdx = uiIdx * vInternalAxisSizes[ uiJ ] + vFullTo[ uiJ ];
-                    }
-                    assert( uiIdx < vTmp.size( ) );
-
-                    uiPrefixSum += vTmp[ uiIdx ];
-
+        // compute internal prefix sum
+        for( size_t uiI = 1; uiI <= uiMaxDiag; uiI++ )
+        {
 #ifndef NDEBUG
-                    xProg << Verbosity( 3 ) << vFullTo << ": " << uiPrefixSum << "\n";
+            xProg << Verbosity( 1 ) << "constructing internal prefix sums diagonal " << uiI << "\n";
 #endif
-
-                    vTmp[ uiIdx ] = uiPrefixSum;
-
-                    ++uiNumDone;
-                } );
-            } );
+            iterateDiag<D>( uiI, vInternalAxisSizes,
+                            [ & ]( const size_t uiIdx, const pos_t& vPos) {
+                                sps_t uiPrefixSum = sps_t{ };
+                                for( size_t uiI = 0; uiI < D; uiI++ )
+                                    if( vPos[uiI] > 0 )
+                                    {
+                                        size_t uiJdx = uiIdx - vSizes[uiI];
+#ifndef NDEBUG
+                                        xProg << Verbosity( 3 ) << "idx " << uiIdx << " + idx " << uiJdx 
+                                              << " uiI: " << uiI << "\n";
+#endif
+                                        uiPrefixSum += vTmp[ uiJdx ];
+                                        for( size_t uiJ = 0; uiJ < uiI; uiJ++ )
+                                            if( vPos[uiJ] > 0 )
+                                            {
+                                                uiPrefixSum -= vTmp[ uiJdx - vSizes[uiJ] ];
+#ifndef NDEBUG
+                                                xProg << Verbosity( 3 ) << "idx " << uiIdx << " - idx " 
+                                                      << uiJdx - vSizes[uiJ] << " uiI: " << uiI << "\n";
+#endif
+                                            }
+                                    }
+                                vTmp[ uiIdx ] += uiPrefixSum;
+                            } );
         }
 
+#ifndef NDEBUG
+        xProg << Verbosity( 1 ) << "constructing internal prefix sums: transferring counts\n";
+#endif
         // synchronization hidden within the function
         xInternalEntires = rPrefixSums.template add<D>( vInternalAxisSizes, vTmp );
     }
