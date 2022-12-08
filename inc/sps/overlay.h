@@ -596,76 +596,79 @@ template <typename type_defs> class Overlay
             uiNumTotal *= uiC;
             uiMaxDiag += uiC - 1;
         }
-        std::vector<sps_t> vTmp( uiNumTotal, sps_t{ } );
+        if(uiNumTotal > 0){
+            std::vector<sps_t> vTmp( uiNumTotal, sps_t{ } );
 
-#ifndef NDEBUG
-        xProg << Verbosity( 1 ) << "constructing internal prefix sums: adding corner counts\n";
-#endif
-        vCorners.iterate(
-            [ & ]( const corner_t& xCorner ) {
-                // compute index of prefix sum entry
-                pos_t uiSparsePos = rSparseCoords.sparse( xCorner.vPos, vSparseCoordsInternal );
-                coordinate_t uiIdx = 0;
-                for( size_t uiJ = 0; uiJ < D; uiJ++ )
-                {
-                    assert( uiSparsePos[ uiJ ] != std::numeric_limits<coordinate_t>::max( ) );
-                    assert( uiSparsePos[ uiJ ] < vInternalAxisSizes[ uiJ ] );
-                    uiIdx = uiIdx * vInternalAxisSizes[ uiJ ] + uiSparsePos[ uiJ ];
-                }
-                assert( uiIdx < vTmp.size( ) );
+    #ifndef NDEBUG
+            xProg << Verbosity( 1 ) << "constructing internal prefix sums: adding corner counts\n";
+    #endif
+            vCorners.iterate(
+                [ & ]( const corner_t& xCorner ) {
+                    // compute index of prefix sum entry
+                    pos_t uiSparsePos = rSparseCoords.sparse( xCorner.vPos, vSparseCoordsInternal );
+                    coordinate_t uiIdx = 0;
+                    for( size_t uiJ = 0; uiJ < D; uiJ++ )
+                    {
+                        assert( uiSparsePos[ uiJ ] != std::numeric_limits<coordinate_t>::max( ) );
+                        assert( uiSparsePos[ uiJ ] < vInternalAxisSizes[ uiJ ] );
+                        uiIdx = uiIdx * vInternalAxisSizes[ uiJ ] + uiSparsePos[ uiJ ];
+                    }
+                    assert( uiIdx < vTmp.size( ) );
 
-                // add point to entry
-                xCorner.addTo( vTmp[ uiIdx ] );
-            },
-            xCorners );
+                    // add point to entry
+                    xCorner.addTo( vTmp[ uiIdx ] );
+                },
+                xCorners );
 
-        pos_t vSizes;
-        for( size_t uiI = 0; uiI < D; uiI++ )
-        {
-            size_t uiJ = D - uiI - 1;
-            vSizes[uiJ] = (uiJ + 1 < D ? vSizes[uiJ + 1] * vInternalAxisSizes[uiJ + 1] : 1);
+            pos_t vSizes;
+            for( size_t uiI = 0; uiI < D; uiI++ )
+            {
+                size_t uiJ = D - uiI - 1;
+                vSizes[uiJ] = (uiJ + 1 < D ? vSizes[uiJ + 1] * vInternalAxisSizes[uiJ + 1] : 1);
+            }
+    #ifndef NDEBUG
+                xProg << Verbosity( 3 ) << "vSizes: " << vSizes << " vInternalAxisSizes: " << vInternalAxisSizes << "\n";
+    #endif
+
+            // compute internal prefix sum
+            for( size_t uiI = 1; uiI <= uiMaxDiag; uiI++ )
+            {
+    #ifndef NDEBUG
+                xProg << Verbosity( 1 ) << "constructing internal prefix sums diagonal " << uiI << " of " 
+                    << uiMaxDiag << "\n";
+    #endif
+                iterateDiag<D>( uiI, vInternalAxisSizes,
+                                [ & ]( const size_t uiIdx, const pos_t& vPos) {
+                                    sps_t uiPrefixSum = sps_t{ };
+                                    for( size_t uiI = 0; uiI < D; uiI++ )
+                                        if( vPos[uiI] > 0 )
+                                        {
+                                            size_t uiJdx = uiIdx - vSizes[uiI];
+    #ifndef NDEBUG
+                                            xProg << Verbosity( 3 ) << "idx " << uiIdx << " + idx " << uiJdx 
+                                                << " uiI: " << uiI << "\n";
+    #endif
+                                            uiPrefixSum += vTmp[ uiJdx ];
+                                            for( size_t uiJ = 0; uiJ < uiI; uiJ++ )
+                                                if( vPos[uiJ] > 0 )
+                                                {
+                                                    uiPrefixSum -= vTmp[ uiJdx - vSizes[uiJ] ];
+    #ifndef NDEBUG
+                                                    xProg << Verbosity( 3 ) << "idx " << uiIdx << " - idx " 
+                                                        << uiJdx - vSizes[uiJ] << " uiI: " << uiI << "\n";
+    #endif
+                                                }
+                                        }
+                                    vTmp[ uiIdx ] += uiPrefixSum;
+                                } );
+            }
+
+    #ifndef NDEBUG
+            xProg << Verbosity( 1 ) << "constructing internal prefix sums: transferring counts\n";
+    #endif
+            // synchronization hidden within the function
+            xInternalEntires = rPrefixSums.template add<D>( vInternalAxisSizes, vTmp );
         }
-#ifndef NDEBUG
-            xProg << Verbosity( 3 ) << "vSizes: " << vSizes << " vInternalAxisSizes: " << vInternalAxisSizes << "\n";
-#endif
-
-        // compute internal prefix sum
-        for( size_t uiI = 1; uiI <= uiMaxDiag; uiI++ )
-        {
-#ifndef NDEBUG
-            xProg << Verbosity( 1 ) << "constructing internal prefix sums diagonal " << uiI << "\n";
-#endif
-            iterateDiag<D>( uiI, vInternalAxisSizes,
-                            [ & ]( const size_t uiIdx, const pos_t& vPos) {
-                                sps_t uiPrefixSum = sps_t{ };
-                                for( size_t uiI = 0; uiI < D; uiI++ )
-                                    if( vPos[uiI] > 0 )
-                                    {
-                                        size_t uiJdx = uiIdx - vSizes[uiI];
-#ifndef NDEBUG
-                                        xProg << Verbosity( 3 ) << "idx " << uiIdx << " + idx " << uiJdx 
-                                              << " uiI: " << uiI << "\n";
-#endif
-                                        uiPrefixSum += vTmp[ uiJdx ];
-                                        for( size_t uiJ = 0; uiJ < uiI; uiJ++ )
-                                            if( vPos[uiJ] > 0 )
-                                            {
-                                                uiPrefixSum -= vTmp[ uiJdx - vSizes[uiJ] ];
-#ifndef NDEBUG
-                                                xProg << Verbosity( 3 ) << "idx " << uiIdx << " - idx " 
-                                                      << uiJdx - vSizes[uiJ] << " uiI: " << uiI << "\n";
-#endif
-                                            }
-                                    }
-                                vTmp[ uiIdx ] += uiPrefixSum;
-                            } );
-        }
-
-#ifndef NDEBUG
-        xProg << Verbosity( 1 ) << "constructing internal prefix sums: transferring counts\n";
-#endif
-        // synchronization hidden within the function
-        xInternalEntires = rPrefixSums.template add<D>( vInternalAxisSizes, vTmp );
     }
 
     void generateOverlayPrefixSums( const overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
