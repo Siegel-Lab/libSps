@@ -592,12 +592,8 @@ template <typename type_defs> class Overlay
         pos_t vInternalAxisSizes = rSparseCoords.axisSizes( vSparseCoordsInternal );
 
         coordinate_t uiNumTotal = 1;
-        coordinate_t uiMaxDiag = 0;
         for( coordinate_t uiC : vInternalAxisSizes )
-        {
             uiNumTotal *= uiC;
-            uiMaxDiag += uiC - 1;
-        }
         if( uiNumTotal > 0 )
         {
             std::vector<sps_t> vTmp( uiNumTotal, sps_t{ } );
@@ -633,11 +629,62 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 3 ) << "vSizes: " << vSizes << " vInternalAxisSizes: " << vInternalAxisSizes << "\n";
 #endif
 
+#if 1 // 1 == old implementation //@todo new implementation is buggy!!!
+            // compute internal prefix sum
+            coordinate_t uiNumDone = 0;
+            for( size_t uiI = 0; uiI < D; uiI++ )
+            {
+#ifndef NDEBUG
+                xProg << Verbosity( 3 ) << "computing prefix sums over dimension " << uiI << "\n";
+#endif
+                red_pos_t vRelevantInternalAxisSizes = relevant( vInternalAxisSizes, uiI );
+
+                std::vector<red_pos_t> vvTos;
+                std::vector<coordinate_t> vuiTos;
+                iterate<D - 1>( vRelevantInternalAxisSizes, [ & ]( const red_pos_t& vTo ) {
+                    pos_t vFullTo = expand( vTo, uiI );
+                    sps_t uiPrefixSum = sps_t{ };
+
+#ifndef NDEBUG
+                    xProg << Verbosity( 3 ) << "starting...: " << vFullTo << ": " << uiPrefixSum << "\n";
+#endif
+
+                    iterate( vInternalAxisSizes[ uiI ], [ & ]( coordinate_t uiTo ) {
+                        vFullTo[ uiI ] = uiTo;
+
+                        // compute index of prefix sum entry
+                        coordinate_t uiIdx = 0;
+                        for( size_t uiJ = 0; uiJ < D; uiJ++ )
+                        {
+                            assert( vFullTo[ uiJ ] != std::numeric_limits<coordinate_t>::max( ) );
+                            assert( vFullTo[ uiJ ] < vInternalAxisSizes[ uiJ ] );
+                            uiIdx = uiIdx * vInternalAxisSizes[ uiJ ] + vFullTo[ uiJ ];
+                        }
+                        assert( uiIdx < vTmp.size( ) );
+
+                        uiPrefixSum += vTmp[ uiIdx ];
+
+#ifndef NDEBUG
+                        xProg << Verbosity( 3 ) << vFullTo << ": " << uiPrefixSum << "\n";
+#endif
+
+                        vTmp[ uiIdx ] = uiPrefixSum;
+
+                        ++uiNumDone;
+                    } );
+                } );
+            }
+
+#else
+            coordinate_t uiMaxDiag = 0;
+            for( coordinate_t uiC : vInternalAxisSizes )
+                uiMaxDiag += uiC - 1;
+
             // compute internal prefix sum
             for( size_t uiI = 1; uiI <= uiMaxDiag; uiI++ )
             {
 #ifndef NDEBUG
-                xProg << Verbosity( 1 ) << "constructing internal prefix sums diagonal " << uiI << " of " << uiMaxDiag
+                xProg << Verbosity( 3 ) << "constructing internal prefix sums diagonal " << uiI << " of " << uiMaxDiag
                       << "\n";
 #endif
                 iterateDiag<D>( uiI, vInternalAxisSizes, [ & ]( const size_t uiIdx, const pos_t& vPos ) {
@@ -663,7 +710,7 @@ template <typename type_defs> class Overlay
                     vTmp[ uiIdx ] += uiPrefixSum;
                 } );
             }
-
+#endif
 #ifndef NDEBUG
             xProg << Verbosity( 1 ) << "constructing internal prefix sums: transferring counts\n";
 #endif
