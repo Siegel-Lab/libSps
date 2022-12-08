@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -293,10 +293,8 @@ template <typename type_defs> class Overlay
 #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     template <size_t I, size_t N>
     inline void iterateDiagHelper( const size_t uiDiag, const size_t uiTotal, const std::array<coordinate_t, N>& rEnds,
-                                   std::function<void( size_t, const std::array<coordinate_t, N>& )>
-                                       fDo,
-                                   size_t uiCurr,
-                                   std::array<coordinate_t, N>& rCurr) const
+                                   std::function<void( size_t, const std::array<coordinate_t, N>& )> fDo, size_t uiCurr,
+                                   std::array<coordinate_t, N>& rCurr ) const
     {
         uiCurr *= rEnds[ I ];
         if constexpr( I >= N )
@@ -306,7 +304,7 @@ template <typename type_defs> class Overlay
             assert( uiTotal == rEnds[ I ] );
             assert( uiDiag < uiTotal );
             rCurr[ I ] = uiDiag;
-            fDo( uiCurr + uiDiag, rCurr);
+            fDo( uiCurr + uiDiag, rCurr );
         }
         else
             for( coordinate_t uiI = uiDiag > uiTotal - rEnds[ I ] ? uiDiag - ( uiTotal - rEnds[ I ] ) : 0;
@@ -314,8 +312,8 @@ template <typename type_defs> class Overlay
                  uiI++ )
             {
                 rCurr[ I ] = uiI;
-                iterateDiagHelper<I + 1, N>( uiDiag - uiI, uiTotal - ( rEnds[ I ] - 1 ), rEnds, fDo, 
-                                             uiCurr + uiI, rCurr );
+                iterateDiagHelper<I + 1, N>( uiDiag - uiI, uiTotal - ( rEnds[ I ] - 1 ), rEnds, fDo, uiCurr + uiI,
+                                             rCurr );
             }
     }
 #pragma GCC diagnostic pop
@@ -600,12 +598,13 @@ template <typename type_defs> class Overlay
             uiNumTotal *= uiC;
             uiMaxDiag += uiC - 1;
         }
-        if(uiNumTotal > 0){
+        if( uiNumTotal > 0 )
+        {
             std::vector<sps_t> vTmp( uiNumTotal, sps_t{ } );
 
-    #ifndef NDEBUG
+#ifndef NDEBUG
             xProg << Verbosity( 1 ) << "constructing internal prefix sums: adding corner counts\n";
-    #endif
+#endif
             vCorners.iterate(
                 [ & ]( const corner_t& xCorner ) {
                     // compute index of prefix sum entry
@@ -628,48 +627,46 @@ template <typename type_defs> class Overlay
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
                 size_t uiJ = D - uiI - 1;
-                vSizes[uiJ] = (uiJ + 1 < D ? vSizes[uiJ + 1] * vInternalAxisSizes[uiJ + 1] : 1);
+                vSizes[ uiJ ] = ( uiJ + 1 < D ? vSizes[ uiJ + 1 ] * vInternalAxisSizes[ uiJ + 1 ] : 1 );
             }
-    #ifndef NDEBUG
-                xProg << Verbosity( 3 ) << "vSizes: " << vSizes << " vInternalAxisSizes: " << vInternalAxisSizes << "\n";
-    #endif
+#ifndef NDEBUG
+            xProg << Verbosity( 3 ) << "vSizes: " << vSizes << " vInternalAxisSizes: " << vInternalAxisSizes << "\n";
+#endif
 
             // compute internal prefix sum
             for( size_t uiI = 1; uiI <= uiMaxDiag; uiI++ )
             {
-    #ifndef NDEBUG
-                xProg << Verbosity( 1 ) << "constructing internal prefix sums diagonal " << uiI << " of " 
-                    << uiMaxDiag << "\n";
-    #endif
-                iterateDiag<D>( uiI, vInternalAxisSizes,
-                                [ & ]( const size_t uiIdx, const pos_t& vPos) {
-                                    sps_t uiPrefixSum = sps_t{ };
-                                    for( size_t uiI = 0; uiI < D; uiI++ )
-                                        if( vPos[uiI] > 0 )
-                                        {
-                                            size_t uiJdx = uiIdx - vSizes[uiI];
-    #ifndef NDEBUG
-                                            xProg << Verbosity( 3 ) << "idx " << uiIdx << " + idx " << uiJdx 
-                                                << " uiI: " << uiI << "\n";
-    #endif
-                                            uiPrefixSum += vTmp[ uiJdx ];
-                                            for( size_t uiJ = 0; uiJ < uiI; uiJ++ )
-                                                if( vPos[uiJ] > 0 )
-                                                {
-                                                    uiPrefixSum -= vTmp[ uiJdx - vSizes[uiJ] ];
-    #ifndef NDEBUG
-                                                    xProg << Verbosity( 3 ) << "idx " << uiIdx << " - idx " 
-                                                        << uiJdx - vSizes[uiJ] << " uiI: " << uiI << "\n";
-    #endif
-                                                }
-                                        }
-                                    vTmp[ uiIdx ] += uiPrefixSum;
-                                } );
+#ifndef NDEBUG
+                xProg << Verbosity( 1 ) << "constructing internal prefix sums diagonal " << uiI << " of " << uiMaxDiag
+                      << "\n";
+#endif
+                iterateDiag<D>( uiI, vInternalAxisSizes, [ & ]( const size_t uiIdx, const pos_t& vPos ) {
+                    sps_t uiPrefixSum = sps_t{ };
+                    for( size_t uiI = 0; uiI < D; uiI++ )
+                        if( vPos[ uiI ] > 0 )
+                        {
+                            size_t uiJdx = uiIdx - vSizes[ uiI ];
+#ifndef NDEBUG
+                            xProg << Verbosity( 3 ) << "idx " << uiIdx << " + idx " << uiJdx << " uiI: " << uiI << "\n";
+#endif
+                            uiPrefixSum += vTmp[ uiJdx ];
+                            for( size_t uiJ = 0; uiJ < uiI; uiJ++ )
+                                if( vPos[ uiJ ] > 0 )
+                                {
+                                    uiPrefixSum -= vTmp[ uiJdx - vSizes[ uiJ ] ];
+#ifndef NDEBUG
+                                    xProg << Verbosity( 3 ) << "idx " << uiIdx << " - idx " << uiJdx - vSizes[ uiJ ]
+                                          << " uiI: " << uiI << "\n";
+#endif
+                                }
+                        }
+                    vTmp[ uiIdx ] += uiPrefixSum;
+                } );
             }
 
-    #ifndef NDEBUG
+#ifndef NDEBUG
             xProg << Verbosity( 1 ) << "constructing internal prefix sums: transferring counts\n";
-    #endif
+#endif
             // synchronization hidden within the function
             xInternalEntires = rPrefixSums.template add<D>( vInternalAxisSizes, vTmp );
         }

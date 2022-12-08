@@ -81,7 +81,7 @@ template <typename type_defs, template <typename> typename impl_t> class SparseC
         coord_vec_generator.try_shrink_to_fit( vData );
     }
 
-    void reserve(size_t uiS )
+    void reserve( size_t uiS )
     {
         coord_vec_generator.reserve( uiS, vData );
     }

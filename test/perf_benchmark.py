@@ -38,7 +38,7 @@ while td < 2:
         #index.reserve(5000, 500*3*1000, 1000*1000*1000, 2000, 1000)
     t1 = time.perf_counter()
     td = t1 - t0
-    #print(td)
+    print(td)
 #query_index(id, index, 3, 1000000)
 t2 = time.perf_counter()
 

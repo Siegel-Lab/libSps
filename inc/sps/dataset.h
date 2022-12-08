@@ -706,8 +706,8 @@ template <typename type_defs> class Dataset
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
-            ThreadPool xPool( vCorners.THREADSAVE ? std::min((size_t)std::thread::hardware_concurrency( ), 
-                                                             (size_t)uiNumOverlaySamples)
+            ThreadPool xPool( vCorners.THREADSAVE ? std::min( (size_t)std::thread::hardware_concurrency( ),
+                                                              (size_t)uiNumOverlaySamples )
                                                   : 0 );
 
             std::mutex xResMutex;
@@ -986,7 +986,7 @@ template <typename type_defs> class Dataset
         uiMinCoords = xA[ 2 ];
 
         xProg << Verbosity( 0 ) << "picking number of overlay boxes.\n";
-        
+
         pos_t uiNumOverlaysPerDim =
             pickOverlayNumbers( vCorners, xCorners, uiCoordinateSizes, uiMinCoords, fFac, xProg );
 

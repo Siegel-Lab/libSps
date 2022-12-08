@@ -124,14 +124,14 @@ template <typename val_t> struct RamVecGenerator
 
     void reserve( size_t uiSize, vec_t& rVec )
     {
-        if(uiSize > rVec.capacity())
-            rVec.reserve(std::max(uiSize, rVec.capacity() * 2));
+        if( uiSize > rVec.capacity( ) )
+            rVec.reserve( std::max( uiSize, rVec.capacity( ) + rVec.capacity( ) / 5 ) );
     }
 
     void try_shrink_to_fit( vec_t& /*rVec*/ )
     {
         // intentionally ignore shrink to fit for avoiding endless reallocations
-        //rVec.shrink_to_fit( );
+        // rVec.shrink_to_fit( );
     }
 
     file_t file( std::string, bool )
@@ -226,12 +226,12 @@ template <typename val_t> struct CachedVecGenerator
     void try_shrink_to_fit( vec_t& /*rVec*/ )
     {
         // intentionally ignore shrink to fit for avoiding endless reallocations
-        //rVec.resize( rVec.size( ), true );
+        // rVec.resize( rVec.size( ), true );
     }
 
     void reserve( size_t uiSize, vec_t& rVec )
     {
-        rVec.reserve(uiSize);
+        rVec.reserve( uiSize );
     }
 
     file_t file( std::string sPath, bool bOpenInWriteMode )
@@ -334,8 +334,8 @@ template <typename val_t> struct DiskVecGenerator
      */
     void reserve( size_t uiSize, vec_t& rVec )
     {
-        if(uiSize > rVec.capacity())
-            rVec.reserve(std::max(uiSize, rVec.size() * 2));
+        if( uiSize > rVec.capacity( ) )
+            rVec.reserve( std::max( uiSize, rVec.capacity( ) + rVec.capacity( ) / 5 ) );
     }
 
     /**
@@ -346,7 +346,7 @@ template <typename val_t> struct DiskVecGenerator
     void try_shrink_to_fit( vec_t& /*rVec*/ )
     {
         // intentionally ignore shrink to fit for avoiding endless reallocations
-        //rVec.shrink_to_fit( );
+        // rVec.shrink_to_fit( );
     }
 
     /**
