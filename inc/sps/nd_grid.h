@@ -78,6 +78,11 @@ template <typename type_defs, typename data_t, template <typename> typename data
         : xFile( data_vec_generator.file( sFileName, bWrite ) ), vData( data_vec_generator.vec( xFile ) )
     {}
 
+    void reserve(size_t uiS )
+    {
+        data_vec_generator.reserve( uiS, vData );
+    }
+
     template <size_t N, bool SANITY = true>
     static coordinate_t indexOf( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
     {

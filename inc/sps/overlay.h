@@ -288,6 +288,9 @@ template <typename type_defs> class Overlay
         iterateHelper<0, N>( rEnds, fDo, rCurr );
     }
 
+#pragma GCC diagnostic push
+// uiTotal is unused bt set for I + 1 == N
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     template <size_t I, size_t N>
     inline void iterateDiagHelper( const size_t uiDiag, const size_t uiTotal, const std::array<coordinate_t, N>& rEnds,
                                    std::function<void( size_t, const std::array<coordinate_t, N>& )>
@@ -315,6 +318,7 @@ template <typename type_defs> class Overlay
                                              uiCurr + uiI, rCurr );
             }
     }
+#pragma GCC diagnostic pop
 
     template <size_t N>
     void iterateDiag( const size_t uiDiag, const std::array<coordinate_t, N>& rEnds,

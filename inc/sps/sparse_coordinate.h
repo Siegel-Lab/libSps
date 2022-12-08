@@ -62,7 +62,7 @@ template <typename type_defs, template <typename> typename impl_t> class SparseC
                 xCapacityChangeVar.wait( xGuard );
             ++uiCapChangeLocks;
             if( vData.capacity( ) <= uiAddSize + vData.size( ) )
-                vData.reserve( ( vData.size( ) + uiAddSize ) * 2 );
+                reserve( ( vData.size( ) + uiAddSize ) * 2 );
             xCapacityChangeVar.notify_all( );
         }
         size_t uiRet = vData.size( );
@@ -79,6 +79,11 @@ template <typename type_defs, template <typename> typename impl_t> class SparseC
     void shrink_to_fit( )
     {
         coord_vec_generator.try_shrink_to_fit( vData );
+    }
+
+    void reserve(size_t uiS )
+    {
+        coord_vec_generator.reserve( uiS, vData );
     }
 
 

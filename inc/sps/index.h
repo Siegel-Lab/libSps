@@ -115,6 +115,15 @@ template <typename type_defs> class Index : public AbstractIndex
         clearKeepPoints( );
     }
 
+    void reserve(size_t uiCorners, size_t uiCoords, size_t uiPrefixSums, size_t uiOverlays, size_t uiDatasets)
+    {
+        vCorners.vData.reserve(uiCorners);
+        vSparseCoord.vData.reserve(uiCoords);
+        vPrefixSumGrid.vData.reserve(uiPrefixSums);
+        vOverlayGrid.vData.reserve(uiOverlays);
+        vDataSets.reserve(uiDatasets);
+    }
+
     /**
      * @brief Clear the complete index.
      *
@@ -1091,6 +1100,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def( "max_prefix_value", &sps::Index<type_defs>::maxPrefixSumValue,
               "Return the maximal stored prefix sum. Intended for storage space optimization purposes." )
         .def( "clear", &sps::Index<type_defs>::clear, "Clear the complete index." )
+        .def( "reserve", &sps::Index<type_defs>::reserve, "Reserve memory for the index corners, sparse coords and prefix sums. Does nothing a value less than the currently held memory is given." )
         .def( "clear_keep_points", &sps::Index<type_defs>::clearKeepPoints,
               "Clear the index datasets, but keep the points." )
         .def( "pop_dataset", &sps::Index<type_defs>::popDataset, "Remove the last dataset." )

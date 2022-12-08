@@ -230,7 +230,7 @@ template <typename type_defs> class Dataset
                                        std::function<coordinate_t( size_t )>
                                            fDo )
     {
-        rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + ( 2 << 8 ) );
+        rSparseCoords.reserve( rSparseCoords.vData.size( ) + ( 2 << 8 ) );
 
         std::vector<coordinate_t> vPrefixSumSize;
         size_t uiFrom = xOverlays.uiStartIndex;
@@ -291,7 +291,7 @@ template <typename type_defs> class Dataset
     coordinate_t generateOverlaySparseCoords( overlay_grid_t& rOverlays, sparse_coord_t& rSparseCoords,
                                               corners_t& vCorners, progress_stream_t xProgIn )
     {
-        rSparseCoords.vData.reserve( rSparseCoords.vData.size( ) + ( 2 << 8 ) );
+        rSparseCoords.reserve( rSparseCoords.vData.size( ) + ( 2 << 8 ) );
 
         auto xIterator = rOverlays.template genIterator<D>( xOverlays, successors );
 
@@ -337,7 +337,7 @@ template <typename type_defs> class Dataset
                                      std::vector<typename corners_t::Entry>& vSplitPoints,
                                      coordinate_t uiSizeInternalPrefixSums, progress_stream_t xProg )
     {
-        rPrefixSums.vData.reserve( rPrefixSums.vData.size( ) + uiSizeInternalPrefixSums );
+        rPrefixSums.reserve( rPrefixSums.vData.size( ) + uiSizeInternalPrefixSums );
 
         size_t uiFrom = xOverlays.uiStartIndex;
         size_t uiTo = uiFrom + overlay_grid_t::sizeOf( xOverlays );
@@ -381,7 +381,7 @@ template <typename type_defs> class Dataset
                                     prefix_sum_grid_t& rPrefixSums, corners_t& vCorners,
                                     coordinate_t uiSizeOverlayPrefixSums, progress_stream_t xProgIn )
     {
-        rPrefixSums.vData.reserve( rPrefixSums.vData.size( ) + uiSizeOverlayPrefixSums );
+        rPrefixSums.reserve( rPrefixSums.vData.size( ) + uiSizeOverlayPrefixSums );
 
         auto xIterator = rOverlays.template genIterator<D>( xOverlays, successors );
         // actually process the overlays
@@ -706,7 +706,9 @@ template <typename type_defs> class Dataset
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
-            ThreadPool xPool( vCorners.THREADSAVE ? std::thread::hardware_concurrency( ) : 0 );
+            ThreadPool xPool( vCorners.THREADSAVE ? std::min((size_t)std::thread::hardware_concurrency( ), 
+                                                             (size_t)uiNumOverlaySamples)
+                                                  : 0 );
 
             std::mutex xResMutex;
 
@@ -984,6 +986,7 @@ template <typename type_defs> class Dataset
         uiMinCoords = xA[ 2 ];
 
         xProg << Verbosity( 0 ) << "picking number of overlay boxes.\n";
+        
         pos_t uiNumOverlaysPerDim =
             pickOverlayNumbers( vCorners, xCorners, uiCoordinateSizes, uiMinCoords, fFac, xProg );
 
@@ -1052,7 +1055,6 @@ template <typename type_defs> class Dataset
 
         xProg << Verbosity( 0 ) << "generating overlay prefix sums.\n";
         generateOverlayPrefixSums( rOverlays, rSparseCoords, rPrefixSums, vCorners, uiSizeOverlayPrefixSums, xProg );
-
         xProg << Verbosity( 0 ) << "done.\n";
     }
 
