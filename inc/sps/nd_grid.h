@@ -83,18 +83,19 @@ template <typename type_defs, typename data_t, template <typename> typename data
         data_vec_generator.reserve( uiS, vData );
     }
 
-    template <size_t N, bool SANITY = true>
+    template <size_t N, bool SANITY_UNINITIALIZED = true, bool SANITY_OUT_OF_BOUND = true>
     static coordinate_t indexOf( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
     {
-        if constexpr( SANITY )
+        if constexpr( SANITY_UNINITIALIZED )
             if( rInfo.uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
                 return std::numeric_limits<coordinate_t>::max( );
         assert( rInfo.uiStartIndex != std::numeric_limits<coordinate_t>::max( ) );
         coordinate_t uiRet = 0;
         for( size_t uiI = 0; uiI < N; uiI++ )
         {
-            if( vX[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
-                return std::numeric_limits<coordinate_t>::max( );
+            if constexpr( SANITY_OUT_OF_BOUND )
+                if( vX[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
+                    return std::numeric_limits<coordinate_t>::max( );
             assert( vX[ uiI ] < rInfo.vAxisSizes[ uiI ] );
             uiRet = uiRet * rInfo.vAxisSizes[ uiI ] + vX[ uiI ];
         }
@@ -129,22 +130,28 @@ template <typename type_defs, typename data_t, template <typename> typename data
     }
 
     template <size_t N, bool SANITY_UNINITIALIZED = true, bool SANITY_OUT_OF_BOUND = true>
+    inline __attribute__( ( always_inline ) )
     const data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo ) const
     {
-        auto uiIdx = indexOf<N, SANITY_UNINITIALIZED>( vX, rInfo );
+        auto uiIdx = indexOf<N, SANITY_UNINITIALIZED, SANITY_OUT_OF_BOUND>( vX, rInfo );
         if constexpr( SANITY_OUT_OF_BOUND )
             if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
                 return uiZero;
         assert( uiIdx != std::numeric_limits<coordinate_t>::max( ) );
+        assert( uiIdx < vData.size() );
         return vData[ uiIdx ];
     }
 
-    template <size_t N>
+    template <size_t N, bool SANITY_UNINITIALIZED = true, bool SANITY_OUT_OF_BOUND = true>
     inline __attribute__( ( always_inline ) ) data_t& get( const std::array<coordinate_t, N>& vX,
                                                            const Entry<N>& rInfo )
     {
-        auto uiIdx = indexOf<N>( vX, rInfo );
+        auto uiIdx = indexOf<N, SANITY_UNINITIALIZED, SANITY_OUT_OF_BOUND>( vX, rInfo );
+        if constexpr( SANITY_OUT_OF_BOUND )
+            if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
+                throw std::runtime_error("tried getting out of bounds entry in nd-grid");
         assert( uiIdx != std::numeric_limits<coordinate_t>::max( ) );
+        assert( uiIdx < vData.size() );
         return vData[ uiIdx ];
     }
 

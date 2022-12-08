@@ -424,6 +424,8 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
                             = 0 ) const
     {
+        if(vDataSets[ xDatasetId ].getNumOverlays() == 0)
+            return val_t {};
 #if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
         xProg << "countSizeLimited " << vFrom << " to " << vTo << "\n";
@@ -449,9 +451,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #ifndef NDEBUG
         xProg << "countSizeLimited uiRet=" << uiRet << "\n";
         if( uiRet >= std::numeric_limits<val_t>::max( ) / 2 )
-        {
             throw std::runtime_error( "unrealistic value for uiRet" );
-        }
 #endif
 
 #pragma GCC diagnostic pop
