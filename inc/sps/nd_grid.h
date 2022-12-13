@@ -30,7 +30,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
 
     template <size_t N> struct Entry
     {
-        std::array<coordinate_t, N> vAxisSizes;
+        std::array<coordinate_t, N> vAxisSizes {};
         coordinate_t uiStartIndex = std::numeric_limits<coordinate_t>::max( );
 
         friend std::ostream& operator<<( std::ostream& os, const Entry& rEntry )

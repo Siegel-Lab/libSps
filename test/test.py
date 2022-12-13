@@ -186,7 +186,7 @@ def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_qu
     #    exit()
 
 
-def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
+def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False, n_cat=0):
     tree.clear()
     cont = 0
     for x in range(1, n):
@@ -198,6 +198,7 @@ def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
                 pos_e = []
                 pos_e_i = []
                 val = random.choice(range(x))+1
+                cat = [random.choice([True, False]) for _ in range(n_cat)]
                 for dx in range(d):
                     pos_s.append(random.choice(range(x)))
                     pos_e.append(pos_s[-1])
@@ -207,11 +208,11 @@ def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
                     if dx < 1:
                         pos_e_i[-1] += random.choice(range(x))
                 if area:
-                    points.append((pos_s, pos_e, val))
+                    points.append((pos_s, pos_e, val, cat))
                 elif interval:
-                    points.append((pos_s, pos_e_i, val))
+                    points.append((pos_s, pos_e_i, val, cat))
                 else:
-                    points.append((pos_s, val))
+                    points.append((pos_s, val, cat))
                 if print_all:
                     print("adding", points[-1])
             fixed(tree, points, d, cont, area, interval, enforce_wide_queries)
