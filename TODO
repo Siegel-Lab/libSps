@@ -6,6 +6,13 @@ Bug:
 
 Features (ranked)
 
+- grid queries
+
+- for entire column/row queries: can areas with low coverage be excluded? -> no need
+- introduce dimension for in-cis and in-trans
+
+- hdf5 storage
+
 - separate counts by annotation
     - each annotation becomes several +-1 intervals
     - filters to display only counts of specific type

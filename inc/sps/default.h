@@ -181,24 +181,6 @@ struct CacheVec : public stxxl::VECTOR_GENERATOR<val_t, PageSize, CachePages, Bl
 
     CacheVec( )
     {}
-
-    size_t extend( const std::vector<val_t>& rOther )
-    {
-        size_t uiRet = this->size( );
-
-        for( const val_t& xVal : rOther )
-            this->push_back( xVal );
-        return uiRet;
-
-        // @fixme this buffered writer causes issues (wrong values written) -> figure out why...
-        // known so far:
-        // - happens even without threading
-        // - no drastically wrong values are written
-
-        // typename vec_t::bufwriter_type xWriter( this->end( ) );
-        // xWriter << xVal;
-        // xWriter.finish( );
-    }
 };
 
 template <typename it_t, typename cmp_t> struct CachedVectorSorter
@@ -307,7 +289,7 @@ template <typename val_t> struct DiskVecGenerator
     using vec_t = DiskVec<val_t>;
 
     /// @brief this vector is threadsave (as long as it's size is not changed)
-    static const bool THREADSAVE = true;
+    static const bool THREADSAVE = false; //true;
 
     /**
      * @brief defines a sorter object for the generated vector

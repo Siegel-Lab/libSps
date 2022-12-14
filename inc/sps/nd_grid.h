@@ -212,7 +212,9 @@ template <typename type_defs, typename data_t, template <typename> typename data
         else
         {
             std::lock_guard<std::mutex> xGuard( xRWLock );
-            xRet.uiStartIndex = vData.extend( vTmp );
+            xRet.uiStartIndex = vData.size( );
+            for( const data_t& xVal : vTmp )
+                vData.push_back( xVal );
         }
 
         return xRet;
