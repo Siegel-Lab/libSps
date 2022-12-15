@@ -119,11 +119,11 @@ def make_indices():
                     ("ram" if storage == "Disk" else "cached"), 
                 ]
                 index_names.append(xs)
-                indices.append(("test/benchmark_index", dims, num_ort_dims, storage))
+                indices.append(("test/benchmark_index", dims, num_ort_dims, True, storage))
                 params.append((dims, ort_dim))
     return indices, index_names, params
 
-def test(plot=True, max_pred_file_size=1, fac_base=2):
+def test(plot=True, max_pred_file_size=10, fac_base=2):
     print("#VERSION", VERSION)
     print("#N_QUERY", N_QUERY)
     indices, index_names, params = make_indices()
@@ -137,7 +137,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                   Div(text="<b>overlay lookup table</b>", align="center"), 
                   Div(text="<b>total file size</b>", align="center"),
                   Div(text="<b>total file size error</b>", align="center")])
-    for _n in range(MIN_FILL, MAX_FILL):
+    for _n in range(MIN_FILL, MAX_FILL, 1):
         n = 10**_n
         for offset in [0]: #[0, 100]:
             for density in [1]: #[0.1, 1, 10]:
@@ -158,56 +158,57 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                             size_estimates = index.estimate_num_elements(
                                     [fac_base ** _fac - 1 for _fac in range(0, 10)]) 
                             
-                            for fac, (opsp, ipsp, oscp, iscp, num_overlays, _, file_size_estimate) in zip(
-                                            [fac_base ** _fac - 1 for _fac in range(0, 10)], size_estimates):
-                                file_size_estimate = file_size_estimate / 10**9 # in Gb
-                                fsp.append(file_size_estimate)
+                            for _ in range(10):
+                                for fac, (opsp, ipsp, oscp, iscp, num_overlays, _, file_size_estimate) in zip(
+                                                [fac_base ** _fac - 1 for _fac in range(0, 10)], size_estimates):
+                                    file_size_estimate = file_size_estimate / 10**9 # in Gb
+                                    fsp.append(file_size_estimate)
 
-                                if file_size_estimate < max_pred_file_size:
-                                    id = index.generate(fac, 0)
-                                    query(index, id, param[0], n)
-                                    ipsa = index.get_num_internal_prefix_sums(id)
-                                    ipsas.append(ipsa)
-                                    opsa = index.get_num_overlay_prefix_sums(id)
-                                    opsas.append(opsa)
-                                    isca = index.get_num_internal_sparse_coords(id)
-                                    iscas.append(isca)
-                                    osca = index.get_num_overlay_sparse_coords(id)
-                                    oscas.append(osca)
-                                    gcs.append(index.get_size(id)/ 10**9) # in GB
-                                else:
-                                    ipsas.append(float('NaN'))
-                                    opsas.append(float('NaN'))
-                                    iscas.append(float('NaN'))
-                                    oscas.append(float('NaN'))
-                                    gcs.append(float('NaN'))
-                                
-                                opsps.append(opsp)
-                                ipsps.append(ipsp)
-                                oscps.append(oscp)
-                                iscps.append(iscp)
-                                xs.append(num_overlays)
-                                del index
-                                if file_size_estimate < max_pred_file_size:
-                                    actual_left = min(actual_left, num_overlays)
-                                    actual_right = max(actual_right, num_overlays)
-                                    file_size = sum(os.path.getsize("test/benchmark_index" + f) for f in files)  / 10**9 # in GB
-                                    fsa.append(file_size)
-                                    eps.append(file_size_estimate/file_size)
-                                else:
-                                    fsa.append(float('NaN'))
-                                    eps.append(float('NaN'))                            
-                                index = make_sps_index(*index_params)
-                                num_cells = fill(n, index, name if _n == MIN_FILL else [""]*6, *param, 
-                                                    density, distrib, asp_ratio, offset)
-                                
-                                #print(file_size / 10**9, file_size_estimate / 10**9, (file_size - file_size_estimate) / 10**9, sep="\t")
-                                for f in files_full:
-                                    os.remove("test/benchmark_index" + f)
-                                if file_size_estimate < max_pred_file_size:
-                                    print(".", end="", flush=True)
-                                else:
-                                    print("!", end="", flush=True)
+                                    if file_size_estimate < max_pred_file_size:
+                                        id = index.generate(fac, 0)
+                                        query(index, id, param[0], n)
+                                        ipsa = index.get_num_internal_prefix_sums(id)
+                                        ipsas.append(ipsa)
+                                        opsa = index.get_num_overlay_prefix_sums(id)
+                                        opsas.append(opsa)
+                                        isca = index.get_num_internal_sparse_coords(id)
+                                        iscas.append(isca)
+                                        osca = index.get_num_overlay_sparse_coords(id)
+                                        oscas.append(osca)
+                                        gcs.append(index.get_size(id)/ 10**9) # in GB
+                                    else:
+                                        ipsas.append(float('NaN'))
+                                        opsas.append(float('NaN'))
+                                        iscas.append(float('NaN'))
+                                        oscas.append(float('NaN'))
+                                        gcs.append(float('NaN'))
+                                    
+                                    opsps.append(opsp)
+                                    ipsps.append(ipsp)
+                                    oscps.append(oscp)
+                                    iscps.append(iscp)
+                                    xs.append(num_overlays)
+                                    del index
+                                    if file_size_estimate < max_pred_file_size:
+                                        actual_left = min(actual_left, num_overlays)
+                                        actual_right = max(actual_right, num_overlays)
+                                        file_size = sum(os.path.getsize("test/benchmark_index" + f) for f in files)  / 10**9 # in GB
+                                        fsa.append(file_size)
+                                        eps.append(file_size_estimate/file_size)
+                                    else:
+                                        fsa.append(float('NaN'))
+                                        eps.append(float('NaN'))
+                                    index = make_sps_index(*index_params)
+                                    num_cells = fill(n, index, name if _n == MIN_FILL else [""]*6, *param, 
+                                                        density, distrib, asp_ratio, offset)
+                                    
+                                    #print(file_size / 10**9, file_size_estimate / 10**9, (file_size - file_size_estimate) / 10**9, sep="\t")
+                                    for f in files_full:
+                                        os.remove("test/benchmark_index" + f)
+                                    if file_size_estimate < max_pred_file_size:
+                                        print(".", end="", flush=True)
+                                    else:
+                                        print("!", end="", flush=True)
 
                             print(" ", end="", flush=True)
                             picked_num = index.pick_num_overlays()
@@ -248,7 +249,7 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
 
                                     plot_fs = figure(x_axis_type=axis_type, y_axis_type="log")
                                     act = plot_fs.circle(x=xs, y=fsa, fill_color="green", line_color=None, size=8)
-                                    plot_fs.circle(x=xs, y=gcs, fill_color=None, line_color="blue", size=9)
+                                    #plot_fs.circle(x=xs, y=gcs, fill_color=None, line_color="blue", size=9)
                                     pred = plot_fs.circle(x=xs, y=fsp, fill_color=None, line_color="red", size=8)
                                     
                                     plot_fs.add_layout(BoxAnnotation(right=picked_num, bottom=picked_size,
@@ -264,16 +265,18 @@ def test(plot=True, max_pred_file_size=1, fac_base=2):
                                     plot_fs.add_layout(Label(x=x_pos + 1, y=210, y_units='screen', text="Shekelyan et al.",
                                                             background_fill_color="white", background_fill_alpha=1.0,
                                                                                     level="overlay"))
-                                    x_pos = num_cells ** ( 1/2 )
-                                    plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_g,
-                                                                    line_color='black', fill_color=None,
-                                                                    line_dash='dashed', line_width=1, line_alpha=1))
-                                    plot_fs.add_layout(Label(x=x_pos + 1, y=190, y_units='screen', text="Geffner et al.",
-                                                            background_fill_color="white", background_fill_alpha=1.0,
-                                                                                    level="overlay"))
+                                    #x_pos = num_cells ** ( 1/2 )
+                                    #plot_fs.add_layout(BoxAnnotation(right=x_pos, bottom=picked_size_g,
+                                    #                                line_color='black', fill_color=None,
+                                    #                                line_dash='dashed', line_width=1, line_alpha=1))
+                                    #plot_fs.add_layout(Label(x=x_pos + 1, y=190, y_units='screen', text="Geffner et al.",
+                                    #                        background_fill_color="white", background_fill_alpha=1.0,
+                                    #                                                level="overlay"))
                                                                                 
                                     plot_ep = figure(x_axis_type=axis_type, y_axis_type="log", y_range=(0.09,11))
-                                    plot_ep.line(x=xs, y=eps, line_color="black")
+                                    for idx in range(10):
+                                        plot_ep.line(x=xs[idx*10:(idx+1)*10], y=eps[idx*10:(idx+1)*10],
+                                                     line_color="black")
                                     plot_ep.circle(x=xs, y=eps, fill_color="black", line_color=None, size=8)
                                     plot_ep.yaxis[0].ticker.base = 10
                                     plot_ep.yaxis[0].formatter.ticker = plot_ep.yaxis[0].ticker

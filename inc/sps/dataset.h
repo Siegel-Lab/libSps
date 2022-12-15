@@ -700,9 +700,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
-        uint64_t uiNumOverlaySamples = std::max( 1ul, 2 * (uint64_t)std::log2( uiNumOverlaysTotal ) );
+        uint64_t uiNumOverlaySamples = std::max( 1ul, (uint64_t)std::log2( uiNumOverlaysTotal ) );
         uint64_t uiNumPointSamples = std::max(
-            1ul, 10 * (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
+            1ul, 5 * (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
@@ -854,9 +854,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
             uiArea *= uiCoordinateSizes[ uiI ];
 
-        if( uiArea < 100000 )
+        if( uiArea < 1000 )
         {
-            xProg << Verbosity( 0 ) << "data-area smaller than 100,000. Picking factor 0.\n";
+            xProg << Verbosity( 0 ) << "data-area smaller than 1,000. Picking factor 0.\n";
             return 0;
         }
 
@@ -941,13 +941,36 @@ template <typename type_defs> class Dataset
         return pickNumOverlays( vCorners, xCorners, uiCoordinateSizes, uiMinPos, xProg );
     }
 
+    static uint64_t getShekelyanEtAlNumBoxes(corners_t& vCorners, const typename corners_t::Entry xCorners)
+    {
+        pos_t vSizes = generateCoordSizes(vCorners, xCorners)[0];
+        uint64_t uiRet = 1;
+        for(coordinate_t uiX : vSizes)
+            uiRet *= uiX;
+        return uiRet;
+    }
+
     static pos_t pickOverlayNumbers( corners_t& vCorners, const typename corners_t::Entry xCorners,
                                      pos_t uiCoordinateSizes, pos_t uiMinPos, double fFac, progress_stream_t xProg )
     {
         std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
         if( fFac >= 0 )
+        {
+            xProg << Verbosity(0) << "Fixed overlay factor.\n";
             return toNumbers( vNumRatios, fFac );
-        return toNumbers( vNumRatios, pickOverlayFactor( vCorners, xCorners, uiCoordinateSizes, uiMinPos, xProg ) );
+        }
+        if(fFac = -1)
+        {
+            xProg << Verbosity(0) << "Trying to predict optimal overlay factor.\n";
+            return toNumbers( vNumRatios, pickOverlayFactor( vCorners, xCorners, uiCoordinateSizes, uiMinPos, xProg ) );
+        }
+        if(fFac = -2)
+        {
+            xProg << Verbosity(0) << "Picking overlay factor based on Shekelyan et. al.'s formula.\n";
+            return toNumbers( vNumRatios, toFactor(vCorners, xCorners, getShekelyanEtAlNumBoxes(vCorners, xCorners)) );
+        }
+
+        throw std::runtime_error("overlay number factor can only be a positive value (incl. 0), -1 (predict optimum using our approach), or -2 (calculate optimum using Shekelyan et. al.)");
     }
 
     static std::array<pos_t, 3> generateCoordSizes( corners_t& vCorners, const typename corners_t::Entry xCorners )

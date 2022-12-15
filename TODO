@@ -8,8 +8,10 @@ Features (ranked)
 
 - grid queries
 
-- for entire column/row queries: can areas with low coverage be excluded? -> no need
-- introduce dimension for in-cis and in-trans
+- grid-seq:
+    - remove coverage indices for replicates
+    - sample average coverage from contigs -> pick x many
+    - coverage should be separate system form replicates
 
 - hdf5 storage
 
