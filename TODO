@@ -2,11 +2,16 @@ Bug:
 
 - second coord system fails for anno coords
 - divide by col & row giving wired results
+- recheck effectiveness of other size optimization: old check was bugged and completely uninformative
 
 
 Features (ranked)
 
 - grid queries
+  - can also be use din construction
+  - two types of implementation: 
+    - static definition of grid
+    - dynamic caching of queried positions
 
 - grid-seq:
     - remove coverage indices for replicates

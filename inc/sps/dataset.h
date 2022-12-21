@@ -13,6 +13,9 @@
 #include <random>
 #include <string>
 
+#if WITH_PYTHON
+#include <pybind11/pybind11.h>
+#endif
 
 namespace sps
 {
@@ -248,6 +251,10 @@ template <typename type_defs> class Dataset
             for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
                     [ & ]( size_t uiTid, size_t uiOverlayId ) {
+#if WITH_PYTHON
+                        if (PyErr_CheckSignals() != 0) // allow Ctrl-C cancel
+                            throw pybind11::error_already_set();
+#endif
                         auto xGuard = rSparseCoords.getCapacityGuard( );
                         vPrefixSumSize[ uiTid ] += fDo( uiOverlayId );
 
@@ -303,6 +310,10 @@ template <typename type_defs> class Dataset
         std::vector<coordinate_t> vPrefixSumSize( std::max( (size_t)1, uiNumThreads ) );
         // actually process the overlays
         xIterator.process( uiNumThreads, xProgIn, [ & ]( size_t uiTid, size_t uiOverlayId ) {
+#if WITH_PYTHON
+            if (PyErr_CheckSignals() != 0) // allow Ctrl-C cancel
+                throw pybind11::error_already_set();
+#endif
             auto xGuard = rSparseCoords.getCapacityGuard( );
             progress_stream_t xProg = xProgIn;
             // get bottom left position (compressed)
@@ -350,6 +361,10 @@ template <typename type_defs> class Dataset
             for( size_t uiOverlayId = uiFrom; uiOverlayId < uiTo; uiOverlayId++ )
                 xPool.enqueue(
                     [ & ]( size_t uiTid, size_t uiOverlayId, progress_stream_t xProgCpy ) {
+#if WITH_PYTHON
+                        if (PyErr_CheckSignals() != 0) // allow Ctrl-C cancel
+                            throw pybind11::error_already_set();
+#endif
                         rOverlays.vData[ uiOverlayId ].generateInternalPrefixSums(
                             rOverlays, rSparseCoords, rPrefixSums, vCorners, vSplitPoints[ uiOverlayId - uiFrom ],
                             xProgCpy );
@@ -391,6 +406,10 @@ template <typename type_defs> class Dataset
                 : 0,
             xProgIn,
             [ & ]( size_t /* uiTid */, size_t uiOverlayId ) {
+#if WITH_PYTHON
+                        if (PyErr_CheckSignals() != 0) // allow Ctrl-C cancel
+                            throw pybind11::error_already_set();
+#endif
                 progress_stream_t xProg = xProgIn;
                 pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
 
@@ -959,18 +978,18 @@ template <typename type_defs> class Dataset
             xProg << Verbosity(0) << "Fixed overlay factor.\n";
             return toNumbers( vNumRatios, fFac );
         }
-        if(fFac = -1)
+        else if(fFac == -1)
         {
             xProg << Verbosity(0) << "Trying to predict optimal overlay factor.\n";
             return toNumbers( vNumRatios, pickOverlayFactor( vCorners, xCorners, uiCoordinateSizes, uiMinPos, xProg ) );
         }
-        if(fFac = -2)
+        else if(fFac == -2)
         {
             xProg << Verbosity(0) << "Picking overlay factor based on Shekelyan et. al.'s formula.\n";
             return toNumbers( vNumRatios, toFactor(vCorners, xCorners, getShekelyanEtAlNumBoxes(vCorners, xCorners)) );
         }
-
-        throw std::runtime_error("overlay number factor can only be a positive value (incl. 0), -1 (predict optimum using our approach), or -2 (calculate optimum using Shekelyan et. al.)");
+        else
+            throw std::runtime_error("overlay number factor can only be a positive value (incl. 0), -1 (predict optimum using our approach), or -2 (calculate optimum using Shekelyan et. al.)");
     }
 
     static std::array<pos_t, 3> generateCoordSizes( corners_t& vCorners, const typename corners_t::Entry xCorners )
@@ -1040,6 +1059,8 @@ template <typename type_defs> class Dataset
         vSplitPoints.resize( uiNumTotal );
         for( coordinate_t uiI = 0; uiI < uiNumTotal; uiI++ )
         {
+            if (PyErr_CheckSignals() != 0) // allow Ctrl-C canc
+                throw pybind11::error_already_set();
             vSplitPoints[ uiI ].uiStartIndex = uiI > 0 ? vSplitPoints[ uiI - 1 ].uiEndIndex : xCorners.uiStartIndex;
             vSplitPoints[ uiI ].uiEndIndex = vSplitPoints[ uiI ].uiStartIndex;
             // collect points for overlay uiI
