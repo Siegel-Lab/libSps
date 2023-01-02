@@ -30,7 +30,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
 
     template <size_t N> struct Entry
     {
-        std::array<coordinate_t, N> vAxisSizes {};
+        std::array<coordinate_t, N> vAxisSizes{ };
         coordinate_t uiStartIndex = std::numeric_limits<coordinate_t>::max( );
 
         friend std::ostream& operator<<( std::ostream& os, const Entry& rEntry )
@@ -130,15 +130,15 @@ template <typename type_defs, typename data_t, template <typename> typename data
     }
 
     template <size_t N, bool SANITY_UNINITIALIZED = true, bool SANITY_OUT_OF_BOUND = true>
-    inline __attribute__( ( always_inline ) )
-    const data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo ) const
+    inline __attribute__( ( always_inline ) ) const data_t& get( const std::array<coordinate_t, N>& vX,
+                                                                 const Entry<N>& rInfo ) const
     {
         auto uiIdx = indexOf<N, SANITY_UNINITIALIZED, SANITY_OUT_OF_BOUND>( vX, rInfo );
         if constexpr( SANITY_OUT_OF_BOUND )
             if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
                 return uiZero;
         assert( uiIdx != std::numeric_limits<coordinate_t>::max( ) );
-        assert( uiIdx < vData.size() );
+        assert( uiIdx < vData.size( ) );
         return vData[ uiIdx ];
     }
 
@@ -149,9 +149,9 @@ template <typename type_defs, typename data_t, template <typename> typename data
         auto uiIdx = indexOf<N, SANITY_UNINITIALIZED, SANITY_OUT_OF_BOUND>( vX, rInfo );
         if constexpr( SANITY_OUT_OF_BOUND )
             if( uiIdx == std::numeric_limits<coordinate_t>::max( ) )
-                throw std::runtime_error("tried getting out of bounds entry in nd-grid");
+                throw std::runtime_error( "tried getting out of bounds entry in nd-grid" );
         assert( uiIdx != std::numeric_limits<coordinate_t>::max( ) );
-        assert( uiIdx < vData.size() );
+        assert( uiIdx < vData.size( ) );
         return vData[ uiIdx ];
     }
 

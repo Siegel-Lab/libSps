@@ -206,6 +206,28 @@ template <typename type_defs> class Index : public AbstractIndex
         }
         return vRet;
     }
+    std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2>
+    addDims( ret_pos_t vSize, IntersectionType xIntersectionType = IntersectionType::slice ) const
+    {
+        std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2> vRet;
+        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
+        {
+            if( xIntersectionType == IntersectionType::slice )
+                vRet[ 0 ][ uiI ] = vSize[ uiI ];
+            else if( xIntersectionType == IntersectionType::encloses )
+                vRet[ 0 ][ uiI ] = 1 + vSize[ uiI ];
+            else
+                vRet[ 0 ][ uiI ] = 0;
+
+            if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
+                vRet[ 1 ][ uiI ] = vSize[ uiI ];
+            else if( xIntersectionType == IntersectionType::points_only )
+                vRet[ 1 ][ uiI ] = 1;
+            else
+                vRet[ 1 ][ uiI ] = std::numeric_limits<coordinate_t>::max( );
+        }
+        return vRet;
+    }
 
     typename corners_t::Entry makeEntry( )
     {
@@ -292,7 +314,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
 
             size_t uiCornerIndex = 0;
-            if constexpr( IS_ORTHOTOPE )
+            if constexpr( IS_ORTHOTOPE ) // this whole block should be constant
             {
                 size_t uiDLookup;
                 switch( xInterType )
@@ -372,8 +394,8 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
                             = 0 ) const
     {
-        if(vDataSets[ xDatasetId ].getNumOverlays() == 0)
-            return val_t {};
+        if( vDataSets[ xDatasetId ].getNumOverlays( ) == 0 )
+            return val_t{ };
 #if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
         xProg << "countSizeLimited " << vFrom << " to " << vTo << "\n";
@@ -430,6 +452,50 @@ template <typename type_defs> class Index : public AbstractIndex
         return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
     }
 
+    /**
+     * @brief Count the number of points between from and to and in the given dataset.
+     *
+     * to_pos must be larger equal than from_pos in each dimension.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @param vPos The bottom left position of the query region.
+     * @param vSize The size of one query region.
+     * @param vNum The amount of query regions for each dimension.
+     * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
+     * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
+     * @return val_t The number of points in dataset_id between from_pos and to_pos.
+     */
+    std::vector<val_t> gridCount( class_key_t xDatasetId, ret_pos_t vPos, ret_pos_t vSize, ret_pos_t vNum,
+                                  IntersectionType xInterType = IntersectionType::enclosed,
+                                  size_t uiVerbosity = 0 ) const
+    {
+#if GET_PROG_PRINTS
+        progress_stream_t xProg( uiVerbosity );
+        xProg << "gridCount pos " << vPos << " size " << vSize << " amount " << vNum << "\n";
+#endif
+        if( vDataSets[ xDatasetId ].getNumOverlays( ) == 0 )
+            return val_t{ };
+
+        auto vP = addDims( vSize, xInterType );
+        std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoFrom = vP[ 0 ];
+        std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoTo = vP[ 1 ];
+        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
+        {
+            --vOrthoFrom[ uiI ];
+            --vOrthoTo[ uiI ];
+        }
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            --vPos[ uiI ];
+
+        return vDataSets[ xDatasetId ].grid( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, vSize, vNum, vOrthoFrom,
+                                             vOrthoTo, xInterType
+#if GET_PROG_PRINTS
+                                             ,
+                                             xProg
+#endif
+        );
+    }
+
 
   private:
 #define COUNT_MULTIPLE( args... )                                                                                      \
@@ -437,11 +503,11 @@ template <typename type_defs> class Index : public AbstractIndex
     vRet.reserve( vRegions.size( ) );                                                                                  \
                                                                                                                        \
     for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )                                                               \
-    {\
-        if (PyErr_CheckSignals() != 0) \
-            throw pybind11::error_already_set();\
+    {                                                                                                                  \
+        if( PyErr_CheckSignals( ) != 0 )                                                                               \
+            throw pybind11::error_already_set( );                                                                      \
         vRet.push_back( count( args ) );                                                                               \
-    }\
+    }                                                                                                                  \
     return vRet;
 
   public:

@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -630,7 +630,7 @@ template <typename type_defs> class Overlay
 #endif
 
 #if 1 // 1 == old implementation //@todo new implementation is buggy!!!
-            // compute internal prefix sum
+      // compute internal prefix sum
             coordinate_t uiNumDone = 0;
             for( size_t uiI = 0; uiI < D; uiI++ )
             {

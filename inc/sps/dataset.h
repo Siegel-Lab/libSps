@@ -252,8 +252,8 @@ template <typename type_defs> class Dataset
                 xPool.enqueue(
                     [ & ]( size_t uiTid, size_t uiOverlayId ) {
 #if WITH_PYTHON
-                        if (PyErr_CheckSignals() != 0) // allow Ctrl-C cancel
-                            throw pybind11::error_already_set();
+                        if( PyErr_CheckSignals( ) != 0 ) // allow Ctrl-C cancel
+                            throw pybind11::error_already_set( );
 #endif
                         auto xGuard = rSparseCoords.getCapacityGuard( );
                         vPrefixSumSize[ uiTid ] += fDo( uiOverlayId );
@@ -311,8 +311,8 @@ template <typename type_defs> class Dataset
         // actually process the overlays
         xIterator.process( uiNumThreads, xProgIn, [ & ]( size_t uiTid, size_t uiOverlayId ) {
 #if WITH_PYTHON
-            if (PyErr_CheckSignals() != 0) // allow Ctrl-C cancel
-                throw pybind11::error_already_set();
+            if( PyErr_CheckSignals( ) != 0 ) // allow Ctrl-C cancel
+                throw pybind11::error_already_set( );
 #endif
             auto xGuard = rSparseCoords.getCapacityGuard( );
             progress_stream_t xProg = xProgIn;
@@ -362,8 +362,8 @@ template <typename type_defs> class Dataset
                 xPool.enqueue(
                     [ & ]( size_t uiTid, size_t uiOverlayId, progress_stream_t xProgCpy ) {
 #if WITH_PYTHON
-                        if (PyErr_CheckSignals() != 0) // allow Ctrl-C cancel
-                            throw pybind11::error_already_set();
+                        if( PyErr_CheckSignals( ) != 0 ) // allow Ctrl-C cancel
+                            throw pybind11::error_already_set( );
 #endif
                         rOverlays.vData[ uiOverlayId ].generateInternalPrefixSums(
                             rOverlays, rSparseCoords, rPrefixSums, vCorners, vSplitPoints[ uiOverlayId - uiFrom ],
@@ -407,8 +407,8 @@ template <typename type_defs> class Dataset
             xProgIn,
             [ & ]( size_t /* uiTid */, size_t uiOverlayId ) {
 #if WITH_PYTHON
-                        if (PyErr_CheckSignals() != 0) // allow Ctrl-C cancel
-                            throw pybind11::error_already_set();
+                if( PyErr_CheckSignals( ) != 0 ) // allow Ctrl-C cancel
+                    throw pybind11::error_already_set( );
 #endif
                 progress_stream_t xProg = xProgIn;
                 pos_t vGridPos = rOverlays.posOf( uiOverlayId, xOverlays );
@@ -720,8 +720,8 @@ template <typename type_defs> class Dataset
             uiNumOverlaysTotal *= uiNumOverlays[ uiI ];
 
         uint64_t uiNumOverlaySamples = std::max( 1ul, (uint64_t)std::log2( uiNumOverlaysTotal ) );
-        uint64_t uiNumPointSamples = std::max(
-            1ul, 5 * (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
+        uint64_t uiNumPointSamples =
+            std::max( 1ul, 5 * (uint64_t)std::log2( xSortedPoints[ 0 ].uiEndIndex - xSortedPoints[ 0 ].uiStartIndex ) );
 
         std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tTotal{ };
         {
@@ -960,11 +960,11 @@ template <typename type_defs> class Dataset
         return pickNumOverlays( vCorners, xCorners, uiCoordinateSizes, uiMinPos, xProg );
     }
 
-    static uint64_t getShekelyanEtAlNumBoxes(corners_t& vCorners, const typename corners_t::Entry xCorners)
+    static uint64_t getShekelyanEtAlNumBoxes( corners_t& vCorners, const typename corners_t::Entry xCorners )
     {
-        pos_t vSizes = generateCoordSizes(vCorners, xCorners)[0];
+        pos_t vSizes = generateCoordSizes( vCorners, xCorners )[ 0 ];
         uint64_t uiRet = 1;
-        for(coordinate_t uiX : vSizes)
+        for( coordinate_t uiX : vSizes )
             uiRet *= uiX;
         return uiRet;
     }
@@ -975,21 +975,24 @@ template <typename type_defs> class Dataset
         std::array<double, D> vNumRatios = toNumRatios( uiCoordinateSizes );
         if( fFac >= 0 )
         {
-            xProg << Verbosity(0) << "Fixed overlay factor.\n";
+            xProg << Verbosity( 0 ) << "Fixed overlay factor.\n";
             return toNumbers( vNumRatios, fFac );
         }
-        else if(fFac == -1)
+        else if( fFac == -1 )
         {
-            xProg << Verbosity(0) << "Trying to predict optimal overlay factor.\n";
+            xProg << Verbosity( 0 ) << "Trying to predict optimal overlay factor.\n";
             return toNumbers( vNumRatios, pickOverlayFactor( vCorners, xCorners, uiCoordinateSizes, uiMinPos, xProg ) );
         }
-        else if(fFac == -2)
+        else if( fFac == -2 )
         {
-            xProg << Verbosity(0) << "Picking overlay factor based on Shekelyan et. al.'s formula.\n";
-            return toNumbers( vNumRatios, toFactor(vCorners, xCorners, getShekelyanEtAlNumBoxes(vCorners, xCorners)) );
+            xProg << Verbosity( 0 ) << "Picking overlay factor based on Shekelyan et. al.'s formula.\n";
+            return toNumbers( vNumRatios,
+                              toFactor( vCorners, xCorners, getShekelyanEtAlNumBoxes( vCorners, xCorners ) ) );
         }
         else
-            throw std::runtime_error("overlay number factor can only be a positive value (incl. 0), -1 (predict optimum using our approach), or -2 (calculate optimum using Shekelyan et. al.)");
+            throw std::runtime_error(
+                "overlay number factor can only be a positive value (incl. 0), -1 (predict optimum using our "
+                "approach), or -2 (calculate optimum using Shekelyan et. al.)" );
     }
 
     static std::array<pos_t, 3> generateCoordSizes( corners_t& vCorners, const typename corners_t::Entry xCorners )
@@ -1059,8 +1062,8 @@ template <typename type_defs> class Dataset
         vSplitPoints.resize( uiNumTotal );
         for( coordinate_t uiI = 0; uiI < uiNumTotal; uiI++ )
         {
-            if (PyErr_CheckSignals() != 0) // allow Ctrl-C canc
-                throw pybind11::error_already_set();
+            if( PyErr_CheckSignals( ) != 0 ) // allow Ctrl-C canc
+                throw pybind11::error_already_set( );
             vSplitPoints[ uiI ].uiStartIndex = uiI > 0 ? vSplitPoints[ uiI - 1 ].uiEndIndex : xCorners.uiStartIndex;
             vSplitPoints[ uiI ].uiEndIndex = vSplitPoints[ uiI ].uiStartIndex;
             // collect points for overlay uiI
@@ -1146,6 +1149,15 @@ template <typename type_defs> class Dataset
         return vRet;
     }
 
+    pos_t overlaySize( const pos_t& vOverlayPos, const pos_t& vSize ) const
+    {
+        pos_t vRet;
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            vRet[ uiI ] = std::min(xOverlays.vAxisSizes[ uiI ] - 1,
+                                   vOverlayPos[uiI] + vSize[uiI] / uiSizeOverlays[ uiI ]);
+        return vRet;
+    }
+
     struct OverlayInfo
     {
         pos_t vBottomLeft, vTopRight;
@@ -1223,6 +1235,31 @@ template <typename type_defs> class Dataset
                   xProg
 #endif
             );
+    }
+
+    std::vector<val_t> grid( const overlay_grid_t& rOverlays,
+                             const sparse_coord_t& rSparseCoords,
+                             const prefix_sum_grid_t& rPrefixSums,
+                             const pos_t& vPos,
+                             const pos_t& vSize,
+                             const pos_t& vNum,
+                             const std::array<coordinate_t, ORTHOTOPE_DIMS>& vOrthoFrom,
+                             const std::array<coordinate_t, ORTHOTOPE_DIMS>& vOrthoTo,
+                             const IntersectionType xInterType
+#if GET_PROG_PRINTS
+                             ,
+                             progress_stream_t& xProg
+#endif
+    )
+    {
+        //
+        auto vOverlayStart = overlayCoord( vPos );
+        for( size_t uiI = 0; uiI < D; uiI++ )
+            if( vOverlayPos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
+                vOverlayPos[uiI] = 0;
+        auto vOverlayEnd = overlayCoord( vPos + vSize * vNum );
+
+        
     }
 
     sps_t getAll( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,

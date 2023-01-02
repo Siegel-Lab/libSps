@@ -289,7 +289,7 @@ template <typename val_t> struct DiskVecGenerator
     using vec_t = DiskVec<val_t>;
 
     /// @brief this vector is threadsave (as long as it's size is not changed)
-    static const bool THREADSAVE = false; //true;
+    static const bool THREADSAVE = false; // true;
 
     /**
      * @brief defines a sorter object for the generated vector
