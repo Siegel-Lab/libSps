@@ -239,50 +239,6 @@ template <typename type_defs> class Index : public AbstractIndex
         vCorners.add( vP[ 0 ], vP[ 1 ], uiVal );
     }
 
-  private:
-    void addPointHelper( ret_pos_cat_t vStart, ret_pos_cat_t vEnd, std::vector<bool> vCategories, val_t uiVal = 1 )
-    {
-        ret_pos_t vPosFrom;
-        ret_pos_t vPosTo;
-        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS - 1; uiI++ )
-        {
-            vPosFrom[ uiI + 1 ] = vStart[ uiI ];
-            vPosTo[ uiI + 1 ] = vEnd[ uiI ];
-        }
-
-        size_t uiLastCat = std::numeric_limits<size_t>::max( );
-
-        for( size_t uiI = 0; uiI < vCategories.size( ); uiI++ )
-            if( vCategories[ uiI ] )
-            {
-                vPosFrom[ 0 ] = uiI;
-                vPosTo[ 0 ] = uiI;
-                addPoint( vPosFrom, vPosTo, uiVal );
-                if( uiLastCat != std::numeric_limits<size_t>::max( ) )
-                {
-                    vPosFrom[ 0 ] = uiLastCat;
-                    vPosTo[ 0 ] = uiI;
-                    addPoint( vPosFrom, vPosTo, 0-uiVal );
-                }
-                uiLastCat = uiI;
-            }
-    }
-
-  public:
-    template <bool trigger = !IS_ORTHOTOPE_CAT && IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_cat_t vPos, std::vector<bool> vCategories, val_t uiVal = 1 )
-    {
-        addPointHelper( vPos, vPos, vCategories, uiVal );
-    }
-
-    template <bool trigger = IS_ORTHOTOPE_CAT && IS_ORTHOTOPE>
-    typename std::enable_if_t<trigger> addPoint( ret_pos_cat_t vStart, ret_pos_cat_t vEnd,
-                                                 std::vector<bool> vCategories, val_t uiVal = 1 )
-    {
-        addPointHelper( vStart, vEnd, vCategories, uiVal );
-    }
-
-
     /**
      * @brief Generate a new dataset.
      *
@@ -474,55 +430,6 @@ template <typename type_defs> class Index : public AbstractIndex
         return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
     }
 
-    val_t count( class_key_t xDatasetId, ret_pos_cat_t vFromR, ret_pos_cat_t vToR, std::vector<bool> vCategories,
-                 // @todo per dimension intersection type needed
-                 // @todo can a different intersection type allow makign the category filter the other way around:
-                 // keep any that overlap x, y or z vs filter out any that overlap x, y, or z.
-                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
-    {
-#if GET_PROG_PRINTS
-        progress_stream_t xProg( uiVerbosity );
-#endif
-        ret_pos_t vFrom;
-        ret_pos_t vTo;
-        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS - 1; uiI++ )
-        {
-            vFrom[ uiI + 1 ] = vFromR[ uiI ];
-            vTo[ uiI + 1 ] = vToR[ uiI ];
-        }
-
-        size_t uiF = 0;
-        size_t uiT = vCategories.size( );
-        bool bPos = true;
-        val_t uiRet = 0;
-        while( uiF < uiT )
-        {
-            while( uiF < uiT && vCategories[ uiF ] != bPos )
-                ++uiF;
-            while( uiF < uiT && vCategories[ uiT - 1 ] != bPos )
-                --uiT;
-
-            if( uiF < uiT )
-            {
-#if GET_PROG_PRINTS
-                xProg << "count category querying from " << uiF << " to " << uiT << " positive? " 
-                      << (bPos ? "true": "false") << "\n";
-#endif
-                vFrom[ 0 ] = uiF;
-                vTo[ 0 ] = uiT;
-                if( bPos )
-                    uiRet += count( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
-                else
-                    uiRet -= count( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
-#if GET_PROG_PRINTS
-                xProg << "count category querying uiRet: " << uiRet << "\n";
-#endif
-            }
-
-            bPos = !bPos;
-        }
-        return uiRet;
-    }
 
   private:
 #define COUNT_MULTIPLE( args... )                                                                                      \
@@ -563,37 +470,6 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         COUNT_MULTIPLE( uiDatasetId, std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), xInterType,
                         uiVerbosity );
-    }
-
-    std::vector<val_t>
-    countMultiple( std::vector<std::tuple<class_key_t, ret_pos_cat_t, ret_pos_cat_t, std::vector<bool>>> vRegions,
-                   IntersectionType xInterType = IntersectionType::enclosed,
-                   size_t uiVerbosity = 0 ) const
-    {
-        COUNT_MULTIPLE( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), std::get<2>( vRegions[ uiI ] ),
-                        std::get<3>( vRegions[ uiI ] ), xInterType, uiVerbosity );
-    }
-
-    std::vector<val_t> countMultiple( class_key_t uiDatasetId,
-                                      std::vector<std::tuple<ret_pos_cat_t, ret_pos_cat_t, std::vector<bool>>>
-                                          vRegions,
-                                      IntersectionType xInterType = IntersectionType::enclosed,
-                                      size_t uiVerbosity = 0 ) const
-    {
-        COUNT_MULTIPLE( uiDatasetId, std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
-                        std::get<2>( vRegions[ uiI ] ), xInterType, uiVerbosity );
-    }
-
-    std::vector<val_t> countMultiple( class_key_t uiDatasetId,
-                                      std::vector<std::tuple<ret_pos_cat_t, ret_pos_cat_t>>
-                                          vRegions,
-                                      std::vector<bool>
-                                          vCategories,
-                                      IntersectionType xInterType = IntersectionType::enclosed,
-                                      size_t uiVerbosity = 0 ) const
-    {
-        COUNT_MULTIPLE( uiDatasetId, std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), vCategories,
-                        xInterType, uiVerbosity );
     }
 
     val_t maxPrefixSumValue( ) const
@@ -904,81 +780,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     else
         sPointName = "" + std::to_string( type_defs::ORTHOTOPE_DIMS ) + "-orthotope";
 
-    if constexpr(!type_defs::IS_ORTHOTOPE_CAT && type_defs::IS_ORTHOTOPE)
-            xMain.def(
-                "add_point",
-                []( sps::Index<type_defs>& rM, typename type_defs::ret_pos_cat_t vPos, std::vector<bool> vCategories, 
-                    typename type_defs::val_t uiVal ) {
-                    rM.addPoint( vPos, vCategories, uiVal );
-                },
-                pybind11::arg( "pos" ),
-                pybind11::arg( "cat" ) = std::vector<bool>{},
-                pybind11::arg( "val" ) = 1,
-                ( R"pbdoc(
-        Append a point to the data structure.
-        
-        :param pos: The position of the point.
-        :type pos: list[int[)pbdoc" +
-                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS - 1 ) + R"pbdoc(]]
-        
-        :param cat: The categories this point falls into.
-        :type cat: list[bool]
-
-        :param val: The value of the point.
-        :type val: int
-
-        The point will not be queryable until generate is called.
-    )pbdoc" )
-                    .c_str( ) );
-    /*else*/ if constexpr(type_defs::IS_ORTHOTOPE_CAT && type_defs::IS_ORTHOTOPE)
-        xMain.def(
-            "add_point",
-            []( sps::Index<type_defs>& rM, typename type_defs::ret_pos_cat_t vStart, 
-                typename type_defs::ret_pos_cat_t vEnd, std::vector<bool> vCategories, 
-                typename type_defs::val_t uiVal ) { 
-                    rM.addPoint( vStart, vEnd, vCategories, uiVal ); 
-                },
-            pybind11::arg( "start" ),
-            pybind11::arg( "end" ),
-            pybind11::arg( "cat" ) = std::vector<bool>{},
-            pybind11::arg( "val" ) = 1,
-            ( R"pbdoc(
-    Append a )pbdoc" +
-              sPointName + R"pbdoc( to the data structure.
-    
-    :param start: The bottom left position of the )pbdoc" +
-              sPointName + R"pbdoc(.
-    :type start: list[int[)pbdoc" +
-              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS - 1 ) + R"pbdoc(]]
-    
-    :param end: The top right position of the )pbdoc" +
-              sPointName + R"pbdoc(.
-    :type end: list[int[)pbdoc" +
-              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS - 1 ) + R"pbdoc(]]
-
-    :param cat: The categories this point falls into.
-    :type cat: list[bool]
-
-    :param val: The value of the )pbdoc" +
-              sPointName + R"pbdoc(.
-    :type val: int
-
-    The )pbdoc" +
-              sPointName + R"pbdoc( will not be queryable until generate is called.
-
-    Dimensions 1 - )pbdoc" +
-              std::to_string( type_defs::ORTHOTOPE_DIMS ) +
-              R"pbdoc( of start and end may have different values, where the value of end must be larger equal to the value of start.
-    Dimensions )pbdoc" +
-              std::to_string( type_defs::ORTHOTOPE_DIMS + 1 ) + " - " +
-              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) +
-              R"pbdoc( of start and end must have equal values.
-
-    Note that this function will add one point for each outside corner of the given )pbdoc" +
-              sPointName + "." )
-                .c_str( ) );
-
-
     if constexpr( !type_defs::IS_ORTHOTOPE )
         xMain.def(
             "add_point",
@@ -1104,45 +905,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :type to_pos: list[int[)pbdoc" +
               std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
     
-    :param verbosity: Degree of verbosity while counting, defaults to 0.
-    :type verbosity: int
-
-    :return: The number of points in dataset_id between from_pos and to_pos.
-    :rtype: int
-
-    to_pos must be larger equal than from_pos in each dimension.
-)pbdoc" )
-                .c_str( ) )
-        .def(
-            "count",
-            []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
-                typename type_defs::ret_pos_cat_t vFromR, typename type_defs::ret_pos_cat_t vToR,
-                std::vector<bool> vCategories, sps::IntersectionType xInterType,
-                size_t uiVerbosity ) { 
-                    return rM.count( xDatasetId, vFromR, vToR, vCategories, xInterType, uiVerbosity ); 
-                },
-            pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
-            pybind11::arg( "to_pos" ), //
-            pybind11::arg( "cat" ) = std::vector<bool>{}, //
-            pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
-            pybind11::arg( "verbosity" ) = 0,
-            ( R"pbdoc(
-    Count the number of points between from and to in the given dataset.
-    
-    :param dataset_id: The id of the dataset to query
-    :type dataset_id: int
-    
-    :param from_pos: The bottom left position of the query region.
-    :type from_pos: list[int[)pbdoc" +
-              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS - 1 ) + R"pbdoc(]]
-    
-    :param to_pos: The top right position of the query region.
-    :type to_pos: list[int[)pbdoc" +
-              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS - 1 ) + R"pbdoc(]]
-    
-    :param cat: Only count dataelements that overlap at least one of the categories given here
-    :type cat: list[bool]
-
     :param verbosity: Degree of verbosity while counting, defaults to 0.
     :type verbosity: int
 
