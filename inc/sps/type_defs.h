@@ -163,4 +163,28 @@ class TypeDefs
     using name##_sort_func_t = typename name##_vec_generator_t::template sorter_t<it_t, cmp_t>;
 
 
+/**
+ * @brief An Enum for Querying the index.
+ *
+ * Which orthotopes to count, depending on how they intersect the queried area.
+ * Only relevant for the Index.count() function.
+ */
+enum IntersectionType
+{
+    /// @brief count orthotopes that are fully enclosed by the queried area
+    enclosed,
+    /// @brief count orthotopes that fully enclose by the queried area
+    encloses,
+    /// @brief count orthotopes that overlap the queried area
+    overlaps,
+    /// @brief count orthotopes that have their bottom-left-front-.. corner in the queried area
+    first,
+    /// @brief count orthotopes that have their top-right-back-.. corner in the queried area
+    last,
+    /// @brief count orthotopes that are point-like and in the queried area
+    points_only,
+    /// @brief place the orthotope at a position accroding to the size in its orthotope dimensions (used for insert)
+    slice,
+};
+
 } // namespace sps

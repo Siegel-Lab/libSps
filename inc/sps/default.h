@@ -122,6 +122,11 @@ template <typename val_t> struct RamVecGenerator
         return vec_t( );
     }
 
+    vec_t vec( )
+    {
+        return vec_t( );
+    }
+
     void reserve( size_t uiSize, vec_t& rVec )
     {
         if( uiSize > rVec.capacity( ) )

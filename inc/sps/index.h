@@ -30,30 +30,6 @@ namespace sps
 {
 
 /**
- * @brief An Enum for Querying the index.
- *
- * Which orthotopes to count, depending on how they intersect the queried area.
- * Only relevant for the Index.count() function.
- */
-enum IntersectionType
-{
-    /// @brief count orthotopes that are fully enclosed by the queried area
-    enclosed,
-    /// @brief count orthotopes that fully enclose by the queried area
-    encloses,
-    /// @brief count orthotopes that overlap the queried area
-    overlaps,
-    /// @brief count orthotopes that have their bottom-left-front-.. corner in the queried area
-    first,
-    /// @brief count orthotopes that have their top-right-back-.. corner in the queried area
-    last,
-    /// @brief count orthotopes that are point-like and in the queried area
-    points_only,
-    /// @brief place the orthotope at a position accroding to the size in its orthotope dimensions (used for insert)
-    slice,
-};
-
-/**
  * @brief The main sparse prefix sum index class.
  *
  * @tparam type_defs An instance of TypeDefs, that defines all compiletime parameters
@@ -312,37 +288,10 @@ template <typename type_defs> class Index : public AbstractIndex
 #if GET_PROG_PRINTS
             xProg << "query: " << xDatasetId << " " << vPos << "\n";
 #endif
-
-            size_t uiCornerIndex = 0;
-            if constexpr( IS_ORTHOTOPE ) // this whole block should be constant
-            {
-                size_t uiDLookup;
-                switch( xInterType )
-                {
-                    default:
-                    case IntersectionType::points_only:
-                    case IntersectionType::first:
-                        uiDLookup = 0;
-                        break;
-                    case IntersectionType::last:
-                        uiDLookup = ( ( 1 << D ) - 1 );
-                        break;
-                    case IntersectionType::enclosed:
-                    case IntersectionType::encloses:
-                        uiDLookup = uiD;
-                        break;
-                    case IntersectionType::overlaps:
-                        // invert the last D bits of uiD
-                        // set all other bits to 0
-                        uiDLookup = ( ~uiD ) & ( ( 1 << D ) - 1 );
-                        break;
-                }
-                // uiDLookup / 2 ^ (D - ORTHOTOPE_DIMS)
-                uiCornerIndex = uiDLookup / ( 1 << ( D - ORTHOTOPE_DIMS ) );
-            }
-            val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, uiCornerIndex
+            val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
+                                                        overlay_grid_t::intersectionTypeToCornerIndex<uiD>( xInterType )
 #if GET_PROG_PRINTS
-                                                        ,
+                                                            ,
                                                         xProg
 #endif
             );
