@@ -143,11 +143,8 @@ template <typename C_T, size_t ALIGN_TO> class AlignTo : public C_T
     static_assert( sizeof( C_T ) <= ALIGN_TO );
     // make sure this is aligned to the next power of two (block load optimization of stxxl::vector)
 
-    // #pragma GCC diagnostic push
-    // #pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
     //  hmmm would have expected this to give and uninitialized warning... o.O
     std::array<char, ALIGN_TO - sizeof( C_T )> __buffer;
-    // #pragma GCC diagnostic pop
 
   public:
     using C_T::C_T;

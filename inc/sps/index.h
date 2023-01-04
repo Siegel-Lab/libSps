@@ -288,11 +288,12 @@ template <typename type_defs> class Index : public AbstractIndex
 #if GET_PROG_PRINTS
             xProg << "query: " << xDatasetId << " " << vPos << "\n";
 #endif
-            val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
-                                                        overlay_grid_t::intersectionTypeToCornerIndex<uiD>( xInterType )
+            val_t uiCurr = vDataSets[ xDatasetId ].get(
+                vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
+                Overlay<type_defs>::template intersectionTypeToCornerIndex<uiD>( xInterType )
 #if GET_PROG_PRINTS
-                                                            ,
-                                                        xProg
+                    ,
+                xProg
 #endif
             );
 
@@ -355,9 +356,6 @@ template <typename type_defs> class Index : public AbstractIndex
             --vFrom[ uiI ];
             --vTo[ uiI ];
         }
-#pragma GCC diagnostic push
-// uiD unused if IS_ORTHOTOPE = false
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
         forAllCombinationsTmpl<pos_t, SizeLimitedInvariant>( vFrom, vTo, countSizeLimitedInvariantCond, xInterType,
                                                              vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid,
                                                              xDatasetId, uiRet
@@ -373,7 +371,6 @@ template <typename type_defs> class Index : public AbstractIndex
             throw std::runtime_error( "unrealistic value for uiRet" );
 #endif
 
-#pragma GCC diagnostic pop
         return uiRet;
     }
 
@@ -423,7 +420,7 @@ template <typename type_defs> class Index : public AbstractIndex
         xProg << "gridCount pos " << vPos << " size " << vSize << " amount " << vNum << "\n";
 #endif
         if( vDataSets[ xDatasetId ].getNumOverlays( ) == 0 )
-            return val_t{ };
+            return std::vector<val_t>{ };
 
         auto vP = addDims( vSize, xInterType );
         std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoFrom = vP[ 0 ];
@@ -929,6 +926,38 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                 .c_str( ) )
+        .def( "grid_count", &sps::Index<type_defs>::gridCount, pybind11::arg( "dataset_id" ), pybind11::arg( "pos" ),
+              pybind11::arg( "size" ), //
+              pybind11::arg( "num" ), //
+              pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
+              pybind11::arg( "verbosity" ) = 0,
+              ( R"pbdoc(
+    Count the number of points between from and to in the given dataset.
+    
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+    
+    :param pos: The bottom left position of the grid query region.
+    :type pos: list[int[)pbdoc" +
+                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+
+    :param size: The size of one cell in the grid.
+    :type size: list[int[)pbdoc" +
+                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+    
+    :param num: The number of grid cells per dimension.
+    :type num: list[int[)pbdoc" +
+                std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+    
+    :param verbosity: Degree of verbosity while counting, defaults to 0.
+    :type verbosity: int
+
+    :return: The number of points in dataset_id between from_pos and to_pos.
+    :rtype: int
+
+    to_pos must be larger equal than from_pos in each dimension.
+)pbdoc" )
+                  .c_str( ) )
         .def(
             "count_multiple",
             []( const sps::Index<type_defs>& rM,

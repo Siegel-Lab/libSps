@@ -84,13 +84,10 @@ template <typename type_defs> class Corner : public USED_POINT
 }; // class
 
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter" // do not warn about vFrom and vTo
-
 template <typename pos_t, size_t N, size_t NE>
-inline void forAllCombinationsHelper( std::function<void( size_t, pos_t, size_t )> fDo, pos_t& vCurr, pos_t vFrom,
-                                      pos_t vTo, size_t uiDistTo, size_t uiNum,
-                                      std::function<bool( typename pos_t::value_type )> fCond )
+inline void forAllCombinationsHelper( std::function<void( size_t, pos_t, size_t )> fDo, pos_t& vCurr,
+                                      [[maybe_unused]] pos_t vFrom, [[maybe_unused]] pos_t vTo, size_t uiDistTo,
+                                      size_t uiNum, std::function<bool( typename pos_t::value_type )> fCond )
 {
     if constexpr /* <- required to prevent infinite unrolling loop in compiler */ ( N == NE )
         fDo( uiNum, vCurr, uiDistTo );
@@ -106,7 +103,6 @@ inline void forAllCombinationsHelper( std::function<void( size_t, pos_t, size_t 
     }
 }
 
-#pragma GCC diagnostic pop
 
 template <typename pos_t, size_t N>
 inline void forAllCombinationsN(
@@ -135,13 +131,11 @@ inline void forAllCombinations(
 }
 
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-parameter" // do not warn about vFrom and vTo
-
 template <typename pos_t, size_t N, size_t NE, template <size_t, size_t, size_t> class fDo_t, size_t uiDistTo,
           size_t uiNum, size_t uiFirstZero, typename fCond_t, typename... extra_t>
-inline __attribute__( ( always_inline ) ) void forAllCombinationsHelperTmpl( pos_t& vCurr, pos_t& vFrom, pos_t& vTo,
-                                                                             fCond_t&& fCond, extra_t&&... rExtra )
+inline __attribute__( ( always_inline ) ) void
+forAllCombinationsHelperTmpl( pos_t& vCurr, [[maybe_unused]] pos_t& vFrom, [[maybe_unused]] pos_t& vTo, fCond_t&& fCond,
+                              extra_t&&... rExtra )
 {
     if constexpr /* <- required to prevent infinite unrolling of loop in compiler */ ( N == NE )
         fDo_t<uiNum, uiDistTo, uiFirstZero>::count( vCurr, rExtra... );
@@ -163,7 +157,6 @@ inline __attribute__( ( always_inline ) ) void forAllCombinationsHelperTmpl( pos
                                          uiFirstZero>( vCurr, vFrom, vTo, fCond, rExtra... );
     }
 }
-#pragma GCC diagnostic pop
 
 template <typename pos_t, size_t N, template <size_t, size_t, size_t> class fDo_t, typename fCond_t,
           typename... extra_t>
