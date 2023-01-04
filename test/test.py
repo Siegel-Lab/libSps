@@ -2,13 +2,13 @@ import sys
 import os
 sys.path.append(os.getcwd())
 #from build_test.libSps import IntersectionType, DiskDependantDimRectanglesPrefixSum_2D, DiskDependantDimPointsPrefixSum_2D
-from build_test.libSps import IntersectionType, DiskRectanglesLookupArrPrefixSum_2D, DiskPointsLookupArrPrefixSum_2D, DiskIntervalsLookupArrPrefixSum_3D
+from build_test.libSps import IntersectionType, DiskRectanglesLookupArrPrefixSum_2D, DiskPointsLookupArrPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D, DiskUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_1D, DiskUniformOverlayGridPointsPrefixSum_1D, DiskUniformOverlayGridIntervalsPrefixSum_1D, CachedUniformOverlayGridPointsPrefixSum_1D
 #from build_rel.libSps import *
 import random
 
-print_all = True
+print_all = False
 
 if False:
     from bokeh.plotting import figure, output_file, save
@@ -71,98 +71,65 @@ def combinations(a, b):
             yield x + [b[-1]]
 
 
-def count_truth(area, interval, p1, p2, points, intersection_mode, catq):
-    if len(catq) > 0:
-        if area or interval:
-            if intersection_mode == IntersectionType.enclosed:
-                truth = sum(v if all(i >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) and 
-                                 any(a and b for a, b in zip(catq, cat)) else 0 \
-                                for ps, pe, v, cat in points)
-            else:
-                raise "no such intersection mode"
+def count_truth(area, interval, p1, p2, points, intersection_mode):
+    if area or interval:
+        if intersection_mode == IntersectionType.enclosed:
+            truth = sum(v if all(i >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
+                            for ps, pe, v in points)
+        elif intersection_mode == IntersectionType.encloses and area:
+            truth = sum(v if all(i < k and j >= l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
+                            for ps, pe, v in points)
+        elif intersection_mode == IntersectionType.encloses and interval:
+            truth = sum(v if all(i < k and j >= l if idx == 0 else i >= k and j < l for idx, (i, j, k, l) in \
+                            enumerate(zip(ps, pe, p1, p2))) else 0 for ps, pe, v in points)
+        elif intersection_mode == IntersectionType.overlaps:
+            truth = sum(v if all(j >= k and i < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
+                            for ps, pe, v in points)
+        elif intersection_mode == IntersectionType.first:
+            truth = sum(v if all(i >= k and i < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
+                            for ps, pe, v in points)
+        elif intersection_mode == IntersectionType.last:
+            truth = sum(v if all(j >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
+                            for ps, pe, v in points)
+        elif intersection_mode == IntersectionType.points_only:
+            truth = sum(v if all(i == j and j >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
+                            for ps, pe, v in points)
         else:
-            truth = sum(v if all(i >= j and i < k for i, j, k in zip(p, p1, p2)) and 
-                             any(a and b for a, b in zip(catq, cat)) else 0 for p, v, cat in points)
-        return truth
+            raise "no such intersection mode"
     else:
-        if area or interval:
-            if intersection_mode == IntersectionType.enclosed:
-                truth = sum(v if all(i >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                                for ps, pe, v in points)
-            elif intersection_mode == IntersectionType.encloses and area:
-                truth = sum(v if all(i < k and j >= l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                                for ps, pe, v in points)
-            elif intersection_mode == IntersectionType.encloses and interval:
-                truth = sum(v if all(i < k and j >= l if idx == 0 else i >= k and j < l for idx, (i, j, k, l) in \
-                                enumerate(zip(ps, pe, p1, p2))) else 0 for ps, pe, v in points)
-            elif intersection_mode == IntersectionType.overlaps:
-                truth = sum(v if all(j >= k and i < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                                for ps, pe, v in points)
-            elif intersection_mode == IntersectionType.first:
-                truth = sum(v if all(i >= k and i < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                                for ps, pe, v in points)
-            elif intersection_mode == IntersectionType.last:
-                truth = sum(v if all(j >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                                for ps, pe, v in points)
-            elif intersection_mode == IntersectionType.points_only:
-                truth = sum(v if all(i == j and j >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                                for ps, pe, v in points)
-            else:
-                raise "no such intersection mode"
-        else:
-            truth = sum(v if all(i >= j and i < k for i, j, k in zip(p, p1, p2)) else 0 for p, v in points)
-        return truth
+        truth = sum(v if all(i >= j and i < k for i, j, k in zip(p, p1, p2)) else 0 for p, v in points)
+    return truth
 
-def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_queries=True, n_cat=0):
+def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_queries=True):
     tree.clear()
     for idx, pos in enumerate(points[:len(points)//2 + 1]):
-        if n_cat > 0:
-            if area or interval:
-                tree.add_point(pos[0], pos[1], cat=pos[3], val=pos[2])
-            else:
-                tree.add_point(pos[0], cat=pos[2], val=pos[1])
+        if area or interval:
+            tree.add_point(pos[0], pos[1], val=pos[2])
         else:
-            if area or interval:
-                tree.add_point(pos[0], pos[1], val=pos[2])
-            else:
-                tree.add_point(pos[0], val=pos[1])
+            tree.add_point(pos[0], val=pos[1])
     x = tree.generate(verbosity=(5 if print_all else 0))
     if print_all:
         print("done generating")
         print(tree)
         print("generated")
-    if n_cat > 0:
-        if area or interval:
-            p_start = points + [(list(range(d)), [max(p[i] for _, p, _, _ in points)+1 for i in range(d)], 
-                                [random.choice([True, False]) for _ in range(n_cat)], 0)]
-            p_end = p_start + [(list(range(d)), [max(p[i] for _, p, _, _ in p_start)+1 for i in range(d)], 
-                               [random.choice([True, False]) for _ in range(n_cat)], 0)]
-            max_w = [max(p2[i] - p1[i] for p1, p2, _, _ in points) for i in range(d)]
-        else:
-            p_start = points + [([max(p[i] for p, _, _ in points)+1 for i in range(d)], 
-                                [random.choice([True, False]) for _ in range(n_cat)], 0)]
-            p_end = p_start + [([max(p[i] for p, _, _ in p_start)+1 for i in range(d)], 
-                               [random.choice([True, False]) for _ in range(n_cat)], 0)]
+    if area or interval:
+        p_start = points + [(list(range(d)), [max(p[i] for _, p, _ in points)+1 for i in range(d)], 0)]
+        p_end = p_start + [(list(range(d)), [max(p[i] for _, p, _ in p_start)+1 for i in range(d)], 0)]
+        max_w = [max(p2[i] - p1[i] for p1, p2, _ in points) for i in range(d)]
     else:
-        if area or interval:
-            p_start = points + [(list(range(d)), [max(p[i] for _, p, _ in points)+1 for i in range(d)], 0)]
-            p_end = p_start + [(list(range(d)), [max(p[i] for _, p, _ in p_start)+1 for i in range(d)], 0)]
-            max_w = [max(p2[i] - p1[i] for p1, p2, _ in points) for i in range(d)]
-        else:
-            p_start = points + [([max(p[i] for p, _ in points)+1 for i in range(d)], 0)]
-            p_end = p_start + [([max(p[i] for p, _ in p_start)+1 for i in range(d)], 0)]
+        p_start = points + [([max(p[i] for p, _ in points)+1 for i in range(d)], 0)]
+        p_end = p_start + [([max(p[i] for p, _ in p_start)+1 for i in range(d)], 0)]
     for intersection_mode in [IntersectionType.enclosed, 
                               IntersectionType.encloses, 
                               IntersectionType.overlaps,
                               IntersectionType.first, 
                               IntersectionType.last, 
-                              IntersectionType.points_only] if n_cat == 0 else [IntersectionType.enclosed]:
+                              IntersectionType.points_only]:
         for a1 in p_start:
             for a2 in p_end:
-                catq = [random.choice([True, False]) for _ in range(n_cat)]
                 if area or interval:
-                    p1s = a1[:2]
-                    p2s = a2[:2]
+                    p1s = a1[:-1]
+                    p2s = a2[:-1]
                 else:
                     p1s = [a1[0]]
                     p2s = [a2[0]]
@@ -174,76 +141,36 @@ def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_qu
                                     print("not wide enough")
                                 continue
                         if all(a < b for a, b in zip(p1, p2)):
-                            truth = count_truth(area, interval, p1, p2, points[:len(points)//2 + 1], intersection_mode, 
-                                                catq)
+                            truth = count_truth(area, interval, p1, p2, points[:len(points)//2 + 1], intersection_mode)
                             if print_all:
                                 print("expected total count:", truth)
                                 print("intersection_mode:", intersection_mode)
                                 for pc in combinations(p1, p2):
-                                    if n_cat > 0:
-                                        if area or interval:
-                                            if pc == p2:
-                                                corner_c = sum(v if all(i < j for i, j in zip(pe, pc)) and
-                                                                    any(a and b for a, b in zip(catq, cat))
-                                                                  else 0 
-                                                                for _, pe, v, cat in points[:len(points)//2 + 1])
-                                            else:
-                                                corner_c = sum(v if all(i < j for i, j in zip(ps, pc)) and
-                                                                    any(a and b for a, b in zip(catq, cat))
-                                                                  else 0 
-                                                                  for ps, _, v, cat in points[:len(points)//2 + 1])
+                                    if area or interval:
+                                        if pc == p2:
+                                            corner_c = sum(v if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe, v in points[:len(points)//2 + 1])
                                         else:
-                                            corner_c = sum(v if all(i < j for i, j in zip(p, pc)) and
-                                                                any(a and b for a, b in zip(catq, cat))
-                                                              else 0 
-                                                              for p, v, cat in points[:len(points)//2 + 1])
+                                            corner_c = sum(v if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _, v in points[:len(points)//2 + 1])
                                     else:
-                                        if area or interval:
-                                            if pc == p2:
-                                                corner_c = sum(v if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe, v in points[:len(points)//2 + 1])
-                                            else:
-                                                corner_c = sum(v if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _, v in points[:len(points)//2 + 1])
-                                        else:
-                                            corner_c = sum(v if all(i < j for i, j in zip(p, pc)) else 0 for p, v in points[:len(points)//2 + 1])
+                                        corner_c = sum(v if all(i < j for i, j in zip(p, pc)) else 0 for p, v in points[:len(points)//2 + 1])
                                 print("expected corner count", corner_c, "for", pc)
-                                print("query", p1, p2, catq)
+                                print("query", p1, p2)
                                 print("points", points[:len(points)//2 + 1])
-                            if n_cat > 0:
-                                cnt = tree.count(x, p1, p2, catq, intersection_mode, verbosity=5 if print_all else 0)
-                            else:
-                                cnt = tree.count(x, p1, p2, intersection_mode, verbosity=5 if print_all else 0)
+                            cnt = tree.count(x, p1, p2, intersection_mode, verbosity=5 if print_all else 0)
                             if not cnt == truth:
                                 #render_overlays(tree, x, str(d) + "-" + str(cont))
-                                print("counts - got:", cnt, "expected:", truth)
+                                print("counts:", cnt, truth)
                                 print("intersection_mode:", intersection_mode)
                                 for pc in combinations(p1, p2):
-                                    if n_cat > 0:
-                                        if area or interval:
-                                            if pc == p2:
-                                                corner_c = sum(v if all(i < j for i, j in zip(pe, pc)) and
-                                                                    any(a and b for a, b in zip(catq, cat))
-                                                                  else 0 
-                                                                for _, pe, v, cat in points[:len(points)//2 + 1])
-                                            else:
-                                                corner_c = sum(v if all(i < j for i, j in zip(ps, pc)) and
-                                                                    any(a and b for a, b in zip(catq, cat))
-                                                                  else 0 
-                                                                  for ps, _, v, cat in points[:len(points)//2 + 1])
+                                    if area or interval:
+                                        if pc == p2:
+                                            corner_c = sum(v if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe, v in points[:len(points)//2 + 1])
                                         else:
-                                            corner_c = sum(v if all(i < j for i, j in zip(p, pc)) and
-                                                                any(a and b for a, b in zip(catq, cat))
-                                                              else 0 
-                                                              for p, v, cat in points[:len(points)//2 + 1])
+                                            corner_c = sum(v if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _, v in points[:len(points)//2 + 1])
                                     else:
-                                        if area or interval:
-                                            if pc == p2:
-                                                corner_c = sum(v if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe, v in points[:len(points)//2 + 1])
-                                            else:
-                                                corner_c = sum(v if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _, v in points[:len(points)//2 + 1])
-                                        else:
-                                            corner_c = sum(v if all(i < j for i, j in zip(p, pc)) else 0 for p, v in points[:len(points)//2 + 1])
+                                        corner_c = sum(v if all(i < j for i, j in zip(p, pc)) else 0 for p, v in points[:len(points)//2 + 1])
                                     print("expected corner count", corner_c, "for", pc)
-                                print("query", p1, p2, catq)
+                                print("query", p1, p2)
                                 print("points", points[:len(points)//2 + 1])
                                 print(tree)
                                 print("failure", d, cont, intersection_mode)
@@ -259,7 +186,7 @@ def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_qu
     #    exit()
 
 
-def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False, n_cat=0):
+def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
     tree.clear()
     cont = 0
     for x in range(1, n):
@@ -271,7 +198,6 @@ def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False, 
                 pos_e = []
                 pos_e_i = []
                 val = random.choice(range(x))+1
-                cat = [random.choice([True, False]) for _ in range(n_cat)]
                 for dx in range(d):
                     pos_s.append(random.choice(range(x)))
                     pos_e.append(pos_s[-1])
@@ -280,23 +206,15 @@ def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False, 
                     pos_e_i.append(pos_s[-1])
                     if dx < 1:
                         pos_e_i[-1] += random.choice(range(x))
-                if n_cat > 0:
-                    if area:
-                        points.append((pos_s, pos_e, val, cat))
-                    elif interval:
-                        points.append((pos_s, pos_e_i, val, cat))
-                    else:
-                        points.append((pos_s, val, cat))
+                if area:
+                    points.append((pos_s, pos_e, val))
+                elif interval:
+                    points.append((pos_s, pos_e_i, val))
                 else:
-                    if area:
-                        points.append((pos_s, pos_e, val))
-                    elif interval:
-                        points.append((pos_s, pos_e_i, val))
-                    else:
-                        points.append((pos_s, val))
+                    points.append((pos_s, val))
                 if print_all:
                     print("adding", points[-1])
-            fixed(tree, points, d, cont, area, interval, enforce_wide_queries, n_cat)
+            fixed(tree, points, d, cont, area, interval, enforce_wide_queries)
             cont += 1
 
 
@@ -312,7 +230,7 @@ random.seed(6846854546132)
 #test(CachedUniformOverlayGridPointsPrefixSum_2D("test/blub2", True), 2)
 #test(DiskDependantDimPointsPrefixSum_5D("test/blub4", True), 5)
 
-test(DiskIntervalsLookupArrPrefixSum_3D("test/blub5", True), 2, n_cat=5)
+test(DiskPointsLookupArrPrefixSum_2D("test/blub5", True), 2)
 
 #test(DiskUniformOverlayGridIntervalsPrefixSum_1D("test/blub6", True), 1, area=True)
 #test(CachedDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, enforce_wide_queries=False)
