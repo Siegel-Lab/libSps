@@ -27,8 +27,6 @@ Features (ranked)
       - pos x from, pos y from, pos x to, pos y to, mapq, filters, ...
       - sorted by columns
 
-- list based compilation parameter system
-
 - move code into smaller files
   - e.g. file for grid queries / single queries & fullQueries
 
