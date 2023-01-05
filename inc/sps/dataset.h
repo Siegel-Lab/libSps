@@ -1246,8 +1246,7 @@ template <typename type_defs> class Dataset
     inline __attribute__( ( always_inline ) ) void
     gridHelper( typename Overlay<type_defs>::grid_ret_t& xRet,
                 const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntry,
-                std::array<std::vector<coordinate_t>, D>& vvInternalSparsePoss,
-                std::array<std::array<std::vector<coordinate_t>, D - 1>, D>& vvOverlaySparsePoss,
+                std::array<std::vector<coordinate_t>, D>& vvSparsePoss,
                 pos_t& vOverlayIdx,
                 pos_t& vOverlayBottomLeft,
                 pos_t& vOverlayTopRight,
@@ -1273,9 +1272,9 @@ template <typename type_defs> class Dataset
                 vOverlayIdx[ N ] = uiI;
                 vOverlayBottomLeft[ N ] = actualFromGridPos( uiI, N );
                 vOverlayTopRight[ N ] = actualFromGridPos( uiI + 1, N );
-                gridHelper<N + 1>( xRet, xRetEntry, vvInternalSparsePoss, vvOverlaySparsePoss, vOverlayIdx,
-                                   vOverlayBottomLeft, vOverlayTopRight, vOverlayStart, vOverlayEnd, rOverlays,
-                                   rSparseCoords, rPrefixSums, vPos, vSize, vNum, xInterType, uiFac
+                gridHelper<N + 1>( xRet, xRetEntry, vvSparsePoss, vOverlayIdx, vOverlayBottomLeft, vOverlayTopRight,
+                                   vOverlayStart, vOverlayEnd, rOverlays, rSparseCoords, rPrefixSums, vPos, vSize, vNum,
+                                   xInterType, uiFac
 #if GET_PROG_PRINTS
                                    ,
                                    xProg
@@ -1283,14 +1282,27 @@ template <typename type_defs> class Dataset
                 );
             }
         else
+        {
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 2 ) << "\tQuerying " //
+                  << "overlay " << vOverlayIdx //
+                  << " vOverlayStart " << vOverlayStart //
+                  << " vOverlayEnd " << vOverlayEnd //
+                  << " vNum " << vNum //
+                  << " vOverlayBottomLeft " << vOverlayBottomLeft //
+                  << " vOverlayTopRight " << vOverlayTopRight //
+                  << "\n";
+#endif
+
             rOverlays.template get<D, false, false>( vOverlayIdx, xOverlays )
-                .grid( xRet, xRetEntry, vvInternalSparsePoss, vvOverlaySparsePoss, rSparseCoords, rPrefixSums,
-                       vOverlayBottomLeft, vOverlayTopRight, vPos, vSize, vNum, xInterType, uiFac
+                .grid( xRet, xRetEntry, vvSparsePoss, rSparseCoords, rPrefixSums, vOverlayBottomLeft, vOverlayTopRight,
+                       vPos, vSize, vNum, xInterType, uiFac
 #if GET_PROG_PRINTS
                        ,
                        xProg
 #endif
                 );
+        }
     }
 
     std::vector<val_t> grid( const overlay_grid_t& rOverlays,
@@ -1341,7 +1353,7 @@ template <typename type_defs> class Dataset
         pos_t vOverlayBottomLeft;
         pos_t vOverlayTopRight;
         typename Overlay<type_defs>::grid_ret_t xRet( ".tmp", true );
-        typename Overlay<type_defs>::grid_ret_entry_t xRetEntry = xRet.template add<D>( vNumAct );
+        typename Overlay<type_defs>::grid_ret_entry_t xRetEntry = xRet.template add<D, false, true>( vNumAct );
 
 
         val_t uiFac = 1;
@@ -1349,12 +1361,10 @@ template <typename type_defs> class Dataset
             if( xInterType == IntersectionType::encloses )
                 uiFac = -1;
 
-        std::array<std::vector<coordinate_t>, D> vvInternalSparsePoss;
-        std::array<std::array<std::vector<coordinate_t>, D - 1>, D> vvOverlaySparsePoss;
+        std::array<std::vector<coordinate_t>, D> vvSparsePoss;
 
-        gridHelper<0>( xRet, xRetEntry, vvInternalSparsePoss, vvOverlaySparsePoss, vOverlayIdx, vOverlayBottomLeft,
-                       vOverlayTopRight, vOverlayStart, vOverlayEnd, rOverlays, rSparseCoords, rPrefixSums, vPosAct,
-                       vSizeAct, vNumAct, xInterType, uiFac
+        gridHelper<0>( xRet, xRetEntry, vvSparsePoss, vOverlayIdx, vOverlayBottomLeft, vOverlayTopRight, vOverlayStart,
+                       vOverlayEnd, rOverlays, rSparseCoords, rPrefixSums, vPosAct, vSizeAct, vNumAct, xInterType, uiFac
 #if GET_PROG_PRINTS
                        ,
                        xProg

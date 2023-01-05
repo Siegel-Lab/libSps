@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -1033,14 +1033,26 @@ template <typename type_defs> class Overlay
 
 #define CALL_GRID_HELPER_ADD( uiNewD, uiNewDistToTo )                                                                  \
     gridHelperAdd<N + 1, uiNewD, uiNewDistToTo, uiDimOverlay, INTERNAL, args...>(                                      \
-        vGridPos, rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, uiVal, xInterType, PROG_PARAM )
+        vGridPos, rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, uiVal, xInterType, vNum,         \
+        PROG_PARAM )
 
+    /*
+        for every recursive call, there are two booleans isLargerZero and isSmallerEnd.
+        these are successively unrolled from args:
+            every call the first two booleans are removed.
+        the final two bools in args are false, false by definition (checked via static assert)
+        no other pair of successive bools are allowed to both the false
+
+        These booleans define whether given value uiVal shall be added to the grid pos vGridIdx - 1 and to the grid pos
+       vGridIdx
+    */
     template <size_t N, size_t uiD, size_t uiDistToTo, size_t uiDimOverlay, bool INTERNAL, bool isLargerZero,
               bool isSmallerEnd, bool... args>
     inline __attribute__( ( always_inline ) ) void
     gridHelperAdd( pos_t& vGridPos, grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
                    const pos_t& vStartIdxThisOverlay, const pos_t& vNumInThisOverlay, const pos_t& vGridIdx,
-                   const sps_t& uiVal, const IntersectionType& xInterType, const val_t& uiFac
+                   const sps_t& uiVal, const IntersectionType& xInterType, [[maybe_unused]] const pos_t& vNum,
+                   const val_t& uiFac
 #if GET_PROG_PRINTS
                    ,
                    progress_stream_t& xProg
@@ -1068,16 +1080,16 @@ template <typename type_defs> class Overlay
             else
             {
 
-                // if( vGridIdx[ N ] + 1 < vNum[ N ] )
                 if constexpr( isSmallerEnd )
                 {
+                    assert( vGridIdx[ N ] < vNum[ N ] );
                     vGridPos[ N ] = vGridIdx[ N ];
                     CALL_GRID_HELPER_ADD( uiD, uiDistToTo + 1 );
                 }
 
-                // if( vGridIdx[ N ] > 0 )
                 if constexpr( isLargerZero )
                 {
+                    assert( vGridIdx[ N ] > 0 );
                     vGridPos[ N ] = vGridIdx[ N ] - 1;
                     CALL_GRID_HELPER_ADD( uiD + ( 1 << ( D - ( N + 1 ) ) ), uiDistToTo );
                 }
@@ -1086,8 +1098,16 @@ template <typename type_defs> class Overlay
         else
         {
             static_assert( !isSmallerEnd && !isLargerZero );
-            
+
             val_t uiFac2 = ( uiDistToTo % 2 == 0 ? 1 : -1 );
+
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 2 ) << "\t\t\tstoring value " << uiVal //
+                  << " at gridpos " << vGridPos //
+                  << " with fac1: " << uiFac //
+                  << " and fac2: " << uiFac2 //
+                  << "\n";
+#endif
 
             if constexpr( IS_ORTHOTOPE )
                 rRet.template get<D, false>( vGridPos, xRetEntry ) =
@@ -1108,7 +1128,7 @@ template <typename type_defs> class Overlay
     gridHelper( grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry, const pos_t& vStartIdxThisOverlay,
                 const pos_t& vNumInThisOverlay, pos_t& vGridIdx, const pos_t& vNum,
                 const typename std::conditional<INTERNAL, std::array<std::vector<coordinate_t>, D>,
-                                                std::array<std::vector<coordinate_t>, D - 1>>::type& vvSparsePoss,
+                                                std::array<std::vector<coordinate_t>, D>>::type& vvSparsePoss,
                 typename std::conditional<INTERNAL, pos_t, red_pos_t>::type& vPos, const prefix_sum_grid_t& rPrefixSums,
                 const IntersectionType& xInterType, const val_t& uiFac
 #if GET_PROG_PRINTS
@@ -1119,15 +1139,15 @@ template <typename type_defs> class Overlay
     {
         if constexpr( N < D )
         {
-            assert( vNum[ N ] >= 2 );
+            assert( vNum[ N ] >= 1 );
             if constexpr( !INTERNAL && N == uiDimOverlay )
             {
                 vPos[ N ] = 0;
 
                 assert( vStartIdxThisOverlay[ N ] > 0 ||
-                        vStartIdxThisOverlay[ N ] + vNumInThisOverlay[ N ] < vNum[ N ] );
+                        vStartIdxThisOverlay[ N ] + vNumInThisOverlay[ N ] <= vNum[ N ] );
 
-                if( vStartIdxThisOverlay[ N ] > 0 && vStartIdxThisOverlay[ N ] + vNumInThisOverlay[ N ] < vNum[ N ] )
+                if( vStartIdxThisOverlay[ N ] > 0 && vStartIdxThisOverlay[ N ] + vNumInThisOverlay[ N ] <= vNum[ N ] )
                     CALL_GRID_HELPER( true, true );
                 else if( vStartIdxThisOverlay[ N ] > 0 )
                     CALL_GRID_HELPER( true, false );
@@ -1136,31 +1156,56 @@ template <typename type_defs> class Overlay
             }
             else
             {
-                vPos[ N ] = vvSparsePoss[ N ][ 0 ];
-                vGridIdx[ N ] = vStartIdxThisOverlay[ N ] + 0;
-                // @todo optimization: move check out of the nested loops somehow (how?)
-                if( vGridIdx[ N ] > 0 )
-                    CALL_GRID_HELPER( true, true );
-                else
-                    CALL_GRID_HELPER( false, true );
-
-                for( size_t uiI = 1; uiI < vvSparsePoss[ N ].size( ) - 1; uiI++ )
+                assert( vvSparsePoss[ N ].size( ) > 0 );
+                if( vvSparsePoss[ N ].size( ) == 1 )
                 {
-                    vPos[ N ] = vvSparsePoss[ N ][ uiI ];
-                    vGridIdx[ N ] = vStartIdxThisOverlay[ N ] + uiI;
-                    CALL_GRID_HELPER( true, true );
+                    vPos[ N ] = vvSparsePoss[ N ][ 0 ];
+                    vGridIdx[ N ] = vStartIdxThisOverlay[ N ] + 0;
+                    assert( vGridIdx[ N ] > 0 || vGridIdx[ N ] <= vNum[ N ] );
+                    if( vGridIdx[ N ] > 0 && vGridIdx[ N ] <= vNum[ N ] )
+                        CALL_GRID_HELPER( true, true );
+                    else if( vGridIdx[ N ] > 0 )
+                        CALL_GRID_HELPER( true, false );
+                    else
+                        CALL_GRID_HELPER( false, true );
                 }
-
-                vPos[ N ] = vvSparsePoss[ N ][ vvSparsePoss[ N ].size( ) - 1 ];
-                vGridIdx[ N ] = vStartIdxThisOverlay[ N ] + vvSparsePoss[ N ].size( ) - 1;
-                if( vGridIdx[ N ] + 1 < vNum[ N ] )
-                    CALL_GRID_HELPER( true, true );
                 else
-                    CALL_GRID_HELPER( true, false );
+                {
+                    vPos[ N ] = vvSparsePoss[ N ][ 0 ];
+                    vGridIdx[ N ] = vStartIdxThisOverlay[ N ] + 0;
+                    // @todo optimization: move check out of the nested loops somehow
+                    // -> do all checks ahead of time and move them into template parameters,
+                    //    then go down the loops
+                    if( vGridIdx[ N ] > 0 )
+                        CALL_GRID_HELPER( true, true );
+                    else
+                        CALL_GRID_HELPER( false, true );
+
+                    for( size_t uiI = 1; uiI < vvSparsePoss[ N ].size( ) - 1; uiI++ )
+                    {
+                        vPos[ N ] = vvSparsePoss[ N ][ uiI ];
+                        vGridIdx[ N ] = vStartIdxThisOverlay[ N ] + uiI;
+                        CALL_GRID_HELPER( true, true );
+                    }
+
+                    vPos[ N ] = vvSparsePoss[ N ][ vvSparsePoss[ N ].size( ) - 1 ];
+                    vGridIdx[ N ] = vStartIdxThisOverlay[ N ] + vvSparsePoss[ N ].size( ) - 1;
+                    if( vGridIdx[ N ] <= vNum[ N ] )
+                        CALL_GRID_HELPER( true, true );
+                    else
+                        CALL_GRID_HELPER( true, false );
+                }
             }
         }
         else
         {
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 2 ) << "\t\tQuerying " //
+                  << ( INTERNAL ? "internal" : "overlay" ) //
+                  << " sparse position " << vPos //
+                  << " uiDimOverlay: " << uiDimOverlay //
+                  << "\n";
+#endif
             sps_t uiVal;
             if constexpr( INTERNAL )
                 uiVal = rPrefixSums.template get<D, false>( vPos, xInternalEntires );
@@ -1169,7 +1214,8 @@ template <typename type_defs> class Overlay
 
             pos_t vGridPos;
             gridHelperAdd<0, 0, 0, uiDimOverlay, INTERNAL, args..., false, false>(
-                vGridPos, rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, uiVal, xInterType, uiFac
+                vGridPos, rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, uiVal, xInterType, vNum,
+                uiFac
 #if GET_PROG_PRINTS
                 ,
                 xProg
@@ -1180,12 +1226,11 @@ template <typename type_defs> class Overlay
 
     template <size_t uiD>
     inline __attribute__( ( always_inline ) ) void
-    gridOverlayHelper( std::array<std::array<std::vector<coordinate_t>, D - 1>, D>& vvOverlaySparsePoss,
-                       const pos_t& vStartIdxThisOverlay, const pos_t& vNumInThisOverlay, grid_ret_t& rRet,
-                       const grid_ret_entry_t& xRetEntry, const sparse_coord_t& rSparseCoords,
-                       const prefix_sum_grid_t& rPrefixSums, const pos_t& vMyBottomLeft, const pos_t& vMyTopRight,
-                       const pos_t& vPos, const pos_t& vSize, const pos_t& vNum, const IntersectionType& xInterType,
-                       const val_t& uiFac
+    gridOverlayHelper( std::array<std::vector<coordinate_t>, D>& vvOverlaySparsePoss, const pos_t& vStartIdxThisOverlay,
+                       const pos_t& vNumInThisOverlay, grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
+                       const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
+                       const pos_t& vMyBottomLeft, const pos_t& vMyTopRight, const pos_t& vPos, const pos_t& vSize,
+                       const pos_t& vNum, const IntersectionType& xInterType, const val_t& uiFac
 #if GET_PROG_PRINTS
                        ,
                        progress_stream_t& xProg
@@ -1199,30 +1244,31 @@ template <typename type_defs> class Overlay
                 vOverlayEntries[ uiD ].uiStartIndex != std::numeric_limits<coordinate_t>::max( ) &&
                 // the query grid extends over multiple boxes (therefore the overlay values are required)
                 ( vPos[ uiD ] < vMyBottomLeft[ uiD ] ||
-                  vPos[ uiD ] + vSize[ uiD ] * vNum[ uiD ] >= vMyBottomLeft[ uiD ] );
+                  vPos[ uiD ] + vSize[ uiD ] * vNum[ uiD ] >= vMyTopRight[ uiD ] );
             if( bOverlaysRequired )
             {
                 // COMPUTE SPARSE COORDINATES FOR EACH ROW AND COLUMN OF THE GRID (FOR OVERLAY VALUES)
-                for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )
+                for( size_t uiJ = 0; uiJ < D; uiJ++ )
                 {
-                    size_t uiK = uiJ + ( uiJ >= uiD ? 1 : 0 );
-                    vvOverlaySparsePoss[ uiD ][ uiJ ].clear( );
-                    if( vvOverlaySparsePoss[ uiD ][ uiJ ].capacity( ) < vNumInThisOverlay[ uiK ] )
-                        vvOverlaySparsePoss[ uiD ][ uiJ ].reserve( vNumInThisOverlay[ uiK ] * 10 );
+                    vvOverlaySparsePoss[ uiJ ].clear( );
+                    if( uiJ != uiD )
+                    {
+                        if( vvOverlaySparsePoss[ uiJ ].capacity( ) < vNumInThisOverlay[ uiJ ] )
+                            vvOverlaySparsePoss[ uiJ ].reserve( vNumInThisOverlay[ uiJ ] * 10 );
 
-                    for( size_t uiL = 0; uiL < vNumInThisOverlay[ uiK ]; uiL++ )
-                        vvOverlaySparsePoss[ uiD ][ uiJ ].push_back( rSparseCoords.template sparse<D, false>(
-                            vPos[ uiK ] + vSize[ uiK ] * ( uiL + vStartIdxThisOverlay[ uiK ] ), vSparseCoordsInternal,
-                            uiK ) );
+                        for( size_t uiL = 0; uiL < vNumInThisOverlay[ uiJ ]; uiL++ )
+                            vvOverlaySparsePoss[ uiJ ].push_back( rSparseCoords.template sparse<D - 1, false>(
+                                vPos[ uiJ ] + vSize[ uiJ ] * ( uiL + vStartIdxThisOverlay[ uiJ ] ),
+                                vSparseCoordsOverlay[ uiD ], uiJ - (uiJ > uiD ? 1 : 0) ) );
+                    }
                 }
 
                 // LOOK UP VALUES FOR EACH CELL OF THE GRID (FOR OVERLAY VALUES)
                 red_pos_t vPos;
                 pos_t vGridIdx;
                 gridHelper<0, uiD, false>( rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, vNum,
-                                           vvOverlaySparsePoss[ uiD ], vPos, rPrefixSums, xInterType, uiFac
+                                           vvOverlaySparsePoss, vPos, rPrefixSums, xInterType, uiFac
 #if GET_PROG_PRINTS
-
                                            ,
                                            xProg
 #endif
@@ -1241,11 +1287,10 @@ template <typename type_defs> class Overlay
     }
 
     void grid( grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
-               std::array<std::vector<coordinate_t>, D>& vvInternalSparsePoss,
-               std::array<std::array<std::vector<coordinate_t>, D - 1>, D>& vvOverlaySparsePoss,
-               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, const pos_t vMyBottomLeft,
-               const pos_t vMyTopRight, const pos_t vPos, const pos_t vSize, const pos_t vNum,
-               const IntersectionType xInterType, const val_t& uiFac
+               std::array<std::vector<coordinate_t>, D>& vvSparsePoss, const sparse_coord_t& rSparseCoords,
+               const prefix_sum_grid_t& rPrefixSums, const pos_t vMyBottomLeft, const pos_t vMyTopRight,
+               const pos_t vPos, const pos_t vSize, const pos_t vNum, const IntersectionType xInterType,
+               const val_t& uiFac
 #if GET_PROG_PRINTS
                ,
                progress_stream_t& xProg
@@ -1255,56 +1300,61 @@ template <typename type_defs> class Overlay
         // COMPUTE NUMBER OF LOOKUPS AND THEIR INDICES IN THIS OVERLAY
         pos_t vStartIdxThisOverlay;
         pos_t vNumInThisOverlay;
+        bool bAtLeastOneInOverlay = true;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
             vStartIdxThisOverlay[ uiI ] =
-                vPos[ uiI ] > vMyBottomLeft[ uiI ] ? ( vPos[ uiI ] - vMyBottomLeft[ uiI ] ) / vSize[ uiI ] : 0;
+                vMyBottomLeft[ uiI ] > vPos[ uiI ] ? ( vMyBottomLeft[ uiI ] - vPos[ uiI ] - 1 ) / vSize[ uiI ] + 1 : 0;
             // vNumInThisOverlay is computed as
             // - the end index minus the start index
             // - or the value in vNum + 1 if that value is smaller
-            vNumInThisOverlay[ uiI ] = std::min(
-                ( vPos[ uiI ] > vMyTopRight[ uiI ] ? ( vPos[ uiI ] - vMyTopRight[ uiI ] ) / vSize[ uiI ] : 0 ) -
-                    vStartIdxThisOverlay[ uiI ],
+            coordinate_t uiEndIndex = std::min(
+                ( vMyTopRight[ uiI ] > vPos[ uiI ] ? ( vMyTopRight[ uiI ] - vPos[ uiI ] - 1 ) / vSize[ uiI ] + 1 : 0 ),
                 vNum[ uiI ] + 1 );
+            vNumInThisOverlay[ uiI ] =
+                uiEndIndex > vStartIdxThisOverlay[ uiI ] ? uiEndIndex - vStartIdxThisOverlay[ uiI ] : 0;
+
+            if( vNumInThisOverlay[ uiI ] == 0 )
+                bAtLeastOneInOverlay = false;
         }
 
-        const bool bHasInternal = rPrefixSums.sizeOf( xInternalEntires ) > 0;
-        if( bHasInternal )
+        if( bAtLeastOneInOverlay )
         {
-            // COMPUTE SPARSE COORDINATES FOR EACH ROW AND COLUMN OF THE GRID (FOR INTERNAL VALUES)
-            for( size_t uiI = 0; uiI < D; uiI++ )
+            const bool bHasInternal = rPrefixSums.sizeOf( xInternalEntires ) > 0;
+            if( bHasInternal )
             {
-                vvInternalSparsePoss[ uiI ].clear( );
-                if( vvInternalSparsePoss[ uiI ].capacity( ) < vNumInThisOverlay[ uiI ] )
-                    vvInternalSparsePoss[ uiI ].reserve( vNumInThisOverlay[ uiI ] * 10 );
+                // COMPUTE SPARSE COORDINATES FOR EACH ROW AND COLUMN OF THE GRID (FOR INTERNAL VALUES)
+                for( size_t uiI = 0; uiI < D; uiI++ )
+                {
+                    vvSparsePoss[ uiI ].clear( );
+                    if( vvSparsePoss[ uiI ].capacity( ) < vNumInThisOverlay[ uiI ] )
+                        vvSparsePoss[ uiI ].reserve( vNumInThisOverlay[ uiI ] * 10 );
 
-                for( size_t uiJ = 0; uiJ < vNumInThisOverlay[ uiI ]; uiJ++ )
-                    vvInternalSparsePoss[ uiI ].push_back( rSparseCoords.template sparse<D, false>(
-                        vPos[ uiI ] + vSize[ uiI ] * ( uiJ + vStartIdxThisOverlay[ uiI ] ), vSparseCoordsInternal,
-                        uiI ) );
-            }
+                    for( size_t uiJ = 0; uiJ < vNumInThisOverlay[ uiI ]; uiJ++ )
+                        vvSparsePoss[ uiI ].push_back( rSparseCoords.template sparse<D, false>(
+                            vPos[ uiI ] + vSize[ uiI ] * ( uiJ + vStartIdxThisOverlay[ uiI ] ), vSparseCoordsInternal,
+                            uiI ) );
+                }
 
-            // LOOK UP VALUES FOR EACH CELL OF THE GRID (FOR INTERNAL VALUES)
-            pos_t vPos;
-            pos_t vGridIdx;
-            gridHelper<0, 0, true>( rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, vNum,
-                                    vvInternalSparsePoss, vPos, rPrefixSums, xInterType, uiFac
+                // LOOK UP VALUES FOR EACH CELL OF THE GRID (FOR INTERNAL VALUES)
+                pos_t vPos;
+                pos_t vGridIdx;
+                gridHelper<0, 0, true>( rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, vNum,
+                                        vvSparsePoss, vPos, rPrefixSums, xInterType, uiFac
 #if GET_PROG_PRINTS
-                                    ,
-                                    xProg
+                                        ,
+                                        xProg
+#endif
+                );
+            }
+            gridOverlayHelper<0>( vvSparsePoss, vStartIdxThisOverlay, vNumInThisOverlay, rRet, xRetEntry, rSparseCoords,
+                                  rPrefixSums, vMyBottomLeft, vMyTopRight, vPos, vSize, vNum, xInterType, uiFac
+#if GET_PROG_PRINTS
+                                  ,
+                                  xProg
 #endif
             );
         }
-#if 1
-        gridOverlayHelper<0>( vvOverlaySparsePoss, vStartIdxThisOverlay, vNumInThisOverlay, rRet, xRetEntry,
-                              rSparseCoords, rPrefixSums, vMyBottomLeft, vMyTopRight, vPos, vSize, vNum, xInterType,
-                              uiFac
-#if GET_PROG_PRINTS
-                              ,
-                              xProg
-#endif
-        );
-#endif
     }
 
     sps_t getAll( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,

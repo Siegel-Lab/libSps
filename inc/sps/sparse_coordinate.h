@@ -144,6 +144,7 @@ template <typename type_defs, template <typename> typename impl_t> class SparseC
     inline __attribute__( ( always_inline ) ) coordinate_t sparse( const coordinate_t uiCord,
                                                                    const std::array<Entry, N>& vAxes, size_t uiI ) const
     {
+        assert(uiI < N);
         return replace<SANITY>( uiCord, vAxes[ uiI ] );
     }
 

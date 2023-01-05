@@ -29,6 +29,9 @@ Features (ranked)
 
 - list based compilation parameter system
 
+- move code into smaller files
+  - e.g. file for grid queries / single queries & fullQueries
+
 - hdf5 storage
 
 - think about caching the overlay prefix sums during construction...

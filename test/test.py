@@ -2,7 +2,8 @@ import sys
 import os
 sys.path.append(os.getcwd())
 #from build_test.libSps import IntersectionType, DiskDependantDimRectanglesPrefixSum_2D, DiskDependantDimPointsPrefixSum_2D
-from build_test.libSps import IntersectionType, DiskRectanglesLookupArrPrefixSum_2D, DiskPointsLookupArrPrefixSum_2D
+#from build_test.libSps import IntersectionType, DiskRectanglesLookupArrPrefixSum_2D, DiskPointsLookupArrPrefixSum_2D
+from build_test.libSps import IntersectionType, RamPointsLookupArrPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D, DiskUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_1D, DiskUniformOverlayGridPointsPrefixSum_1D, DiskUniformOverlayGridIntervalsPrefixSum_1D, CachedUniformOverlayGridPointsPrefixSum_1D
 #from build_rel.libSps import *
@@ -217,6 +218,74 @@ def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
             fixed(tree, points, d, cont, area, interval, enforce_wide_queries)
             cont += 1
 
+def for_each_idx_in(size):
+    if len(size) == 0:
+        return []
+
+    for x in range(size[0]):
+        for idx in for_each_idx_in(size[1:]):
+            yield [x] + idx
+
+def fixed_grid(tree, points, d, length, num_queries, cont=0, interval=False):
+    tree.clear()
+    for pos in points:
+        if interval:
+            tree.add_point(pos[0], pos[1], val=pos[2])
+        else:
+            tree.add_point(pos[0], val=pos[1])
+    x = tree.generate(verbosity=(5 if print_all else 0))
+    for _ in range(num_queries):
+        for intersection_mode in [IntersectionType.enclosed, 
+                                IntersectionType.encloses, 
+                                IntersectionType.overlaps,
+                                IntersectionType.first, 
+                                IntersectionType.last, 
+                                IntersectionType.points_only]:
+            pos = []
+            size = []
+            num = []
+            for dx in range(d):
+                pos.append(random.randrange(length * 2))
+                size.append(random.randrange(length))
+                num.append(random.randrange(10))
+            results = tree.grid_count(x, pos, size, num, intersection_mode, verbosity=5 if print_all else 0)
+            cnt = 0
+            for idx in for_each_idx_in(num):
+                curr_result = result[cnt]
+                curr_start = [p + s*i for p, s, i in zip(pos, size, idx)]
+                curr_end = [a+b for a,b in zip(curr_start, size)]
+
+                cnt = tree.count(x, curr_start, curr_end, intersection_mode, verbosity=5 if print_all else 0)
+
+                if cnt != curr_result:
+                    print("grid cell", idx, "has an unexpected result. expected", cnt, "but got", curr_result)
+                    print("failure", d, cont, intersection_mode)
+                    exit()
+
+                cnt += 1
+
+
+    print("success", d, cont)
+
+def test_grid(tree, d, n=30, interval=False):
+    tree.clear()
+    cont = 0
+    for _x in range(1, n):
+        num_points = 2**_x
+        length = 10 * _x
+        points = []
+        for _ in range(num_points):
+            pos = []
+            for dx in range(d):
+                pos.append(random.randrange(length) + length)
+            if interval:
+                pos_e = pos
+                pos_e[0] += random.randrange(1, length)
+                points.append((pos, 1))
+            else:
+                points.append((pos, 1))
+        fixed_grid(tree, points, d, length, num_points * 100, cont, interval)
+        cont += 1
 
 
 random.seed(6846854546132)
@@ -230,7 +299,8 @@ random.seed(6846854546132)
 #test(CachedUniformOverlayGridPointsPrefixSum_2D("test/blub2", True), 2)
 #test(DiskDependantDimPointsPrefixSum_5D("test/blub4", True), 5)
 
-test(DiskPointsLookupArrPrefixSum_2D("test/blub5", True), 2)
+#test(RamPointsLookupArrPrefixSum_2D("test/blub5", True), 2)
+test_grid(RamPointsLookupArrPrefixSum_2D("test/blub5", True), 2)
 
 #test(DiskUniformOverlayGridIntervalsPrefixSum_1D("test/blub6", True), 1, area=True)
 #test(CachedDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, enforce_wide_queries=False)
