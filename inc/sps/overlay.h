@@ -791,7 +791,7 @@ template <typename type_defs> class Overlay
 
     template <size_t, size_t uiDistToTo, size_t uiFirstZero> struct CombinationsInvariant
     {
-        static inline __attribute__( ( always_inline ) ) void
+        static inline void
         count( pos_t vPos, val_t& uiRet, pos_t& /*vMyBottomLeft*/,
                const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
                const prefix_sum_grid_t& rPrefixSums,
@@ -857,7 +857,7 @@ template <typename type_defs> class Overlay
 
     template <size_t /*uiD*/, size_t uiDistToTo, size_t uiFirstZero> struct CombinationsInvariantAll
     {
-        static inline __attribute__( ( always_inline ) ) void
+        static inline  void
         count( pos_t vPos, sps_t& uiRet, pos_t& /*vMyBottomLeft*/,
                const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
                const prefix_sum_grid_t& rPrefixSums,
@@ -923,7 +923,7 @@ template <typename type_defs> class Overlay
         }
     };
 
-    static inline __attribute__( ( always_inline ) ) bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/,
+    static inline  bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/,
                                                                                bool /*bIsFrom*/ )
     {
         return uiPos != std::numeric_limits<coordinate_t>::max( );
@@ -1048,7 +1048,7 @@ template <typename type_defs> class Overlay
     */
     template <size_t N, size_t uiD, size_t uiDistToTo, size_t uiDimOverlay, bool INTERNAL, bool isLargerZero,
               bool isSmallerEnd, bool... args>
-    inline __attribute__( ( always_inline ) ) void
+    inline void
     gridHelperAdd( pos_t& vGridPos, grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
                    const pos_t& vStartIdxThisOverlay, const pos_t& vNumInThisOverlay, const pos_t& vGridIdx,
                    const sps_t& uiVal, const IntersectionType& xInterType, [[maybe_unused]] const pos_t& vNum,
@@ -1124,7 +1124,7 @@ template <typename type_defs> class Overlay
         xInterType, PROG_PARAM )
 
     template <size_t N, size_t uiDimOverlay, bool INTERNAL, bool... args>
-    inline __attribute__( ( always_inline ) ) void
+    inline void
     gridHelper( grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry, const pos_t& vStartIdxThisOverlay,
                 const pos_t& vNumInThisOverlay, pos_t& vGridIdx, const pos_t& vNum,
                 const typename std::conditional<INTERNAL, std::array<std::vector<coordinate_t>, D>,
@@ -1225,7 +1225,7 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t uiD>
-    inline __attribute__( ( always_inline ) ) void
+    inline void
     gridOverlayHelper( std::array<std::vector<coordinate_t>, D>& vvOverlaySparsePoss, const pos_t& vStartIdxThisOverlay,
                        const pos_t& vNumInThisOverlay, grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
                        const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
@@ -1428,7 +1428,7 @@ template <typename type_defs> class Overlay
 
 
     template <typename T>
-    static inline __attribute__( ( always_inline ) ) std::array<T, D - 1> relevant( const std::array<T, D>& vAllEntries,
+    static inline  std::array<T, D - 1> relevant( const std::array<T, D>& vAllEntries,
                                                                                     size_t uiI )
     {
         std::array<T, D - 1> vRelevantEntries;

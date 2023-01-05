@@ -3,7 +3,7 @@ import os
 sys.path.append(os.getcwd())
 #from build_test.libSps import IntersectionType, DiskDependantDimRectanglesPrefixSum_2D, DiskDependantDimPointsPrefixSum_2D
 #from build_test.libSps import IntersectionType, DiskRectanglesLookupArrPrefixSum_2D, DiskPointsLookupArrPrefixSum_2D
-from build_test.libSps import IntersectionType, RamPointsLookupArrPrefixSum_2D
+from build_test.libSps import IntersectionType, RamPointsLookupArrPrefixSum_2D, RamIntervalsLookupArrPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D, DiskUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D
 #from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_1D, DiskUniformOverlayGridPointsPrefixSum_1D, DiskUniformOverlayGridIntervalsPrefixSum_1D, CachedUniformOverlayGridPointsPrefixSum_1D
 #from build_rel.libSps import *
@@ -281,7 +281,7 @@ def test_grid(tree, d, n=30, interval=False):
             if interval:
                 pos_e = pos
                 pos_e[0] += random.randrange(1, length)
-                points.append((pos, 1))
+                points.append((pos, pos_e, 1))
             else:
                 points.append((pos, 1))
         fixed_grid(tree, points, d, length, num_points * 100, cont, interval)
@@ -300,7 +300,7 @@ random.seed(6846854546132)
 #test(DiskDependantDimPointsPrefixSum_5D("test/blub4", True), 5)
 
 #test(RamPointsLookupArrPrefixSum_2D("test/blub5", True), 2)
-test_grid(RamPointsLookupArrPrefixSum_2D("test/blub5", True), 2)
+test_grid(RamIntervalsLookupArrPrefixSum_2D("test/blub5", True), 2, interval=True)
 
 #test(DiskUniformOverlayGridIntervalsPrefixSum_1D("test/blub6", True), 1, area=True)
 #test(CachedDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, enforce_wide_queries=False)

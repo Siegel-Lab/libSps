@@ -1243,7 +1243,7 @@ template <typename type_defs> class Dataset
     }
 
     template <size_t N>
-    inline __attribute__( ( always_inline ) ) void
+    inline void
     gridHelper( typename Overlay<type_defs>::grid_ret_t& xRet,
                 const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntry,
                 std::array<std::vector<coordinate_t>, D>& vvSparsePoss,

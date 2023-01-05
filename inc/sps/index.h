@@ -275,7 +275,7 @@ template <typename type_defs> class Index : public AbstractIndex
   private:
     template <size_t uiD, size_t uiDistToTo, size_t> struct SizeLimitedInvariant
     {
-        static inline __attribute__( ( always_inline ) ) void
+        static void
         count( pos_t vPos, IntersectionType xInterType, const dataset_vec_t& vDataSets,
                const sparse_coord_t& vSparseCoord, const prefix_sum_grid_t& vPrefixSumGrid,
                const overlay_grid_t& vOverlayGrid, const class_key_t xDatasetId, val_t& uiRet
@@ -316,7 +316,7 @@ template <typename type_defs> class Index : public AbstractIndex
     };
 
 
-    static inline __attribute__( ( always_inline ) ) bool
+    static inline bool
     countSizeLimitedInvariantCond( coordinate_t uiPos, size_t /*uiD*/, bool /*bIsFrom*/ )
     {
         return uiPos != std::numeric_limits<coordinate_t>::max( );

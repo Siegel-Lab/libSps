@@ -133,7 +133,7 @@ inline void forAllCombinations(
 
 template <typename pos_t, size_t N, size_t NE, template <size_t, size_t, size_t> class fDo_t, size_t uiDistTo,
           size_t uiNum, size_t uiFirstZero, typename fCond_t, typename... extra_t>
-inline __attribute__( ( always_inline ) ) void
+inline  void
 forAllCombinationsHelperTmpl( pos_t& vCurr, [[maybe_unused]] pos_t& vFrom, [[maybe_unused]] pos_t& vTo, fCond_t&& fCond,
                               extra_t&&... rExtra )
 {
@@ -160,7 +160,7 @@ forAllCombinationsHelperTmpl( pos_t& vCurr, [[maybe_unused]] pos_t& vFrom, [[may
 
 template <typename pos_t, size_t N, template <size_t, size_t, size_t> class fDo_t, typename fCond_t,
           typename... extra_t>
-inline __attribute__( ( always_inline ) ) void forAllCombinationsNTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond,
+inline  void forAllCombinationsNTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond,
                                                                         extra_t&&... rExtra )
 {
     pos_t vCurr{ };
@@ -168,7 +168,7 @@ inline __attribute__( ( always_inline ) ) void forAllCombinationsNTmpl( pos_t& v
 }
 
 template <typename pos_t, template <size_t, size_t, size_t> class fDo_t, typename fCond_t, typename... extra_t>
-inline __attribute__( ( always_inline ) ) void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond,
+inline  void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond,
                                                                        extra_t&&... rExtra )
 {
     forAllCombinationsNTmpl<pos_t, array_size<pos_t>::size, fDo_t>( vFrom, vTo, fCond, rExtra... );
