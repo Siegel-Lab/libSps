@@ -155,6 +155,29 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
   private:
+    coordinate_t addDimFrom( coordinate_t uiSize, 
+                                        IntersectionType xIntersectionType = IntersectionType::slice ) const
+    {
+        if( xIntersectionType == IntersectionType::slice )
+            return uiSize;
+        else if( xIntersectionType == IntersectionType::encloses )
+            return 1 + uiSize;
+        else
+            return 0;
+    }
+
+    coordinate_t addDimTo( coordinate_t uiSize, 
+                                        IntersectionType xIntersectionType = IntersectionType::slice ) const
+    {
+
+        if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
+            return uiSize;
+        else if( xIntersectionType == IntersectionType::points_only )
+            return 1;
+        else
+            return std::numeric_limits<coordinate_t>::max( );
+    }
+
     std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
                                   IntersectionType xIntersectionType = IntersectionType::slice ) const
     {
@@ -166,19 +189,8 @@ template <typename type_defs> class Index : public AbstractIndex
         }
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            if( xIntersectionType == IntersectionType::slice )
-                vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = vEnd[ uiI ] - vStart[ uiI ];
-            else if( xIntersectionType == IntersectionType::encloses )
-                vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = 1 + vEnd[ uiI ] - vStart[ uiI ];
-            else
-                vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = 0;
-
-            if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
-                vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = vEnd[ uiI ] - vStart[ uiI ];
-            else if( xIntersectionType == IntersectionType::points_only )
-                vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = 1;
-            else
-                vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = std::numeric_limits<coordinate_t>::max( );
+            vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = addDimFrom(vEnd[ uiI ] - vStart[ uiI ], xIntersectionType);
+            vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = addDimTo(vEnd[ uiI ] - vStart[ uiI ], xIntersectionType);
         }
         return vRet;
     }
@@ -188,19 +200,8 @@ template <typename type_defs> class Index : public AbstractIndex
         std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2> vRet;
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            if( xIntersectionType == IntersectionType::slice )
-                vRet[ 0 ][ uiI ] = vSize[ uiI ];
-            else if( xIntersectionType == IntersectionType::encloses )
-                vRet[ 0 ][ uiI ] = 1 + vSize[ uiI ];
-            else
-                vRet[ 0 ][ uiI ] = 0;
-
-            if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
-                vRet[ 1 ][ uiI ] = vSize[ uiI ];
-            else if( xIntersectionType == IntersectionType::points_only )
-                vRet[ 1 ][ uiI ] = 1;
-            else
-                vRet[ 1 ][ uiI ] = std::numeric_limits<coordinate_t>::max( );
+            vRet[ 0 ][ uiI ] = addDimFrom(vSize[ uiI ], xIntersectionType);
+            vRet[ 1 ][ uiI ] = addDimTo(vSize[ uiI ], xIntersectionType);
         }
         return vRet;
     }
@@ -402,6 +403,11 @@ template <typename type_defs> class Index : public AbstractIndex
      * @brief Count the number of points between from and to and in the given dataset.
      *
      * to_pos must be larger equal than from_pos in each dimension.
+     * 
+     * @todo this interface needs to change:
+     * instead of vPos, vSize, and vNum, there should be for each dimension a vector of the coordinates that need to be
+     * queried.
+     * The the resulting vector returns the values of the cells in between
      *
      * @param xDatasetId The id of the dataset to query
      * @param vPos The bottom left position of the query region.
@@ -413,24 +419,24 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     std::vector<val_t> gridCount( class_key_t xDatasetId, ret_pos_t vPos, ret_pos_t vSize, ret_pos_t vNum,
                                   IntersectionType xInterType = IntersectionType::enclosed,
-                                  size_t uiVerbosity = 0 ) const
+                                  [[maybe_unused]] size_t uiVerbosity = 0 ) const
     {
-#if GET_PROG_PRINTS
-        progress_stream_t xProg( uiVerbosity );
-        xProg << "gridCount pos " << vPos << " size " << vSize << " amount " << vNum << "\n";
-#endif
         if( vDataSets[ xDatasetId ].getNumOverlays( ) == 0 )
             return std::vector<val_t>{ };
 
         auto vP = addDims( vSize, xInterType );
         std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoFrom = vP[ 0 ];
         std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoTo = vP[ 1 ];
+#if GET_PROG_PRINTS
+        progress_stream_t xProg( uiVerbosity );
+        xProg << "gridCount pos " << vPos << " size " << vSize << " amount " << vNum << " vOrthoFrom " << vOrthoFrom << " vOrthoTo " << vOrthoTo << "\n";
+#endif
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
             --vOrthoFrom[ uiI ];
             --vOrthoTo[ uiI ];
         }
-        for( size_t uiI = 0; uiI < D; uiI++ )
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             --vPos[ uiI ];
 
         return vDataSets[ xDatasetId ].grid( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, vSize, vNum, vOrthoFrom,

@@ -1267,7 +1267,7 @@ template <typename type_defs> class Dataset
     ) const
     {
         if constexpr( N < D )
-            for( size_t uiI = vOverlayStart[ N ]; uiI < vOverlayEnd[ N ]; uiI++ )
+            for( size_t uiI = vOverlayStart[ N ]; uiI <= vOverlayEnd[ N ]; uiI++ )
             {
                 vOverlayIdx[ N ] = uiI;
                 vOverlayBottomLeft[ N ] = actualFromGridPos( uiI, N );
@@ -1286,11 +1286,11 @@ template <typename type_defs> class Dataset
 #if GET_PROG_PRINTS
             xProg << Verbosity( 2 ) << "\tQuerying " //
                   << "overlay " << vOverlayIdx //
-                  << " vOverlayStart " << vOverlayStart //
-                  << " vOverlayEnd " << vOverlayEnd //
-                  << " vNum " << vNum //
-                  << " vOverlayBottomLeft " << vOverlayBottomLeft //
-                  << " vOverlayTopRight " << vOverlayTopRight //
+                  << "\n\t\tvOverlayStart " << vOverlayStart //
+                  << "\n\t\tvOverlayEnd " << vOverlayEnd //
+                  << "\n\t\tvNum " << vNum //
+                  << "\n\t\tvOverlayBottomLeft " << vOverlayBottomLeft //
+                  << "\n\t\tvOverlayTopRight " << vOverlayTopRight //
                   << "\n";
 #endif
 
@@ -1333,21 +1333,21 @@ template <typename type_defs> class Dataset
         }
         for( size_t uiI = D - ORTHOTOPE_DIMS; uiI < D; uiI++ )
         {
-            vEndPos[ uiI ] = vOrthoTo[ uiI - D - ORTHOTOPE_DIMS ];
+            vEndPos[ uiI ] = vOrthoTo[ uiI - (D - ORTHOTOPE_DIMS) ];
             vNumAct[ uiI ] = 1;
-            vPosAct[ uiI ] = vOrthoFrom[ uiI - D - ORTHOTOPE_DIMS ];
-            vSizeAct[ uiI ] = vOrthoTo[ uiI - D - ORTHOTOPE_DIMS ] - vPosAct[ uiI ];
+            vPosAct[ uiI ] = vOrthoFrom[ uiI - (D - ORTHOTOPE_DIMS) ];
+            vSizeAct[ uiI ] = vOrthoTo[ uiI - (D - ORTHOTOPE_DIMS) ] - vPosAct[ uiI ];
         }
 
-        auto vOverlayStart = overlayCoord( vPosAct );
-        auto vOverlayEnd = overlayCoord( vEndPos );
+        pos_t vPosOverlay;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            if( vOverlayStart[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
-                vOverlayStart[ uiI ] = 0;
-            if( vOverlayEnd[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
+            vPosOverlay[uiI] = vPosAct[uiI] != std::numeric_limits<coordinate_t>::max( ) ? vPosAct[uiI] : vSizeAct[ uiI ] - 1;
+            if( vEndPos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
                 return std::vector<val_t>{ };
         }
+        auto vOverlayStart = overlayCoord( vPosOverlay );
+        auto vOverlayEnd = overlayCoord( vEndPos );
 
         pos_t vOverlayIdx;
         pos_t vOverlayBottomLeft;
@@ -1362,6 +1362,16 @@ template <typename type_defs> class Dataset
                 uiFac = -1;
 
         std::array<std::vector<coordinate_t>, D> vvSparsePoss;
+
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 2 ) << "\t"
+                  << " vPosAct " << vPosAct //
+                  << " vEndPos " << vEndPos //
+                  << " vOverlayStart " << vOverlayStart //
+                  << " vOverlayEnd " << vOverlayEnd //
+                  << " vNum " << vNum //
+                  << "\n";
+#endif
 
         gridHelper<0>( xRet, xRetEntry, vvSparsePoss, vOverlayIdx, vOverlayBottomLeft, vOverlayTopRight, vOverlayStart,
                        vOverlayEnd, rOverlays, rSparseCoords, rPrefixSums, vPosAct, vSizeAct, vNumAct, xInterType, uiFac

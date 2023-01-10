@@ -41,6 +41,14 @@ class Verbosity
  * @brief Definition of all compiletime parameters for Index.
  *
  * The Index class takes this as a template parameter.
+ * 
+ * @todo a lot of the template parameters are not actually variable most of the time
+ *      - having them drastically increases compiletime
+ *      - also the TypeDefs class is kind of a bad idea since it needs to be instanciated every time
+ *      - better approach:
+ *          - create one big class/struct with the template parameters
+ *          - then make everything a subclass of this one
+ *          - split the commonly used and unused parameters into tow subclasses
  *
  * @tparam _coordinate_t type of coordinates, expected to be an unsigned int.
  * @tparam _val_t type of prefix sums, expected to be an unsigned int.
