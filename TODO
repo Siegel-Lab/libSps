@@ -6,19 +6,6 @@ Bug:
 
 Features (ranked)
 
-- compile time optimization
-    - use parent class 
-
-- annotation filters new system
-    - new new approach:
-    - points in one dimension
-    - one slice for each annotation type
-    - one slice for reads that have no annotation
-    - one slice for reads that are in multiple annotations
-      - enter negative values in this slice
-      - if a read is in n annotations then add as value -n+1 (so that the multiple counts even out)
-    - place the 'gene' annotation at the bottom of this dimension
-    - @note make sure the annotation dimension is the last dimension
 
 - grid-seq:
     - remove coverage indices for replicates
@@ -31,16 +18,23 @@ Features (ranked)
   - change to: for each dimension a list of the coordinates that shall be queried
 
 
-[cutoff]
 
 - store list of individual points for each poision of the prefix sum array 
-    - Idea: store for each box (check num points in box first)
+    - think about: how to deal with data-rectangles / where to store them?
+      - if storage is sorted format, a proper binary search is enough
+      - is decomposition as is done for the annotations an option?
+        - split overlapping rectangles into overlapping and non overlapping part
+        - keep counted ids in a set
+        - count is size of set at the end
+    - Idea: store for each box/prefix sum entry (check num points in box first)
     - requires one additional vector
     - then points can be searched by iteration at smallest resolution
     - try other sparse coords arrays before trying this (didn't help -> need point storage)
     - store points in cooler format basically
       - pos x from, pos y from, pos x to, pos y to, mapq, filters, ...
       - sorted by columns
+
+[cutoff]
 
 - move code into smaller files
   - e.g. file for grid queries / single queries & fullQueries
