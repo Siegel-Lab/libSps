@@ -14,6 +14,8 @@ namespace sps
 #define GET_PROG_PRINTS 1
 #endif
 
+#define DU_UNREALISTIC_VALUE_CHECK 0
+
 class Verbosity
 {
   public:

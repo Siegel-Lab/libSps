@@ -299,8 +299,10 @@ template <typename type_defs> class Index : public AbstractIndex
             );
 
 #ifndef NDEBUG
+#if DU_UNREALISTIC_VALUE_CHECK
             if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
                 throw std::runtime_error( "unrealistic value for uiCurr" );
+#endif
 #endif
 
             val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
@@ -368,8 +370,10 @@ template <typename type_defs> class Index : public AbstractIndex
 
 #if GET_PROG_PRINTS
         xProg << "countSizeLimited uiRet=" << uiRet << "\n";
+#if DU_UNREALISTIC_VALUE_CHECK
         if( uiRet >= std::numeric_limits<val_t>::max( ) / 2 )
             throw std::runtime_error( "unrealistic value for uiRet" );
+#endif
 #endif
 
         return uiRet;

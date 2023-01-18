@@ -903,6 +903,7 @@ template <typename type_defs> class Overlay
 #endif
 
 #ifndef NDEBUG
+#if DU_UNREALISTIC_VALUE_CHECK
             if constexpr( IS_ORTHOTOPE )
             {
                 for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
@@ -914,6 +915,7 @@ template <typename type_defs> class Overlay
                 if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
                     throw std::runtime_error( "unrealistic value for uiCurr" );
             }
+#endif
 #endif
 
             if constexpr( uiDistToTo % 2 == 0 )
@@ -975,8 +977,10 @@ template <typename type_defs> class Overlay
                   << " (" << uiCurrArr << ")\n";
 #endif
 #ifndef NDEBUG
+#if DU_UNREALISTIC_VALUE_CHECK
             if( uiCurr >= std::numeric_limits<val_t>::max( ) / 2 )
                 throw std::runtime_error( "unrealistic value for uiCurr" );
+#endif
 #endif
 
             uiRet += uiCurr;
@@ -987,8 +991,10 @@ template <typename type_defs> class Overlay
 #endif
 
 #ifndef NDEBUG
+#if DU_UNREALISTIC_VALUE_CHECK
         if( uiRet >= std::numeric_limits<val_t>::max( ) / 2 )
             throw std::runtime_error( "unrealistic value for uiRet" );
+#endif
 #endif
 
         return uiRet;
@@ -1432,6 +1438,7 @@ template <typename type_defs> class Overlay
                   << "\n";
 #endif
 #ifndef NDEBUG
+#if DU_UNREALISTIC_VALUE_CHECK
             if constexpr( IS_ORTHOTOPE )
             {
                 for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
@@ -1444,6 +1451,7 @@ template <typename type_defs> class Overlay
                     throw std::runtime_error( "unrealistic value for uiCurr" );
             }
 #endif
+#endif
 
             uiRet += uiCurr;
         }
@@ -1453,6 +1461,7 @@ template <typename type_defs> class Overlay
 #endif
 
 #ifndef NDEBUG
+#if DU_UNREALISTIC_VALUE_CHECK
         if constexpr( IS_ORTHOTOPE )
         {
             for( size_t uiX = 0; uiX < 1 << ORTHOTOPE_DIMS; uiX++ )
@@ -1464,6 +1473,7 @@ template <typename type_defs> class Overlay
             if( uiRet >= std::numeric_limits<val_t>::max( ) / 2 )
                 throw std::runtime_error( "unrealistic value for uiRet" );
         }
+#endif
 #endif
 
 
