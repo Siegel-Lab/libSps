@@ -7,11 +7,6 @@ Bug:
 Features (ranked)
 
 
-- grid-seq:
-    - remove coverage indices for replicates
-    - sample average coverage from contigs -> pick x many
-    - coverage should be separate system form replicates
-
 - grid queries
   - can also be use during construction
   - started with wrong interface: vPos, vSize, and vNum
