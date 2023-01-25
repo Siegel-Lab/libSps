@@ -6,6 +6,7 @@ Bug:
 
 Features (ranked)
 
+[cutoff]
 
 - grid queries
   - can also be use during construction
@@ -13,6 +14,7 @@ Features (ranked)
   - change to: for each dimension a list of the coordinates that shall be queried
 
 
+- new prefix sum computation (diagonals) debugging
 
 - store list of individual points for each poision of the prefix sum array 
     - think about: how to deal with data-rectangles / where to store them?
@@ -29,19 +31,12 @@ Features (ranked)
       - pos x from, pos y from, pos x to, pos y to, mapq, filters, ...
       - sorted by columns
 
-[cutoff]
 
 - move code into smaller files
   - e.g. file for grid queries / single queries & fullQueries
 
 - hdf5 storage
+  - nezar was talking about better interface for this
 
-- think about caching the overlay prefix sums during construction...
-    - would yield another giant speedup!
-    - requires size estimation adjustment
-
-- biocontainer instead of yaml file?
-
-- conditions in the computational graph of libCm???
 
 
