@@ -13,10 +13,10 @@ Features (ranked)
   - started with wrong interface: vPos, vSize, and vNum
   - change to: for each dimension a list of the coordinates that shall be queried
 
-
 - new prefix sum computation (diagonals) debugging
 
-- store list of individual points for each poision of the prefix sum array 
+- reaching 1bp resolution:
+  - store list of individual points for each poision of the prefix sum array 
     - think about: how to deal with data-rectangles / where to store them?
       - if storage is sorted format, a proper binary search is enough
       - is decomposition as is done for the annotations an option?
@@ -31,6 +31,12 @@ Features (ranked)
       - pos x from, pos y from, pos x to, pos y to, mapq, filters, ...
       - sorted by columns
 
+- better compression
+  - one could just store the overlay values
+  - then always iterate of the entries in one box to get the remaining count
+  - first: - check proportions of overlay prefix sums vs internal prefix sums
+           - check size of overlays and weather a grid query would then cause iteration over all reads
+  - could also fix/integrate with getting a 1bp resolution
 
 - move code into smaller files
   - e.g. file for grid queries / single queries & fullQueries
