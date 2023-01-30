@@ -2,6 +2,7 @@ build_rel/*
 build_dbg/*
 build_test/*
 build_benchmark/*
+build_install/*
 build/*
 *.bin
 test/*.coords

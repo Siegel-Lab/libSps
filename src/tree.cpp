@@ -125,11 +125,11 @@ std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t 
                                                                bSimpleVec);
     if(pRet != nullptr)
         return pRet;
-    throw std::invalid_argument( "libSps has not been compiled with the requested parameter combination." );
+    throw std::invalid_argument( "sps has not been compiled with the requested parameter combination." );
 }
 #pragma GCC diagnostic pop
 
-PYBIND11_MODULE( libSps, m )
+PYBIND11_MODULE( sps, m )
 {
     // prevent creation of stxxl log files
     if( getenv( (char*)"STXXLLOGFILE" ) == nullptr )
@@ -158,7 +158,7 @@ PYBIND11_MODULE( libSps, m )
     std::string sRaw = R"pbdoc(
 Documentation for the Python Module
 -----------------------------------
-.. currentmodule:: libSps
+.. currentmodule:: sps
 .. autosummary::
     :toctree: _generate
 

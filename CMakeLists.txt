@@ -1,11 +1,13 @@
 cmake_minimum_required (VERSION 3.9)
 
 # only adjust major and minor version - patch is taken from git commit number
-project("libSps" VERSION 0.2.0)
+project("libsps" VERSION 0.2.0)
+
+##############
+# Parameters #
+##############
 
 # set building python library as default
-option(WITH_PYTHON "Build python library." ON)
-
 set(DIMENSIONS_A "2" CACHE STRING "Build a datastructure with this amount of dimensions (put zero to disable).")
 set(DIMENSIONS_B "3" CACHE STRING "Build a datastructure with this amount of dimensions (put zero to disable).")
 set(DIMENSIONS_C "0" CACHE STRING "Build a datastructure with this amount of dimensions (put zero to disable).")
@@ -23,6 +25,10 @@ set(STORAGE_B "0" CACHE STRING "The storage type of this index (one of Ram, Disk
 set(STORAGE_C "0" CACHE STRING "The storage type of this index (one of Ram, Disk, Cached).")
 set(STORAGE_D "0" CACHE STRING "The storage type of this index (one of Ram, Disk, Cached).")
 set(STORAGE_E "0" CACHE STRING "The storage type of this index (one of Ram, Disk, Cached).")
+
+#################
+# Configuration #
+#################
 
 # disallow in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -53,11 +59,7 @@ else()
 endif()
 
 # include subprojects
-if(WITH_PYTHON)
-    set(requested_python_version 3.5)
-    find_package(pybind11 REQUIRED)
-endif()
-add_subdirectory (contrib/stxxl EXCLUDE_FROM_ALL)
+add_subdirectory ( contrib/stxxl EXCLUDE_FROM_ALL )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 
@@ -77,46 +79,46 @@ add_custom_target(
         "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h"
     VERBATIM)
 
-# create python module if python has been found
-if(WITH_PYTHON)
-    pybind11_add_module( libSps src/tree.cpp )
-    target_include_directories( libSps PUBLIC inc )
-    target_include_directories( libSps SYSTEM PRIVATE ${STXXL_INCLUDE_DIRS} )
+########################
+# Python Module Target #
+########################
 
-    target_compile_definitions( libSps PRIVATE WITH_PYTHON )
+#set(requested_python_version 3.5)
+find_package( pybind11 )
+if (pybind11_FOUND)
+    pybind11_add_module( sps src/tree.cpp )
+    target_include_directories( sps PUBLIC inc )
+    target_include_directories( sps SYSTEM PRIVATE ${STXXL_INCLUDE_DIRS} )
 
-    target_compile_definitions( libSps PRIVATE DIMENSIONS_A=${DIMENSIONS_A} )
-    target_compile_definitions( libSps PRIVATE DIMENSIONS_B=${DIMENSIONS_B} )
-    target_compile_definitions( libSps PRIVATE DIMENSIONS_C=${DIMENSIONS_C} )
-    target_compile_definitions( libSps PRIVATE DIMENSIONS_D=${DIMENSIONS_D} )
-    target_compile_definitions( libSps PRIVATE DIMENSIONS_E=${DIMENSIONS_E} )
+    target_compile_definitions( sps PRIVATE WITH_PYTHON )
 
-    target_compile_definitions( libSps PRIVATE ORTHOTOPE_A=${ORTHOTOPE_A} )
-    target_compile_definitions( libSps PRIVATE ORTHOTOPE_B=${ORTHOTOPE_B} )
-    target_compile_definitions( libSps PRIVATE ORTHOTOPE_C=${ORTHOTOPE_C} )
-    target_compile_definitions( libSps PRIVATE ORTHOTOPE_D=${ORTHOTOPE_D} )
-    target_compile_definitions( libSps PRIVATE ORTHOTOPE_E=${ORTHOTOPE_E} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_A=${DIMENSIONS_A} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_B=${DIMENSIONS_B} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_C=${DIMENSIONS_C} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_D=${DIMENSIONS_D} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_E=${DIMENSIONS_E} )
 
-    target_compile_definitions( libSps PRIVATE STORAGE_A=${STORAGE_A} )
-    target_compile_definitions( libSps PRIVATE STORAGE_B=${STORAGE_B} )
-    target_compile_definitions( libSps PRIVATE STORAGE_C=${STORAGE_C} )
-    target_compile_definitions( libSps PRIVATE STORAGE_D=${STORAGE_D} )
-    target_compile_definitions( libSps PRIVATE STORAGE_E=${STORAGE_E} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_A=${ORTHOTOPE_A} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_B=${ORTHOTOPE_B} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_C=${ORTHOTOPE_C} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_D=${ORTHOTOPE_D} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_E=${ORTHOTOPE_E} )
 
-    target_link_libraries( libSps PUBLIC stxxl )
-    target_include_directories( libSps PUBLIC ${CMAKE_BINARY_DIR}/generated/inc)
-    add_dependencies(libSps sps_config_version sps_config_build_time)
-endif()
+    target_compile_definitions( sps PRIVATE STORAGE_A=${STORAGE_A} )
+    target_compile_definitions( sps PRIVATE STORAGE_B=${STORAGE_B} )
+    target_compile_definitions( sps PRIVATE STORAGE_C=${STORAGE_C} )
+    target_compile_definitions( sps PRIVATE STORAGE_D=${STORAGE_D} )
+    target_compile_definitions( sps PRIVATE STORAGE_E=${STORAGE_E} )
 
+    target_link_libraries( sps PUBLIC stxxl )
+    target_include_directories( sps PUBLIC ${CMAKE_BINARY_DIR}/generated/inc )
+    add_dependencies(sps sps_config_version sps_config_build_time)
+endif(pybind11_FOUND)
 
-add_library( Sps INTERFACE )
-target_include_directories( Sps SYSTEM INTERFACE inc )
-target_include_directories( Sps SYSTEM INTERFACE ${STXXL_INCLUDE_DIRS} )
-target_link_libraries( Sps INTERFACE stxxl )
-target_include_directories( Sps SYSTEM INTERFACE ${CMAKE_BINARY_DIR}/generated/inc)
-add_dependencies(Sps sps_config_version sps_config_build_time)
+#################
+# Documentation #
+#################
 
-# Documentation setup
 find_package(Doxygen)
 find_package(Sphinx)
 if (DOXYGEN_FOUND)
@@ -177,3 +179,44 @@ else (DOXYGEN_FOUND)
 endif (DOXYGEN_FOUND)
 
 
+################
+# Installation #
+################
+
+include(CMakePackageConfigHelpers)
+
+add_library( libsps INTERFACE )
+target_include_directories( libsps INTERFACE 
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/inc>
+    $<INSTALL_INTERFACE:inc>
+)
+target_link_libraries( libsps INTERFACE stxxl )
+add_dependencies(libsps sps_config_version sps_config_build_time)
+
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/libspsConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+    COMPATIBILITY AnyNewerVersion
+    ARCH_INDEPENDENT
+)
+
+install(TARGETS libsps
+    EXPORT libspsTargets
+    LIBRARY DESTINATION lib COMPONENT Runtime
+    ARCHIVE DESTINATION lib COMPONENT Development
+    RUNTIME DESTINATION bin COMPONENT Runtime
+    PUBLIC_HEADER DESTINATION inc COMPONENT Development
+    BUNDLE DESTINATION bin COMPONENT Runtime
+)
+
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/libspsConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/libspsConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/libsps
+)
+
+install(EXPORT libspsTargets DESTINATION lib/cmake/libsps)
+install(FILES "${PROJECT_BINARY_DIR}/libspsConfigVersion.cmake"
+              "${PROJECT_BINARY_DIR}/libspsConfig.cmake"
+        DESTINATION lib/cmake/libsps)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/inc/ DESTINATION inc)
