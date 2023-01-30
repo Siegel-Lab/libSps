@@ -25,9 +25,9 @@ requirements:
   run:
     - python>=3.6
 
-#test:
-#  imports:
-#    - sps
+test:
+  imports:
+    - sps
 
 about:
   home: https://github.com/MarkusRainerSchmidt/libSps

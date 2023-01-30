@@ -10,9 +10,7 @@ setup(
     author='Markus Schmidt',
     author_email='markus.rainer.schmidt@gmail.com',
     license='MIT',
-    packages=["sps"],
-    package_dir={"": "pip_install"},
-    package_data={"sps": ["libsps.cpython-36m-x86_64-linux-gnu.so"]},
+    py_module=["src/sps.py"],
     #ext_modules=[Extension('sps', libraries = ['sps'], sources=["../src/tree.cpp"])],
     install_requires=[
         # @todo currently done via conda environment
