@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.17)
 
+set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+
 # only adjust major and minor version - patch is taken from git commit number
 project("libsps" VERSION 0.2.0)
 
