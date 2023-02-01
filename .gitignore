@@ -26,3 +26,5 @@ settings.json
 perf.data
 perf.data.old
 firefox.perf
+sps*.so
+*.egg-info

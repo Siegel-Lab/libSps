@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.9)
+cmake_minimum_required (VERSION 3.17)
 
 # only adjust major and minor version - patch is taken from git commit number
 project("libsps" VERSION 0.2.0)
@@ -83,44 +83,47 @@ add_custom_target(
 # Python Module Target #
 ########################
 
+find_package (Python QUIET COMPONENTS Interpreter Development)
 #set(requested_python_version 3.5)
-find_package( pybind11 )
+find_package( pybind11 QUIET PATHS ${Python_SITEARCH} )
 if (pybind11_FOUND)
-    pybind11_add_module( spscpp src/tree.cpp )
-    target_include_directories( spscpp PUBLIC inc )
-    target_include_directories( spscpp SYSTEM PRIVATE ${STXXL_INCLUDE_DIRS} )
+    pybind11_add_module( sps src/tree.cpp )
+    target_include_directories( sps PUBLIC inc )
+    target_include_directories( sps SYSTEM PRIVATE ${STXXL_INCLUDE_DIRS} )
 
-    target_compile_definitions( spscpp PRIVATE WITH_PYTHON )
+    target_compile_definitions( sps PRIVATE WITH_PYTHON )
 
-    target_compile_definitions( spscpp PRIVATE DIMENSIONS_A=${DIMENSIONS_A} )
-    target_compile_definitions( spscpp PRIVATE DIMENSIONS_B=${DIMENSIONS_B} )
-    target_compile_definitions( spscpp PRIVATE DIMENSIONS_C=${DIMENSIONS_C} )
-    target_compile_definitions( spscpp PRIVATE DIMENSIONS_D=${DIMENSIONS_D} )
-    target_compile_definitions( spscpp PRIVATE DIMENSIONS_E=${DIMENSIONS_E} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_A=${DIMENSIONS_A} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_B=${DIMENSIONS_B} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_C=${DIMENSIONS_C} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_D=${DIMENSIONS_D} )
+    target_compile_definitions( sps PRIVATE DIMENSIONS_E=${DIMENSIONS_E} )
 
-    target_compile_definitions( spscpp PRIVATE ORTHOTOPE_A=${ORTHOTOPE_A} )
-    target_compile_definitions( spscpp PRIVATE ORTHOTOPE_B=${ORTHOTOPE_B} )
-    target_compile_definitions( spscpp PRIVATE ORTHOTOPE_C=${ORTHOTOPE_C} )
-    target_compile_definitions( spscpp PRIVATE ORTHOTOPE_D=${ORTHOTOPE_D} )
-    target_compile_definitions( spscpp PRIVATE ORTHOTOPE_E=${ORTHOTOPE_E} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_A=${ORTHOTOPE_A} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_B=${ORTHOTOPE_B} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_C=${ORTHOTOPE_C} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_D=${ORTHOTOPE_D} )
+    target_compile_definitions( sps PRIVATE ORTHOTOPE_E=${ORTHOTOPE_E} )
 
-    target_compile_definitions( spscpp PRIVATE STORAGE_A=${STORAGE_A} )
-    target_compile_definitions( spscpp PRIVATE STORAGE_B=${STORAGE_B} )
-    target_compile_definitions( spscpp PRIVATE STORAGE_C=${STORAGE_C} )
-    target_compile_definitions( spscpp PRIVATE STORAGE_D=${STORAGE_D} )
-    target_compile_definitions( spscpp PRIVATE STORAGE_E=${STORAGE_E} )
+    target_compile_definitions( sps PRIVATE STORAGE_A=${STORAGE_A} )
+    target_compile_definitions( sps PRIVATE STORAGE_B=${STORAGE_B} )
+    target_compile_definitions( sps PRIVATE STORAGE_C=${STORAGE_C} )
+    target_compile_definitions( sps PRIVATE STORAGE_D=${STORAGE_D} )
+    target_compile_definitions( sps PRIVATE STORAGE_E=${STORAGE_E} )
 
-    target_link_libraries( spscpp PUBLIC stxxl )
-    target_include_directories( spscpp PUBLIC ${CMAKE_BINARY_DIR}/generated/inc )
-    add_dependencies(spscpp sps_config_version sps_config_build_time)
+    target_link_libraries( sps PUBLIC stxxl )
+    target_include_directories( sps PUBLIC ${CMAKE_BINARY_DIR}/generated/inc )
+    add_dependencies(sps sps_config_version sps_config_build_time)
+else(pybind11_FOUND)
+    message(WARNING "No pybind11 found. sps python module target will not be available.")
 endif(pybind11_FOUND)
 
 #################
 # Documentation #
 #################
 
-find_package(Doxygen)
-find_package(Sphinx)
+find_package(Doxygen QUIET)
+find_package(Sphinx QUIET)
 if (DOXYGEN_FOUND)
 
 if(Sphinx_FOUND)
@@ -171,11 +174,11 @@ if(Sphinx_FOUND)
         COMMENT "Building API documentation with Sphinx")
 
 else(Sphinx_FOUND)
-    message(WARNING "No Sphinx found. Documentation target not available.")
+    message(WARNING "No Sphinx found. Documentation target will not be available.")
 endif(Sphinx_FOUND)
 
 else (DOXYGEN_FOUND)
-    message("No Doxygen foud. Documentation target not available.")
+    message("No Doxygen foud. Documentation target will not be available.")
 endif (DOXYGEN_FOUND)
 
 
@@ -219,4 +222,4 @@ install(EXPORT libspsTargets DESTINATION lib/cmake/libsps)
 install(FILES "${PROJECT_BINARY_DIR}/libspsConfigVersion.cmake"
               "${PROJECT_BINARY_DIR}/libspsConfig.cmake"
         DESTINATION lib/cmake/libsps)
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/inc/ DESTINATION inc)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/inc/ ${CMAKE_BINARY_DIR}/generated/inc/ DESTINATION inc)

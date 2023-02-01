@@ -129,7 +129,7 @@ std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t 
 }
 #pragma GCC diagnostic pop
 
-PYBIND11_MODULE( spscpp, m )
+PYBIND11_MODULE( sps, m )
 {
     // prevent creation of stxxl log files
     if( getenv( (char*)"STXXLLOGFILE" ) == nullptr )
@@ -158,7 +158,7 @@ PYBIND11_MODULE( spscpp, m )
     std::string sRaw = R"pbdoc(
 Documentation for the Python Module
 -----------------------------------
-.. currentmodule:: spscpp
+.. currentmodule:: sps
 .. autosummary::
     :toctree: _generate
 
