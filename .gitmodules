@@ -1,3 +1,0 @@
-[submodule "stxxl"]
-	path = contrib/stxxl
-	url = https://github.com/stxxl/stxxl.git
