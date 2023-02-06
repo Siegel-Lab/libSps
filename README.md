@@ -63,7 +63,7 @@ Note that, index.count() takes constant O(1)! time, no matter the amount of poin
 
 ## Manual
 
-The full manual can be found [here](https://github.com/MarkusRainerSchmidt/libSps/Manual.md "Full Manual").
+The full manual can be found [here](https://github.com/Siegel-Lab/libSps/Manual.md "Full Manual").
 
 ## Citing libSps
 
