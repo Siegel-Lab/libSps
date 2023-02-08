@@ -27,12 +27,14 @@ Note that these parameters can be changed using the GitHub/CMake installation me
 To compile libSps from the githug source use the following commands:
 
     # clone repository
-    git clone https://github.com/MarkusRainerSchmidt/libSps
+    git clone https://github.com/Siegel-Lab/libSps.git
     cd libSps
 
     # create and activate conda environment (alternativeley, install the packages in conda_env/libSps.yaml yourself)
-    ./conda_env/create_env.sh
+    cd conda_env
+    ./create_dev_env.sh
     conda activate libSps
+    cd ..
 
     # configure build 
     mkdir build
@@ -77,8 +79,6 @@ libSps should be imported as follows:
     from libSps import make_sps_index
 
 #### Creating indices
-
-@todo silence stxxl messages
 
 First you need to pick the correct implementation of the sparse prefix sum index for your use-case.
 For this, it is easiest to call the `make_sps_index` factory function with the appropriate parameters.

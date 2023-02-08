@@ -21,6 +21,8 @@ PLAT_TO_CMAKE = {
     "win-arm64": "ARM64",
 }
 
+# @todo this should accept environment variables to define which configuration to compile
+
 
 ### taken from: https://github.com/pybind/cmake_example/blob/master/setup.py
 # A CMakeExtension needs a sourcedir instead of a file list.
