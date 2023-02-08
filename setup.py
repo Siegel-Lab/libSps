@@ -11,8 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.command.install_headers import install_headers as install_headers_orig
 
 
-with open("VERSION", "r") as in_file:
-    VERSION = in_file.readline()
+VERSION = "0.2.0"
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
