@@ -11,6 +11,9 @@ from setuptools.command.build_ext import build_ext
 from distutils.command.install_headers import install_headers as install_headers_orig
 
 
+with open("VERSION", "r") as in_file:
+    VERSION = in_file.readline()
+
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
     "win32": "Win32",
@@ -56,6 +59,7 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
             f"-DPYTHON_LIBRARY={sysconfig.get_config_var('LIBDIR')}",
             f"-DPYTHON_INCLUDE_DIR={sysconfig.get_path('include')}",
+            f"-DLIB_SPS_VERSION={VERSION}",
         ]
         build_args = []
         # Adding CMake arguments set as environment variable
@@ -136,7 +140,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name="libsps",
-    version="0.2.0",
+    version=VERSION,
     author='Markus Schmidt',
     author_email='markus.rainer.schmidt@gmail.com',
     license='MIT',
