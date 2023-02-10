@@ -139,6 +139,11 @@ PYBIND11_MODULE( sps, m )
 
     m.attr( "VERSION" ) = SPS_VERSION;
     m.attr( "BUILD_TIME" ) = SPS_BUILD_TIME;
+#ifdef NDEBUG
+    m.attr( "DEBUG" ) = false;
+#else
+    m.attr( "DEBUG" ) = true;
+#endif
 
     exportEnum( m );
 

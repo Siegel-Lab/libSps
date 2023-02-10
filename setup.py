@@ -145,7 +145,7 @@ setup(
     author='Markus Schmidt',
     author_email='markus.rainer.schmidt@gmail.com',
     license='MIT',
-    url='https://github.com/MarkusRainerSchmidt/libSps',
+    url='https://github.com/Siegel-Lab/libSps',
     description="O(1) region count queries using sparse prefix sums",
     long_description="",
     ext_modules=[CMakeExtension("sps", "libsps")],

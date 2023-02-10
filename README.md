@@ -1,21 +1,24 @@
 # libSps - The Sparse Prefix Sums Library
 
-## Introduction
+## Overview
 
-libSps is a C++ Library that allows counting points in *n*-dimensional space in constant time [O(1)].
-It was written to analyze [Hi-C and RADICL-seq data](https://en.wikipedia.org/wiki/Chromosome_conformation_capture "Wikipedia") 
-and is based on the algorithms in Shekelyan et al. [1] as well as Schmidt et al. [2].
+libSps is a versatile C++ library designed for analyzing n-dimensional data in constant time (O(1)). 
+Specifically, it implements (hyper-)rectangle count queries.
+This library is ideal for processing [Hi-C and RADICL-seq data](https://en.wikipedia.org/wiki/Chromosome_conformation_capture "Wikipedia").
+libSps is based on algorithms developed by Shekelyan et al. [1] and Schmidt et al. [2].
 
-libSps can be used as a Python3 module or as a header only library for C++-17.
+This library offers seamless integration with Python3 and can be used as a header-only library for C++-17 projects.
 
-The basic algorithmic principle is to compute and store the prefix sums of all datapoints.
-For example: The points 1, 3, 3 & 5
+## How it Works
+
+The core of libSps is its ability to compute and store the prefix sums of all data points. 
+Consider the example of the points 1, 3, 3, and 5:
 
             X       XX      X
         |   |   |   |   |   |
         0   1   2   3   4   5
 
-would have the following prefix sums (e.g. there are 3 points before position 4): 0, 1, 1, 3, 3, 4
+The prefix sums of these points would be: 0, 1, 1, 3, 3, 4.
 
     4 -                     ----
     3 -             --------
@@ -25,33 +28,33 @@ would have the following prefix sums (e.g. there are 3 points before position 4)
         |   |   |   |   |   |
         0   1   2   3   4   5
 
-If we now want to count the number of points in any given interval (*a*, *b*], 
-we merely have to subtract the prefix sum at position *a* from the prefix sum at position *b*.
-E.g. count( (1, 4] ) = 3 - 1 = 2; i.e. the two points at postion 3 but no other point are within the interval (1, 4].
-No matter the number of points in our index nor the size of the queried interval, we need two lookups and one substraction operation to count the points.
+To count the number of points in any interval (a, b], we subtract the prefix sum at position a from the prefix sum at position b. 
+For example: count((1, 4]) = 3 - 1 = 2.
+I.e. the two points at postion 3 but no other point are within the interval (1, 4].
 
-## Getting started quickly
+The beauty of this approach is that it takes constant O(1) time, no matter the number of points in the index or the size of the queried interval.
 
-The easiest way to install libSps is Bioconda
+## Getting Started
 
-    conda -c bioconda install libSps
+The easiest way to install libSps is via pip
 
-To use libSps, we first create an index and fill it with points.
-The following is example python code:
+    pip install git++https://github.com/Siegel-Lab/libSps@stable-latest
+
+Once installed, you can create an index and add points to it:
 
     from libSps import make_sps_index
 
-    # create a 2D index
+    # Create a 2D index
     index = make_sps_index()
 
-    # add points
-    index.add_point((5, 7), "description of point1")
-    index.add_point((20, 1), "description of point2")
+    # Add points
+    index.add_point((5, 7), 1) # x: 5, y: 7, value: 1
+    index.add_point((20, 1), 1) # x: 20, y: 1, value: 1
 
-    # preprocess the index
+    # Preprocess the index
     dataset_id = index.generate()
 
-Once we have a preprocessed dataset, we can query it:
+Querying the index is just as simple:
 
     a = index.count(dataset_id, (0, 0), (0, 0))
     # a == 0
@@ -59,11 +62,11 @@ Once we have a preprocessed dataset, we can query it:
     b = index.count(dataset_id, (3, 0), (10, 10))
     # b == 1
 
-Note that, index.count() takes constant O(1)! time, no matter the amount of points in the index or size of the area that is queried. 
+The count function takes constant O(1) time, no matter the size of the queried rectangle or the number of points in the index.
 
-## Manual
+## Complete Documentation
 
-The full manual can be found [here](https://github.com/Siegel-Lab/libSps/blob/master/Manual.md "Full Manual").
+For more information and in-depth instructions, check out the [full manual](https://github.com/Siegel-Lab/libSps/blob/master/Manual.md "Full Manual").
 
 ## Citing libSps
 
@@ -75,3 +78,4 @@ For citing libSps, please use:
 [1] Shekelyan, M., Dignös, A. & Gamper, J. Sparse prefix sums: Constant-time range sum queries over sparse multidimensional data cubes. Information Systems 82, 136–147 (2019).
 
 [2] Schmidt et al. @todo
+

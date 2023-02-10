@@ -5,9 +5,11 @@
 There are two ways to install libSps: Via bioconda and via GitHub/CMake.
 The bioconda installation is easier, but restricts you to using the default compilation parameters (see below).
 
-### BioConda
+### PIP
 
-    conda -c bioconda install libSps
+The easiest way to install libSps is via pip
+
+    pip install git++https://github.com/Siegel-Lab/libSps@stable-latest
 
 ### Default Compilation Parameters
 
