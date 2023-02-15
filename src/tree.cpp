@@ -160,6 +160,8 @@ PYBIND11_MODULE( sps, m )
     sIndices += exportPrefixSumIndex<DIMENSIONS_D, ORTHOTOPE_D, STORAGE_D>(m);
     sIndices += exportPrefixSumIndex<DIMENSIONS_E, ORTHOTOPE_E, STORAGE_E>(m);
 
+    m.attr( "AVAILABLE_INDICES" ) = sIndices;
+
     std::string sRaw = R"pbdoc(
 Documentation for the Python Module
 -----------------------------------

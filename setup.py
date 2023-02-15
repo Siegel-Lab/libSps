@@ -23,7 +23,6 @@ PLAT_TO_CMAKE = {
 
 # @todo this should accept environment variables to define which configuration to compile
 
-
 ### taken from: https://github.com/pybind/cmake_example/blob/master/setup.py
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
@@ -62,6 +61,27 @@ class CMakeBuild(build_ext):
             f"-DPYTHON_INCLUDE_DIR={sysconfig.get_path('include')}",
             f"-DLIB_SPS_VERSION={VERSION}",
         ]
+
+        for arg_name in [
+            "DIMENSIONS_A",
+            "DIMENSIONS_B",
+            "DIMENSIONS_C",
+            "DIMENSIONS_D",
+            "DIMENSIONS_E",
+            "ORTHOTOPE_A",
+            "ORTHOTOPE_B",
+            "ORTHOTOPE_C",
+            "ORTHOTOPE_D",
+            "ORTHOTOPE_E",
+            "STORAGE_A",
+            "STORAGE_B",
+            "STORAGE_C",
+            "STORAGE_D",
+            "STORAGE_E",
+        ]:
+            if "SPS_" + arg_name in os.environ:
+                cmake_args.append("-D" + arg_name + "=" + os.environ["SPS_" + arg_name])
+
         build_args = []
         # Adding CMake arguments set as environment variable
         # (needed e.g. to build for ARM OSx on conda-forge)
