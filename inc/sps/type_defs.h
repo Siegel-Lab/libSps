@@ -39,11 +39,36 @@ class Verbosity
     template <typename val_type_t>                                                                                     \
     using name##_tmpl_vec_generator_t = typename type_defs::template name##_vec_generator_t<val_type_t>;
 
+
+/**
+ * @brief An Enum for Querying the index.
+ *
+ * Which orthotopes to count, depending on how they intersect the queried area.
+ * Only relevant for the Index.count() function.
+ */
+enum IntersectionType
+{
+    /// @brief count orthotopes that are fully enclosed by the queried area
+    enclosed,
+    /// @brief count orthotopes that fully enclose by the queried area
+    encloses,
+    /// @brief count orthotopes that overlap the queried area
+    overlaps,
+    /// @brief count orthotopes that have their bottom-left-front-.. corner in the queried area
+    first,
+    /// @brief count orthotopes that have their top-right-back-.. corner in the queried area
+    last,
+    /// @brief count orthotopes that are point-like and in the queried area
+    points_only,
+    /// @brief place the orthotope at a position accroding to the size in its orthotope dimensions (used for insert)
+    slice,
+};
+
 /**
  * @brief Definition of all compiletime parameters for Index.
  *
  * The Index class takes this as a template parameter.
- * 
+ *
  * @todo a lot of the template parameters are not actually variable most of the time
  *      - having them drastically increases compiletime
  *      - also the TypeDefs class is kind of a bad idea since it needs to be instanciated every time
@@ -114,6 +139,8 @@ class TypeDefs
     using sps_t = typename std::conditional<IS_ORTHOTOPE, std::op_array<val_t, 1 << ORTHOTOPE_DIMS>, val_t>::type;
 
     using progress_stream_t = _progress_stream_t;
+
+    using isect_arr_t = std::array<IntersectionType, D - ORTHOTOPE_DIMS>;
 };
 
 #define EXTRACT_TYPE_DEFS                                                                                              \
@@ -153,7 +180,9 @@ class TypeDefs
                                                                                                                        \
     using sps_t = typename type_defs::sps_t;                                                                           \
                                                                                                                        \
-    using progress_stream_t = typename type_defs::progress_stream_t;
+    using progress_stream_t = typename type_defs::progress_stream_t;                                                   \
+                                                                                                                       \
+    using isect_arr_t = typename type_defs::isect_arr_t;
 
 
 #define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
@@ -172,29 +201,5 @@ class TypeDefs
     template <typename it_t, typename cmp_t>                                                                           \
     using name##_sort_func_t = typename name##_vec_generator_t::template sorter_t<it_t, cmp_t>;
 
-
-/**
- * @brief An Enum for Querying the index.
- *
- * Which orthotopes to count, depending on how they intersect the queried area.
- * Only relevant for the Index.count() function.
- */
-enum IntersectionType
-{
-    /// @brief count orthotopes that are fully enclosed by the queried area
-    enclosed,
-    /// @brief count orthotopes that fully enclose by the queried area
-    encloses,
-    /// @brief count orthotopes that overlap the queried area
-    overlaps,
-    /// @brief count orthotopes that have their bottom-left-front-.. corner in the queried area
-    first,
-    /// @brief count orthotopes that have their top-right-back-.. corner in the queried area
-    last,
-    /// @brief count orthotopes that are point-like and in the queried area
-    points_only,
-    /// @brief place the orthotope at a position accroding to the size in its orthotope dimensions (used for insert)
-    slice,
-};
 
 } // namespace sps

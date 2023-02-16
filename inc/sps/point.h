@@ -133,9 +133,8 @@ inline void forAllCombinations(
 
 template <typename pos_t, size_t N, size_t NE, template <size_t, size_t, size_t> class fDo_t, size_t uiDistTo,
           size_t uiNum, size_t uiFirstZero, typename fCond_t, typename... extra_t>
-inline  void
-forAllCombinationsHelperTmpl( pos_t& vCurr, [[maybe_unused]] pos_t& vFrom, [[maybe_unused]] pos_t& vTo, fCond_t&& fCond,
-                              extra_t&&... rExtra )
+inline void forAllCombinationsHelperTmpl( pos_t& vCurr, [[maybe_unused]] pos_t& vFrom, [[maybe_unused]] pos_t& vTo,
+                                          fCond_t&& fCond, extra_t&&... rExtra )
 {
     if constexpr /* <- required to prevent infinite unrolling of loop in compiler */ ( N == NE )
         fDo_t<uiNum, uiDistTo, uiFirstZero>::count( vCurr, rExtra... );
@@ -160,16 +159,14 @@ forAllCombinationsHelperTmpl( pos_t& vCurr, [[maybe_unused]] pos_t& vFrom, [[may
 
 template <typename pos_t, size_t N, template <size_t, size_t, size_t> class fDo_t, typename fCond_t,
           typename... extra_t>
-inline  void forAllCombinationsNTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond,
-                                                                        extra_t&&... rExtra )
+inline void forAllCombinationsNTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond, extra_t&&... rExtra )
 {
     pos_t vCurr{ };
     forAllCombinationsHelperTmpl<pos_t, 0, N, fDo_t, 0, 0, N>( vCurr, vFrom, vTo, fCond, rExtra... );
 }
 
 template <typename pos_t, template <size_t, size_t, size_t> class fDo_t, typename fCond_t, typename... extra_t>
-inline  void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond,
-                                                                       extra_t&&... rExtra )
+inline void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond, extra_t&&... rExtra )
 {
     forAllCombinationsNTmpl<pos_t, array_size<pos_t>::size, fDo_t>( vFrom, vTo, fCond, rExtra... );
 }

@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -857,7 +857,7 @@ template <typename type_defs> class Overlay
 
     template <size_t /*uiD*/, size_t uiDistToTo, size_t uiFirstZero> struct CombinationsInvariantAll
     {
-        static inline  void
+        static inline void
         count( pos_t vPos, sps_t& uiRet, pos_t& /*vMyBottomLeft*/,
                const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
                const prefix_sum_grid_t& rPrefixSums,
@@ -925,8 +925,7 @@ template <typename type_defs> class Overlay
         }
     };
 
-    static inline  bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/,
-                                                                               bool /*bIsFrom*/ )
+    static inline bool getCombinationsCond( coordinate_t uiPos, size_t /*uiD*/, bool /*bIsFrom*/ )
     {
         return uiPos != std::numeric_limits<coordinate_t>::max( );
     }
@@ -1040,7 +1039,7 @@ template <typename type_defs> class Overlay
 
 
 #define CALL_GRID_HELPER_ADD( uiNewD, uiNewDistToTo )                                                                  \
-    gridHelperAdd<N + 1, uiNewD, uiNewDistToTo, uiDimOverlay, INTERNAL>(                                  \
+    gridHelperAdd<N + 1, uiNewD, uiNewDistToTo, uiDimOverlay, INTERNAL>(                                               \
         vGridPos, rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, uiVal, xInterType, vNum,         \
         PROG_PARAM )
 
@@ -1059,20 +1058,19 @@ template <typename type_defs> class Overlay
             - drag along an integer v that is either 1 or zero
             - drag along two arrays of 0/1 entries for each dimension
             - when going down the recursion, multiply v with the 1/0 entries to set whether this is out of bounds
-            - at the very end multiply the computed grid index by v 
+            - at the very end multiply the computed grid index by v
                 - if out of bounds the value will be written to the first, trash index
                 - else value will be written as intended
             - compute the grid index along the way
     */
     template <size_t N, size_t uiD, size_t uiDistToTo, size_t uiDimOverlay, bool INTERNAL>
-    void
-    gridHelperAdd( pos_t& vGridPos, grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
-                   const pos_t& vStartIdxThisOverlay, const pos_t& vNumInThisOverlay, const pos_t& vGridIdx,
-                   const sps_t& uiVal, const IntersectionType& xInterType, [[maybe_unused]] const pos_t& vNum,
-                   const val_t& uiFac
+    void gridHelperAdd( pos_t& vGridPos, grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
+                        const pos_t& vStartIdxThisOverlay, const pos_t& vNumInThisOverlay, const pos_t& vGridIdx,
+                        const sps_t& uiVal, const IntersectionType& xInterType, [[maybe_unused]] const pos_t& vNum,
+                        const val_t& uiFac
 #if GET_PROG_PRINTS
-                   ,
-                   progress_stream_t& xProg
+                        ,
+                        progress_stream_t& xProg
 #endif
     ) const
     {
@@ -1080,13 +1078,13 @@ template <typename type_defs> class Overlay
         {
             if constexpr( !INTERNAL && N == uiDimOverlay )
             {
-                if(vStartIdxThisOverlay[ N ] + vNumInThisOverlay[ N ] <= vNum[ N ])
+                if( vStartIdxThisOverlay[ N ] + vNumInThisOverlay[ N ] <= vNum[ N ] )
                 {
                     vGridPos[ N ] = vStartIdxThisOverlay[ N ] + vNumInThisOverlay[ N ] - 1;
                     CALL_GRID_HELPER_ADD( uiD, uiDistToTo + 1 );
                 }
 
-                if(vStartIdxThisOverlay[ N ] > 0)
+                if( vStartIdxThisOverlay[ N ] > 0 )
                 {
                     vGridPos[ N ] = vStartIdxThisOverlay[ N ];
                     CALL_GRID_HELPER_ADD( uiD + ( 1 << ( D - ( N + 1 ) ) ), uiDistToTo );
@@ -1136,21 +1134,19 @@ template <typename type_defs> class Overlay
 
 
 #define CALL_GRID_HELPER( bLargerZero, bSmallerEnd )                                                                   \
-    gridHelper<N + 1, uiDimOverlay, INTERNAL>(                                      \
-        rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, vNum, vvSparsePoss, vPos, rPrefixSums,     \
-        xInterType, PROG_PARAM )
+    gridHelper<N + 1, uiDimOverlay, INTERNAL>( rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx,     \
+                                               vNum, vvSparsePoss, vPos, rPrefixSums, xInterType, PROG_PARAM )
 
     template <size_t N, size_t uiDimOverlay, bool INTERNAL>
-    void
-    gridHelper( grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry, const pos_t& vStartIdxThisOverlay,
-                const pos_t& vNumInThisOverlay, pos_t& vGridIdx, const pos_t& vNum,
-                const typename std::conditional<INTERNAL, std::array<std::vector<coordinate_t>, D>,
-                                                std::array<std::vector<coordinate_t>, D>>::type& vvSparsePoss,
-                typename std::conditional<INTERNAL, pos_t, red_pos_t>::type& vPos, const prefix_sum_grid_t& rPrefixSums,
-                const IntersectionType& xInterType, const val_t& uiFac
+    void gridHelper( grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry, const pos_t& vStartIdxThisOverlay,
+                     const pos_t& vNumInThisOverlay, pos_t& vGridIdx, const pos_t& vNum,
+                     const typename std::conditional<INTERNAL, std::array<std::vector<coordinate_t>, D>,
+                                                     std::array<std::vector<coordinate_t>, D>>::type& vvSparsePoss,
+                     typename std::conditional<INTERNAL, pos_t, red_pos_t>::type& vPos,
+                     const prefix_sum_grid_t& rPrefixSums, const IntersectionType& xInterType, const val_t& uiFac
 #if GET_PROG_PRINTS
-                ,
-                progress_stream_t& xProg
+                     ,
+                     progress_stream_t& xProg
 #endif
     ) const
     {
@@ -1230,27 +1226,26 @@ template <typename type_defs> class Overlay
                 uiVal = rPrefixSums.template get<D - 1, false>( vPos, vOverlayEntries[ uiDimOverlay ] );
 
             pos_t vGridPos;
-            gridHelperAdd<0, 0, 0, uiDimOverlay, INTERNAL>(
-                vGridPos, rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, uiVal, xInterType, vNum,
-                uiFac
+            gridHelperAdd<0, 0, 0, uiDimOverlay, INTERNAL>( vGridPos, rRet, xRetEntry, vStartIdxThisOverlay,
+                                                            vNumInThisOverlay, vGridIdx, uiVal, xInterType, vNum, uiFac
 #if GET_PROG_PRINTS
-                ,
-                xProg
+                                                            ,
+                                                            xProg
 #endif
             );
         }
     }
 
     template <size_t uiD>
-    inline void
-    gridOverlayHelper( std::array<std::vector<coordinate_t>, D>& vvOverlaySparsePoss, const pos_t& vStartIdxThisOverlay,
-                       const pos_t& vNumInThisOverlay, grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
-                       const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
-                       const pos_t& vMyBottomLeft, const pos_t& vMyTopRight, const pos_t& vPos, const pos_t& vSize,
-                       const pos_t& vNum, const IntersectionType& xInterType, const val_t& uiFac
+    inline void gridOverlayHelper( std::array<std::vector<coordinate_t>, D>& vvOverlaySparsePoss,
+                                   const pos_t& vStartIdxThisOverlay, const pos_t& vNumInThisOverlay, grid_ret_t& rRet,
+                                   const grid_ret_entry_t& xRetEntry, const sparse_coord_t& rSparseCoords,
+                                   const prefix_sum_grid_t& rPrefixSums, const pos_t& vMyBottomLeft,
+                                   const pos_t& vMyTopRight, const pos_t& vPos, const pos_t& vSize, const pos_t& vNum,
+                                   const IntersectionType& xInterType, const val_t& uiFac
 #if GET_PROG_PRINTS
-                       ,
-                       progress_stream_t& xProg
+                                   ,
+                                   progress_stream_t& xProg
 #endif
     ) const
     {
@@ -1276,7 +1271,7 @@ template <typename type_defs> class Overlay
                         for( size_t uiL = 0; uiL < vNumInThisOverlay[ uiJ ]; uiL++ )
                             vvOverlaySparsePoss[ uiJ ].push_back( rSparseCoords.template sparse<D - 1, false>(
                                 vPos[ uiJ ] + vSize[ uiJ ] * ( uiL + vStartIdxThisOverlay[ uiJ ] ),
-                                vSparseCoordsOverlay[ uiD ], uiJ - (uiJ > uiD ? 1 : 0) ) );
+                                vSparseCoordsOverlay[ uiD ], uiJ - ( uiJ > uiD ? 1 : 0 ) ) );
                     }
                 }
 
@@ -1326,8 +1321,8 @@ template <typename type_defs> class Overlay
         {
             coordinate_t uiStartPos = vPos[ uiI ];
             // start pos is -1
-            if(uiStartPos == std::numeric_limits<coordinate_t>::max())
-                uiStartPos = vSize[uiI] - 1;
+            if( uiStartPos == std::numeric_limits<coordinate_t>::max( ) )
+                uiStartPos = vSize[ uiI ] - 1;
 
             vStartIdxThisOverlay[ uiI ] =
                 vMyBottomLeft[ uiI ] > uiStartPos ? ( vMyBottomLeft[ uiI ] - uiStartPos - 1 ) / vSize[ uiI ] + 1 : 0;
@@ -1343,17 +1338,12 @@ template <typename type_defs> class Overlay
             if( vNumInThisOverlay[ uiI ] == 0 )
             {
 #if GET_PROG_PRINTS
-            xProg << Verbosity( 4 ) << "\t\tskipping overlay due to dimension " << uiI 
-                  << "\n\t\t\tvStartIdxThisOverlay " << vStartIdxThisOverlay
-                  << "\n\t\t\tvNumInThisOverlay " << vNumInThisOverlay
-                  << "\n\t\t\tvPos " << vPos
-                  << "\n\t\t\tuiStartPos " << uiStartPos
-                  << "\n\t\t\tvMyBottomLeft " << vMyBottomLeft
-                  << "\n\t\t\tvMyTopRight " << vMyTopRight
-                  << "\n\t\t\tvSize " << vSize
-                  << "\n\t\t\tvNum " << vNum
-                  << "\n\t\t\tuiEndIndex " << uiEndIndex
-                  << ".\n";
+                xProg << Verbosity( 4 ) << "\t\tskipping overlay due to dimension " << uiI
+                      << "\n\t\t\tvStartIdxThisOverlay " << vStartIdxThisOverlay << "\n\t\t\tvNumInThisOverlay "
+                      << vNumInThisOverlay << "\n\t\t\tvPos " << vPos << "\n\t\t\tuiStartPos " << uiStartPos
+                      << "\n\t\t\tvMyBottomLeft " << vMyBottomLeft << "\n\t\t\tvMyTopRight " << vMyTopRight
+                      << "\n\t\t\tvSize " << vSize << "\n\t\t\tvNum " << vNum << "\n\t\t\tuiEndIndex " << uiEndIndex
+                      << ".\n";
 #endif
                 bAtLeastOneInOverlay = false;
             }
@@ -1481,9 +1471,7 @@ template <typename type_defs> class Overlay
     }
 
 
-    template <typename T>
-    static inline  std::array<T, D - 1> relevant( const std::array<T, D>& vAllEntries,
-                                                                                    size_t uiI )
+    template <typename T> static inline std::array<T, D - 1> relevant( const std::array<T, D>& vAllEntries, size_t uiI )
     {
         std::array<T, D - 1> vRelevantEntries;
         for( size_t uiJ = 0; uiJ < D - 1; uiJ++ )

@@ -47,14 +47,14 @@ To compile libSps from the githug source use the following commands:
     make
 
 Various parameters of libSps are set during compile time.
-We chose to use compile time parameters as the underlying memory layout is affected and as this improves runtime performance.
+We chose to use compile time parameters as the underlying memory layout is affected and knowing the layout ahead of time improves runtime performance.
 If you plan using libSps from C++ you can set all these options via template parameters (see "Creating indices" below).
 However, for python you have to define the parameters at compile time.
 With CMake, you can configure libSps in various ways:
 
 Add `-DWITH_PYTHON=ON` to create a shared object file that can be imported as a python module. If this parameter is set:
 - set `-DNUM_DIMENSIONS_A=X -DNUM_DIMENSIONS_B=Y ... -DNUM_DIMENSIONS_D=Z` to create indices with X, Y, ..., Z dimensions.
-- set `-DW_DEPENDENT_DIM=ON` to create indices where dimension 1 of the overlay grid is dependent on its dimension 0.
+- set `-DORTHOTOPE_A=X` to create indices where dimension 1 of the overlay grid is dependent on its dimension 0.
 - set `-DWO_DEPENDENT_DIM=ON` to create indices where the overlay grids' dimensions are independent of each other.
 - set `-DW_CUBES=ON` to create indices where entries are not point-like but interval-like on the first 3 dimensions. I.e. cubes placed in >=3-dimensional space.
 - set `-DW_RECTANGLES=ON` to create indices where entries are not point-like but interval-like on the first 2 dimensions. I.e. rectangles placed in >=2-dimensional space.

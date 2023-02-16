@@ -141,16 +141,15 @@ template <typename type_defs, template <typename> typename impl_t> class SparseC
     }
 
     template <size_t N, bool SANITY = true>
-    inline  coordinate_t sparse( const coordinate_t uiCord,
-                                                                   const std::array<Entry, N>& vAxes, size_t uiI ) const
+    inline coordinate_t sparse( const coordinate_t uiCord, const std::array<Entry, N>& vAxes, size_t uiI ) const
     {
-        assert(uiI < N);
+        assert( uiI < N );
         return replace<SANITY>( uiCord, vAxes[ uiI ] );
     }
 
     template <size_t N, bool SANITY = true>
-    inline  std::array<coordinate_t, N>
-    sparse( const std::array<coordinate_t, N>& vCoords, const std::array<Entry, N>& vAxes ) const
+    inline std::array<coordinate_t, N> sparse( const std::array<coordinate_t, N>& vCoords,
+                                               const std::array<Entry, N>& vAxes ) const
     {
         std::array<coordinate_t, N> vRet;
         for( size_t uiI = 0; uiI < N; uiI++ )

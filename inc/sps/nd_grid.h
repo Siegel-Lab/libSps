@@ -130,8 +130,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
     }
 
     template <size_t N, bool SANITY_UNINITIALIZED = true, bool SANITY_OUT_OF_BOUND = true>
-    inline const data_t& get( const std::array<coordinate_t, N>& vX,
-                                                                 const Entry<N>& rInfo ) const
+    inline const data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo ) const
     {
         auto uiIdx = indexOf<N, SANITY_UNINITIALIZED, SANITY_OUT_OF_BOUND>( vX, rInfo );
         if constexpr( SANITY_OUT_OF_BOUND )
@@ -143,8 +142,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
     }
 
     template <size_t N, bool SANITY_UNINITIALIZED = true, bool SANITY_OUT_OF_BOUND = true>
-    inline data_t& get( const std::array<coordinate_t, N>& vX,
-                                                           const Entry<N>& rInfo )
+    inline data_t& get( const std::array<coordinate_t, N>& vX, const Entry<N>& rInfo )
     {
         auto uiIdx = indexOf<N, SANITY_UNINITIALIZED, SANITY_OUT_OF_BOUND>( vX, rInfo );
         if constexpr( SANITY_OUT_OF_BOUND )

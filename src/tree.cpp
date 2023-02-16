@@ -6,8 +6,8 @@
 #include "sps/simple_vector.h"
 #include "sps/version.h"
 #include <fstream>
-#include <string_view>
 #include <stdlib.h>
+#include <string_view>
 #include <unistd.h>
 
 
@@ -16,7 +16,7 @@ constexpr bool bBinSearchSparse = false;
 template <size_t D, size_t O, template <size_t, size_t, bool> typename storage_t>
 std::string exportPrefixSumIndex( pybind11::module& m, std::string sPref )
 {
-    if constexpr(D != 0)
+    if constexpr( D != 0 )
     {
         std::string sDesc = "for";
         if( O == 0 )
@@ -32,20 +32,19 @@ std::string exportPrefixSumIndex( pybind11::module& m, std::string sPref )
         sDesc += " in " + std::to_string( D - O ) + "-dimensional space";
 
         return exportIndex<storage_t<D + O, O, bBinSearchSparse>>(
-            m, ( sPref + "PrefixSum_" + std::to_string(D) + "D_" + std::to_string(O) + "O" ).c_str( ), sDesc );
+            m, ( sPref + "PrefixSum_" + std::to_string( D ) + "D_" + std::to_string( O ) + "O" ).c_str( ), sDesc );
     }
     return "";
 }
 
-template <size_t D, size_t O, size_t storage_t>
-std::string exportPrefixSumIndex( pybind11::module& m )
+template <size_t D, size_t O, size_t storage_t> std::string exportPrefixSumIndex( pybind11::module& m )
 {
-    if constexpr(storage_t == 0)
-        return exportPrefixSumIndex<D, O, InMemTypeDef>(m, "Ram");
-    else if constexpr(storage_t == 1)
-        return exportPrefixSumIndex<D, O, DiskTypeDef>(m, "Disk");
+    if constexpr( storage_t == 0 )
+        return exportPrefixSumIndex<D, O, InMemTypeDef>( m, "Ram" );
+    else if constexpr( storage_t == 1 )
+        return exportPrefixSumIndex<D, O, DiskTypeDef>( m, "Disk" );
     else
-        return exportPrefixSumIndex<D, O, CachedTypeDef>(m, "Cached");
+        return exportPrefixSumIndex<D, O, CachedTypeDef>( m, "Cached" );
 }
 
 template <size_t D> std::string exportStorageSimpleVec( pybind11::module& m, std::string sSuff )
@@ -65,10 +64,10 @@ template <size_t D> std::string exportStorageSimpleVec( pybind11::module& m, std
 
 
 template <size_t D, size_t O, template <size_t, size_t, bool> typename storage_t>
-std::unique_ptr<AbstractIndex> factoryHelper( size_t uiD, size_t uiOrthtopeDims,
-                                              std::string sPrefix, bool bWrite, bool bSimpleVec )
+std::unique_ptr<AbstractIndex> factoryHelper( size_t uiD, size_t uiOrthtopeDims, std::string sPrefix, bool bWrite,
+                                              bool bSimpleVec )
 {
-    if(uiD == D && uiOrthtopeDims == O)
+    if( uiD == D && uiOrthtopeDims == O )
     {
         if( bSimpleVec )
             return std::make_unique<sps::SimpleVector<storage_t<D, D, true>>>( sPrefix, bWrite );
@@ -81,23 +80,23 @@ std::unique_ptr<AbstractIndex> factoryHelper( size_t uiD, size_t uiOrthtopeDims,
 template <size_t D, size_t O, size_t storage_t>
 std::unique_ptr<AbstractIndex> factoryHelper( [[maybe_unused]] size_t uiD, [[maybe_unused]] size_t uiOrthtopeDims,
                                               [[maybe_unused]] std::string sStorageType,
-                                              [[maybe_unused]] std::string sPrefix, [[maybe_unused]] bool bWrite, [[maybe_unused]] bool bSimpleVec )
+                                              [[maybe_unused]] std::string sPrefix, [[maybe_unused]] bool bWrite,
+                                              [[maybe_unused]] bool bSimpleVec )
 {
-    if constexpr(D != 0)
+    if constexpr( D != 0 )
     {
-        if constexpr(storage_t == 0)
-            if(sStorageType == "Ram")
-                return factoryHelper<D, O, InMemTypeDef>(uiD, uiOrthtopeDims, sPrefix, bWrite, bSimpleVec);
-        if constexpr(storage_t == 1)
-            if(sStorageType == "Disk")
-                return factoryHelper<D, O, DiskTypeDef>(uiD, uiOrthtopeDims, sPrefix, bWrite, bSimpleVec);
-        if constexpr(storage_t == 2)
-            if(sStorageType == "Cached")
-                return factoryHelper<D, O, CachedTypeDef>(uiD, uiOrthtopeDims, sPrefix, bWrite, bSimpleVec);
+        if constexpr( storage_t == 0 )
+            if( sStorageType == "Ram" )
+                return factoryHelper<D, O, InMemTypeDef>( uiD, uiOrthtopeDims, sPrefix, bWrite, bSimpleVec );
+        if constexpr( storage_t == 1 )
+            if( sStorageType == "Disk" )
+                return factoryHelper<D, O, DiskTypeDef>( uiD, uiOrthtopeDims, sPrefix, bWrite, bSimpleVec );
+        if constexpr( storage_t == 2 )
+            if( sStorageType == "Cached" )
+                return factoryHelper<D, O, CachedTypeDef>( uiD, uiOrthtopeDims, sPrefix, bWrite, bSimpleVec );
     }
     return nullptr;
 }
-
 
 
 std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t uiOrthtopeDims,
@@ -105,25 +104,25 @@ std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t 
 {
     bool bSimpleVec = false;
     std::unique_ptr<AbstractIndex> pRet = nullptr;
-    pRet = factoryHelper<DIMENSIONS_A, ORTHOTOPE_A, STORAGE_A>(uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,  
-                                                               bSimpleVec);
-    if(pRet != nullptr)
+    pRet = factoryHelper<DIMENSIONS_A, ORTHOTOPE_A, STORAGE_A>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
         return pRet;
-    pRet = factoryHelper<DIMENSIONS_B, ORTHOTOPE_B, STORAGE_B>(uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,  
-                                                               bSimpleVec);
-    if(pRet != nullptr)
+    pRet = factoryHelper<DIMENSIONS_B, ORTHOTOPE_B, STORAGE_B>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
         return pRet;
-    pRet = factoryHelper<DIMENSIONS_C, ORTHOTOPE_C, STORAGE_C>(uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,  
-                                                               bSimpleVec);
-    if(pRet != nullptr)
+    pRet = factoryHelper<DIMENSIONS_C, ORTHOTOPE_C, STORAGE_C>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
         return pRet;
-    pRet = factoryHelper<DIMENSIONS_D, ORTHOTOPE_D, STORAGE_D>(uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,  
-                                                               bSimpleVec);
-    if(pRet != nullptr)
+    pRet = factoryHelper<DIMENSIONS_D, ORTHOTOPE_D, STORAGE_D>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
         return pRet;
-    pRet = factoryHelper<DIMENSIONS_E, ORTHOTOPE_E, STORAGE_E>(uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,  
-                                                               bSimpleVec);
-    if(pRet != nullptr)
+    pRet = factoryHelper<DIMENSIONS_E, ORTHOTOPE_E, STORAGE_E>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
         return pRet;
     throw std::invalid_argument( "sps has not been compiled with the requested parameter combination." );
 }
@@ -154,11 +153,11 @@ PYBIND11_MODULE( sps, m )
 )pbdoc" );
 
     std::string sIndices;
-    sIndices += exportPrefixSumIndex<DIMENSIONS_A, ORTHOTOPE_A, STORAGE_A>(m);
-    sIndices += exportPrefixSumIndex<DIMENSIONS_B, ORTHOTOPE_B, STORAGE_B>(m);
-    sIndices += exportPrefixSumIndex<DIMENSIONS_C, ORTHOTOPE_C, STORAGE_C>(m);
-    sIndices += exportPrefixSumIndex<DIMENSIONS_D, ORTHOTOPE_D, STORAGE_D>(m);
-    sIndices += exportPrefixSumIndex<DIMENSIONS_E, ORTHOTOPE_E, STORAGE_E>(m);
+    sIndices += exportPrefixSumIndex<DIMENSIONS_A, ORTHOTOPE_A, STORAGE_A>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_B, ORTHOTOPE_B, STORAGE_B>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_C, ORTHOTOPE_C, STORAGE_C>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_D, ORTHOTOPE_D, STORAGE_D>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_E, ORTHOTOPE_E, STORAGE_E>( m );
 
     m.attr( "AVAILABLE_INDICES" ) = sIndices;
 
@@ -178,8 +177,8 @@ Documentation for the Python Module
 
     // export the factory function
     m.def( "make_sps_index", &factory, pybind11::arg( "filepath_prefix" ) = "", pybind11::arg( "num_dimensions" ) = 2,
-           pybind11::arg( "num_orthotope_dimensions" ) = 0,
-           pybind11::arg( "storage_type" ) = "Ram", pybind11::arg( "open_in_write_mode" ) = true,
+           pybind11::arg( "num_orthotope_dimensions" ) = 0, pybind11::arg( "storage_type" ) = "Ram",
+           pybind11::arg( "open_in_write_mode" ) = true,
            R"pbdoc(
     Factory for the sparse prefix sum indices.
     

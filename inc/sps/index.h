@@ -155,8 +155,7 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
   private:
-    coordinate_t addDimFrom( coordinate_t uiSize, 
-                                        IntersectionType xIntersectionType = IntersectionType::slice ) const
+    coordinate_t addDimFrom( coordinate_t uiSize, IntersectionType xIntersectionType ) const
     {
         if( xIntersectionType == IntersectionType::slice )
             return uiSize;
@@ -166,8 +165,7 @@ template <typename type_defs> class Index : public AbstractIndex
             return 0;
     }
 
-    coordinate_t addDimTo( coordinate_t uiSize, 
-                                        IntersectionType xIntersectionType = IntersectionType::slice ) const
+    coordinate_t addDimTo( coordinate_t uiSize, IntersectionType xIntersectionType ) const
     {
 
         if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
@@ -178,8 +176,7 @@ template <typename type_defs> class Index : public AbstractIndex
             return std::numeric_limits<coordinate_t>::max( );
     }
 
-    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
-                                  IntersectionType xIntersectionType = IntersectionType::slice ) const
+    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd, isect_arr_t vIntersectionTypes ) const
     {
         std::array<pos_t, 2> vRet;
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
@@ -189,19 +186,32 @@ template <typename type_defs> class Index : public AbstractIndex
         }
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] = addDimFrom(vEnd[ uiI ] - vStart[ uiI ], xIntersectionType);
-            vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = addDimTo(vEnd[ uiI ] - vStart[ uiI ], xIntersectionType);
+            vRet[ 0 ][ uiI + D - ORTHOTOPE_DIMS ] =
+                addDimFrom( vEnd[ uiI ] - vStart[ uiI ], vIntersectionTypes[ uiI ] );
+            vRet[ 1 ][ uiI + D - ORTHOTOPE_DIMS ] = addDimTo( vEnd[ uiI ] - vStart[ uiI ], vIntersectionTypes[ uiI ] );
         }
         return vRet;
     }
+
+
+    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd, 
+                                  IntersectionType xInterType = IntersectionType::slice ) const
+    {
+        isect_arr_t vInterTypes;
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            vInterTypes[ uiI ] = xInterType;
+
+        return addDims(vStart, vEnd, vInterTypes);
+    }
+
     std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2>
     addDims( ret_pos_t vSize, IntersectionType xIntersectionType = IntersectionType::slice ) const
     {
         std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2> vRet;
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            vRet[ 0 ][ uiI ] = addDimFrom(vSize[ uiI ], xIntersectionType);
-            vRet[ 1 ][ uiI ] = addDimTo(vSize[ uiI ], xIntersectionType);
+            vRet[ 0 ][ uiI ] = addDimFrom( vSize[ uiI ], xIntersectionType );
+            vRet[ 1 ][ uiI ] = addDimTo( vSize[ uiI ], xIntersectionType );
         }
         return vRet;
     }
@@ -276,27 +286,28 @@ template <typename type_defs> class Index : public AbstractIndex
   private:
     template <size_t uiD, size_t uiDistToTo, size_t> struct SizeLimitedInvariant
     {
-        static void
-        count( pos_t vPos, IntersectionType xInterType, const dataset_vec_t& vDataSets,
-               const sparse_coord_t& vSparseCoord, const prefix_sum_grid_t& vPrefixSumGrid,
-               const overlay_grid_t& vOverlayGrid, const class_key_t xDatasetId, val_t& uiRet
+        static void count( pos_t vPos, const isect_arr_t& vInterTypes, const dataset_vec_t& vDataSets,
+                           const sparse_coord_t& vSparseCoord, const prefix_sum_grid_t& vPrefixSumGrid,
+                           const overlay_grid_t& vOverlayGrid, const class_key_t xDatasetId, val_t& uiRet
 #if GET_PROG_PRINTS
-               ,
-               progress_stream_t& xProg
+                           ,
+                           progress_stream_t& xProg
 #endif
         )
         {
 #if GET_PROG_PRINTS
             xProg << "query: " << xDatasetId << " " << vPos << "\n";
 #endif
-            val_t uiCurr = vDataSets[ xDatasetId ].get(
-                vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
-                Overlay<type_defs>::template intersectionTypeToCornerIndex<uiD>( xInterType )
+            IntersectionType xType = uiD < D ? vInterTypes[ uiD ] : IntersectionType::enclosed;
+
+            val_t uiCurr =
+                vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
+                                             Overlay<type_defs>::template intersectionTypeToCornerIndex<uiD>( xType )
 #if GET_PROG_PRINTS
-                    ,
-                xProg
+                                                 ,
+                                             xProg
 #endif
-            );
+                );
 
 #ifndef NDEBUG
 #if DU_UNREALISTIC_VALUE_CHECK
@@ -307,7 +318,7 @@ template <typename type_defs> class Index : public AbstractIndex
 
             val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
             if constexpr( IS_ORTHOTOPE )
-                if( xInterType == IntersectionType::encloses )
+                if( xType == IntersectionType::encloses )
                     uiFac *= -1;
 #if GET_PROG_PRINTS
             xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
@@ -319,8 +330,7 @@ template <typename type_defs> class Index : public AbstractIndex
     };
 
 
-    static inline bool
-    countSizeLimitedInvariantCond( coordinate_t uiPos, size_t /*uiD*/, bool /*bIsFrom*/ )
+    static inline bool countSizeLimitedInvariantCond( coordinate_t uiPos, size_t /*uiD*/, bool /*bIsFrom*/ )
     {
         return uiPos != std::numeric_limits<coordinate_t>::max( );
     }
@@ -339,8 +349,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param xInterType The used intersection type, defaults to enclosed.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
-    val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo,
-                            IntersectionType xInterType = IntersectionType::enclosed,
+    val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, isect_arr_t vInterTypes,
                             size_t
 #if GET_PROG_PRINTS
                                 uiVerbosity
@@ -359,7 +368,7 @@ template <typename type_defs> class Index : public AbstractIndex
             --vFrom[ uiI ];
             --vTo[ uiI ];
         }
-        forAllCombinationsTmpl<pos_t, SizeLimitedInvariant>( vFrom, vTo, countSizeLimitedInvariantCond, xInterType,
+        forAllCombinationsTmpl<pos_t, SizeLimitedInvariant>( vFrom, vTo, countSizeLimitedInvariantCond, vInterTypes,
                                                              vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid,
                                                              xDatasetId, uiRet
 #if GET_PROG_PRINTS
@@ -391,43 +400,52 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
-    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR,
-                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
+    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, isect_arr_t vInterTypes,
+                 size_t uiVerbosity = 0 ) const
     {
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
                 throw std::invalid_argument( "end must be larger-equal than start." );
-        auto vP = addDims( vFromR, vToR, xInterType );
+        auto vP = addDims( vFromR, vToR, vInterTypes );
         pos_t vFrom = vP[ 0 ];
         pos_t vTo = vP[ 1 ];
-        return countSizeLimited( xDatasetId, vFrom, vTo, xInterType, uiVerbosity );
+        return countSizeLimited( xDatasetId, vFrom, vTo, vInterTypes, uiVerbosity );
+    }
+
+    val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR,
+                 IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
+    {
+        isect_arr_t vInterTypes;
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            vInterTypes[ uiI ] = xInterType;
+
+        return count( xDatasetId, vFromR, vToR, vInterTypes, uiVerbosity );
     }
 
     /**
      * @brief Count the number of points between from and to and in the given dataset.
      *
      * to_pos must be larger equal than from_pos in each dimension.
-     * 
+     *
      * @todo this interface needs to change:
      * instead of vPos, vSize, and vNum, there should be for each dimension a vector of the coordinates that need to be
      * queried.
      * The the resulting vector returns the values of the cells in between
      *
      * @param xDatasetId The id of the dataset to query
-     * @param vPos The bottom left position of the query region.
-     * @param vSize The size of one query region.
-     * @param vNum The amount of query regions for each dimension.
+     * @param vGrid The coordinates of the grid-lines for each dimensions.
      * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
-     * @return val_t The number of points in dataset_id between from_pos and to_pos.
+     * @return val_t the values of the grid cells.
      */
-    std::vector<val_t> gridCount( class_key_t xDatasetId, ret_pos_t vPos, ret_pos_t vSize, ret_pos_t vNum,
-                                  IntersectionType xInterType = IntersectionType::enclosed,
+    std::vector<val_t> gridCount( class_key_t xDatasetId, [[maybe_unused]] std::array<std::vector<coordinate_t>, D> vGrid,
+                                  [[maybe_unused]] IntersectionType xInterType = IntersectionType::enclosed,
                                   [[maybe_unused]] size_t uiVerbosity = 0 ) const
     {
         if( vDataSets[ xDatasetId ].getNumOverlays( ) == 0 )
             return std::vector<val_t>{ };
-
+        return std::vector<val_t>{ };
+#if 0
         auto vP = addDims( vSize, xInterType );
         std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoFrom = vP[ 0 ];
         std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoTo = vP[ 1 ];
@@ -450,6 +468,7 @@ template <typename type_defs> class Index : public AbstractIndex
                                              xProg
 #endif
         );
+#endif
     }
 
 
@@ -927,6 +946,9 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :type to_pos: list[int[)pbdoc" +
               std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
     
+    :param intersection_type: Which data elements to count (enclosed, overlapping, enclosing, etc...).
+    :type intersection_type: IntersectionType
+    
     :param verbosity: Degree of verbosity while counting, defaults to 0.
     :type verbosity: int
 
@@ -936,9 +958,47 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                 .c_str( ) )
-        .def( "grid_count", &sps::Index<type_defs>::gridCount, pybind11::arg( "dataset_id" ), pybind11::arg( "pos" ),
-              pybind11::arg( "size" ), //
-              pybind11::arg( "num" ), //
+        .def(
+            "count",
+            []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
+                typename type_defs::ret_pos_t vFromR, typename type_defs::ret_pos_t vToR,
+                typename type_defs::isect_arr_t vInterTypes,
+                size_t uiVerbosity ) { return rM.count( xDatasetId, vFromR, vToR, vInterTypes, uiVerbosity ); },
+            pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
+            pybind11::arg( "to_pos" ), //
+            pybind11::arg( "intersection_types" ), //
+            pybind11::arg( "verbosity" ) = 0,
+            ( R"pbdoc(
+    Count the number of points between from and to in the given dataset.
+    This overload allows you to specify, for each dimension, how to deal with data-hyperrectangles.
+    E.g. you can specify to count data-hyperrectangles that overlap the query-hyperrectangle in dimension 1
+    but are fully enclosed by the query-hyperrectangle in dimension 2,
+    by providing intersection_types = [overlaps, encloses].
+    
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+    
+    :param from_pos: The bottom left position of the query region.
+    :type from_pos: list[int[)pbdoc" +
+              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+    
+    :param to_pos: The top right position of the query region.
+    :type to_pos: list[int[)pbdoc" +
+              std::to_string( type_defs::D - type_defs::ORTHOTOPE_DIMS ) + R"pbdoc(]]
+    
+    :param intersection_types: Which data elements to count (enclosed, overlapping, enclosing, etc...), separated for each dimension.
+    :type intersection_types: IntersectionType
+
+    :param verbosity: Degree of verbosity while counting, defaults to 0.
+    :type verbosity: int
+
+    :return: The number of points in dataset_id between from_pos and to_pos.
+    :rtype: int
+
+    to_pos must be larger equal than from_pos in each dimension.
+)pbdoc" )
+                .c_str( ) )
+        .def( "grid_count", &sps::Index<type_defs>::gridCount, pybind11::arg( "dataset_id" ), pybind11::arg( "grid" ),
               pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
               pybind11::arg( "verbosity" ) = 0,
               ( R"pbdoc(

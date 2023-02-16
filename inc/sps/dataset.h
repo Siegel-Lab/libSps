@@ -1243,26 +1243,25 @@ template <typename type_defs> class Dataset
     }
 
     template <size_t N>
-    inline void
-    gridHelper( typename Overlay<type_defs>::grid_ret_t& xRet,
-                const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntry,
-                std::array<std::vector<coordinate_t>, D>& vvSparsePoss,
-                pos_t& vOverlayIdx,
-                pos_t& vOverlayBottomLeft,
-                pos_t& vOverlayTopRight,
-                [[maybe_unused]] const pos_t vOverlayStart,
-                [[maybe_unused]] const pos_t vOverlayEnd,
-                const overlay_grid_t& rOverlays,
-                const sparse_coord_t& rSparseCoords,
-                const prefix_sum_grid_t& rPrefixSums,
-                const pos_t& vPos,
-                const pos_t& vSize,
-                const pos_t& vNum,
-                const IntersectionType xInterType,
-                val_t uiFac
+    inline void gridHelper( typename Overlay<type_defs>::grid_ret_t& xRet,
+                            const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntry,
+                            std::array<std::vector<coordinate_t>, D>& vvSparsePoss,
+                            pos_t& vOverlayIdx,
+                            pos_t& vOverlayBottomLeft,
+                            pos_t& vOverlayTopRight,
+                            [[maybe_unused]] const pos_t vOverlayStart,
+                            [[maybe_unused]] const pos_t vOverlayEnd,
+                            const overlay_grid_t& rOverlays,
+                            const sparse_coord_t& rSparseCoords,
+                            const prefix_sum_grid_t& rPrefixSums,
+                            const pos_t& vPos,
+                            const pos_t& vSize,
+                            const pos_t& vNum,
+                            const IntersectionType xInterType,
+                            val_t uiFac
 #if GET_PROG_PRINTS
-                ,
-                progress_stream_t& xProg
+                            ,
+                            progress_stream_t& xProg
 #endif
     ) const
     {
@@ -1333,16 +1332,17 @@ template <typename type_defs> class Dataset
         }
         for( size_t uiI = D - ORTHOTOPE_DIMS; uiI < D; uiI++ )
         {
-            vEndPos[ uiI ] = vOrthoTo[ uiI - (D - ORTHOTOPE_DIMS) ];
+            vEndPos[ uiI ] = vOrthoTo[ uiI - ( D - ORTHOTOPE_DIMS ) ];
             vNumAct[ uiI ] = 1;
-            vPosAct[ uiI ] = vOrthoFrom[ uiI - (D - ORTHOTOPE_DIMS) ];
-            vSizeAct[ uiI ] = vOrthoTo[ uiI - (D - ORTHOTOPE_DIMS) ] - vPosAct[ uiI ];
+            vPosAct[ uiI ] = vOrthoFrom[ uiI - ( D - ORTHOTOPE_DIMS ) ];
+            vSizeAct[ uiI ] = vOrthoTo[ uiI - ( D - ORTHOTOPE_DIMS ) ] - vPosAct[ uiI ];
         }
 
         pos_t vPosOverlay;
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
-            vPosOverlay[uiI] = vPosAct[uiI] != std::numeric_limits<coordinate_t>::max( ) ? vPosAct[uiI] : vSizeAct[ uiI ] - 1;
+            vPosOverlay[ uiI ] =
+                vPosAct[ uiI ] != std::numeric_limits<coordinate_t>::max( ) ? vPosAct[ uiI ] : vSizeAct[ uiI ] - 1;
             if( vEndPos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
                 return std::vector<val_t>{ };
         }
@@ -1364,13 +1364,13 @@ template <typename type_defs> class Dataset
         std::array<std::vector<coordinate_t>, D> vvSparsePoss;
 
 #if GET_PROG_PRINTS
-            xProg << Verbosity( 2 ) << "\t"
-                  << " vPosAct " << vPosAct //
-                  << " vEndPos " << vEndPos //
-                  << " vOverlayStart " << vOverlayStart //
-                  << " vOverlayEnd " << vOverlayEnd //
-                  << " vNum " << vNum //
-                  << "\n";
+        xProg << Verbosity( 2 ) << "\t"
+              << " vPosAct " << vPosAct //
+              << " vEndPos " << vEndPos //
+              << " vOverlayStart " << vOverlayStart //
+              << " vOverlayEnd " << vOverlayEnd //
+              << " vNum " << vNum //
+              << "\n";
 #endif
 
         gridHelper<0>( xRet, xRetEntry, vvSparsePoss, vOverlayIdx, vOverlayBottomLeft, vOverlayTopRight, vOverlayStart,
