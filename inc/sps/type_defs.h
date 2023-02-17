@@ -140,7 +140,7 @@ class TypeDefs
 
     using progress_stream_t = _progress_stream_t;
 
-    using isect_arr_t = std::array<IntersectionType, D - ORTHOTOPE_DIMS>;
+    using isect_arr_t = std::array<IntersectionType, ORTHOTOPE_DIMS>;
 };
 
 #define EXTRACT_TYPE_DEFS                                                                                              \

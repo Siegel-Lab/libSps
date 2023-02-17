@@ -298,7 +298,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #if GET_PROG_PRINTS
             xProg << "query: " << xDatasetId << " " << vPos << "\n";
 #endif
-            IntersectionType xType = uiD < D ? vInterTypes[ uiD ] : IntersectionType::enclosed;
+            IntersectionType xType = uiD < ORTHOTOPE_DIMS ? vInterTypes[ uiD ] : IntersectionType::enclosed;
 
             val_t uiCurr =
                 vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
@@ -406,6 +406,7 @@ template <typename type_defs> class Index : public AbstractIndex
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
                 throw std::invalid_argument( "end must be larger-equal than start." );
+
         auto vP = addDims( vFromR, vToR, vInterTypes );
         pos_t vFrom = vP[ 0 ];
         pos_t vTo = vP[ 1 ];
@@ -416,7 +417,7 @@ template <typename type_defs> class Index : public AbstractIndex
                  IntersectionType xInterType = IntersectionType::enclosed, size_t uiVerbosity = 0 ) const
     {
         isect_arr_t vInterTypes;
-        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
             vInterTypes[ uiI ] = xInterType;
 
         return count( xDatasetId, vFromR, vToR, vInterTypes, uiVerbosity );
