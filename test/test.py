@@ -54,7 +54,7 @@ class Intersection:
 
     @staticmethod
     def random():
-        return random.choice([#Intersection.ENCLOSES,
+        return random.choice([Intersection.ENCLOSES,
                               Intersection.ENCLOSED,
                               Intersection.OVERLAPS,
                               Intersection.LAST, 
@@ -122,7 +122,7 @@ class Hyperrectangle:
         if intersection == Intersection.FIRST:
             return other.from_pos()[d] >= self.from_pos()[d] and other.from_pos()[d] < self.to_pos()[d]
         if intersection == Intersection.POINTS_ONLY:
-            return all(x == 0 for x in other.size()) and self.to_pos()[d] > other.from_pos()[d] and \
+            return other.size()[d] == 0 and self.to_pos()[d] > other.from_pos()[d] and \
                    self.from_pos()[d] <= other.from_pos()[d]
 
     def compare(self, other, intersections):
@@ -241,10 +241,7 @@ class Index:
                 d_pos = d.get_corner(corner)
                 if all(d < q for q, d in zip(q_pos, d_pos)):
                     print("\t", d, "\tcount:", d.value())
-                    if intersection == Intersection.ENCLOSES:
-                        cnt -= d.value()
-                    else:
-                        cnt += d.value()
+                    cnt += d.value()
                 else:
                     print("\t", d, "\tcount: -")
             if intersection in [Intersection.ENCLOSED, Intersection.ENCLOSES]:
@@ -337,10 +334,10 @@ def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3,
 
 def random_n_from_s(d, o, s):
     area = s**d
-    return [random.randrange(d, max(10, area))]# for _ in range(10)]
+    return [random.randrange(d, max(10, area))]
 
 def intersection_from_o(d, o):
-    return [[Intersection.random() for _ in range(o)] for _ in range(10)]
+    return [[Intersection.random() for _ in range(o)]]
 
 def data_sizes_exp():
     return [1,2,3,4,5,10,20,30,40,50,100,1000,10000]
@@ -350,20 +347,22 @@ def test_escalate(dos=[(2, 0)],
                   data_sizes=data_sizes_exp,
                   data_elements=random_n_from_s,
                   query_elements=lambda d,o,s,n: [1],
-                  intersections=intersection_from_o#lambda *x: [Intersection.ENCLOSED]
+                  intersections=intersection_from_o,#lambda *x: [Intersection.ENCLOSED]
+                  attempts=1
                   ):
     c = 1
     for s in data_sizes():
-        for d, o in dos:
-            for i in intersections(d, o):
-                for n in data_elements(d, o, s):
-                    for x in query_elements(d, o, s, n):
-                        test_one(d, o, s, n, x, i, c)
-                        c += 1
+        for _ in range(attempts):
+            for d, o in dos:
+                for i in intersections(d, o):
+                    for n in data_elements(d, o, s):
+                        for x in query_elements(d, o, s, n):
+                            test_one(d, o, s, n, x, i, c)
+                            c += 1
 
 
 SEED = random.randrange(sys.maxsize)
-SEED = 7723557923426601360
+SEED = 7047854526239717292 # comment out this line to start with a random seed
 random.seed(SEED)
 
-test_escalate([(2, 0), (1, 1)])
+test_escalate([(2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)

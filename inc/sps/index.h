@@ -288,7 +288,8 @@ template <typename type_defs> class Index : public AbstractIndex
     {
         static void count( pos_t vPos, const isect_arr_t& vInterTypes, const dataset_vec_t& vDataSets,
                            const sparse_coord_t& vSparseCoord, const prefix_sum_grid_t& vPrefixSumGrid,
-                           const overlay_grid_t& vOverlayGrid, const class_key_t xDatasetId, val_t& uiRet
+                           const overlay_grid_t& vOverlayGrid, const class_key_t xDatasetId, 
+                           const size_t uiIntersectTypeFac, val_t& uiRet
 #if GET_PROG_PRINTS
                            ,
                            progress_stream_t& xProg
@@ -315,8 +316,7 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
 #endif
 
-            val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 ) 
-                        * Overlay<type_defs>::template intersectionTypeToFactor<uiD>( vInterTypes );
+            val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 ) * uiIntersectTypeFac;
 #if GET_PROG_PRINTS
             xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
                   << ( 1 << ( D - ORTHOTOPE_DIMS ) ) << "]"
@@ -367,7 +367,9 @@ template <typename type_defs> class Index : public AbstractIndex
         }
         forAllCombinationsTmpl<pos_t, SizeLimitedInvariant>( vFrom, vTo, countSizeLimitedInvariantCond, vInterTypes,
                                                              vDataSets, vSparseCoord, vPrefixSumGrid, vOverlayGrid,
-                                                             xDatasetId, uiRet
+                                                             xDatasetId, 
+                                                             Overlay<type_defs>::intersectionTypeToFactor(vInterTypes), 
+                                                             uiRet
 #if GET_PROG_PRINTS
                                                              ,
                                                              xProg

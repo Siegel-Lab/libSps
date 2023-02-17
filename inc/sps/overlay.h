@@ -1039,26 +1039,14 @@ template <typename type_defs> class Overlay
             return 0;
     }
 
-    template <size_t uiD>
     static size_t intersectionTypeToFactor( [[maybe_unused]] const isect_arr_t& vInterTypes )
     {
+        size_t uiFac = 1;
         if constexpr( IS_ORTHOTOPE )
-        {
-            switch( vInterTypes[0] )
-            {
-                default:
-                case IntersectionType::points_only:
-                case IntersectionType::first:
-                case IntersectionType::last:
-                case IntersectionType::enclosed:
-                case IntersectionType::overlaps:
-                    return 1;
-                case IntersectionType::encloses:
-                    return -1;
-            }
-        }
-        else
-            return 1;
+            for(size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++)
+                if( vInterTypes[uiI] == IntersectionType::encloses )
+                    uiFac *= -1;
+        return uiFac;
     }
 
     using grid_ret_t = NDGrid<type_defs, val_t, RamVecGenerator>;
