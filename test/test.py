@@ -54,7 +54,7 @@ class Intersection:
 
     @staticmethod
     def random():
-        return random.choice([Intersection.ENCLOSES, #@todo bugged
+        return random.choice([#Intersection.ENCLOSES,
                               Intersection.ENCLOSED,
                               Intersection.OVERLAPS,
                               Intersection.LAST, 
@@ -125,10 +125,12 @@ class Hyperrectangle:
             return all(x == 0 for x in other.size()) and self.to_pos()[d] > other.from_pos()[d] and \
                    self.from_pos()[d] <= other.from_pos()[d]
 
-    def compare(self, other, intersection):
+    def compare(self, other, intersections):
         ret = True
         for dx in range(self.d()):
-            ret = ret and self.compare_dimension(other, intersection if dx < other.orto() else Intersection.ENCLOSED, dx)
+            ret = ret and self.compare_dimension(other, 
+                                                 intersections[dx] if dx < other.orto() else Intersection.ENCLOSED, 
+                                                 dx)
         return ret
 
     def __str__(self):
@@ -181,9 +183,9 @@ class SpsIndexWrapper:
             Intersection.POINTS_ONLY: sps.IntersectionType.points_only,
         }[x]
 
-    def count(self, query, intersection=Intersection.ENCLOSES, verbosity=0):
+    def count(self, query, intersections, verbosity=0):
         return self.index.count(self.idx, query.from_pos().to_list(), query.to_pos().to_list(), 
-                         self._transl_inter(intersection), verbosity=verbosity)
+                         [self._transl_inter(i) for i in intersections], verbosity=verbosity)
 
     def __str__(self):
         return str(self.index)
@@ -193,13 +195,13 @@ class Index:
     def __init__(self, data):
         self._data = data
 
-    def count(self, query, intersection=Intersection.ENCLOSES, verbosity=0):
+    def count(self, query, intersections, verbosity=0):
         cnt = 0
         if verbosity > 0:
-            print("query:", query, Intersection.to_name(intersection))
+            print("query:", query, [Intersection.to_name(i) for i in intersections])
             print("data\tcount")
         for d in self._data:
-            if query.compare(d, intersection):
+            if query.compare(d, intersections):
                 if verbosity > 0:
                     print(d, "\tcount:", d.value())
                 cnt += d.value()
@@ -219,21 +221,24 @@ class Index:
                 yield x + [True]
                 yield x + [False]
 
-    def prefix(self, query, intersection=Intersection.ENCLOSED):
+    def prefix(self, query, intersections):
         for b_o_t in Index.all_combinations(self.d()):
             cnt = 0
             q_pos = query.get_corner(b_o_t)
             for d in self._data:
-                if intersection == Intersection.ENCLOSED:
-                    d_pos = d.get_corner(b_o_t)
-                if intersection == Intersection.ENCLOSES:
-                    d_pos = d.get_corner(b_o_t)
-                if intersection == Intersection.FIRST:
-                    d_pos = d.get_corner([True]*d.d())
-                if intersection == Intersection.LAST:
-                    d_pos = d.get_corner([False]*d.d())
-                if intersection == Intersection.OVERLAPS:
-                    d_pos = d.get_corner([not x for x in b_o_t])
+                corner = []
+                for dx, intersection in enumerate(intersections):
+                    if intersection == Intersection.ENCLOSED:
+                        corner.append(b_o_t[dx])
+                    if intersection == Intersection.ENCLOSES:
+                        corner.append(b_o_t[dx])
+                    if intersection == Intersection.FIRST:
+                        corner.append(True)
+                    if intersection == Intersection.LAST:
+                        corner.append(False)
+                    if intersection == Intersection.OVERLAPS:
+                        corner.append(not b_o_t[dx])
+                d_pos = d.get_corner(corner)
                 if all(d < q for q, d in zip(q_pos, d_pos)):
                     print("\t", d, "\tcount:", d.value())
                     if intersection == Intersection.ENCLOSES:
@@ -277,19 +282,19 @@ class CountMultiple:
         self.names = names
         self.indices = indices
 
-    def count(self, query, intersection=Intersection.ENCLOSES, count=0):
-        reference_cnt = self.indices[0].count(query, intersection)
+    def count(self, query, intersections, count=0):
+        reference_cnt = self.indices[0].count(query, intersections)
         for name, index in zip(self.names[1:], self.indices[1:]):
-            cnt = index.count(query, intersection)
+            cnt = index.count(query, intersections)
 
             if cnt != reference_cnt:
                 print(name)
-                index.count(query, intersection, verbosity=100)
+                index.count(query, intersections, verbosity=100)
                 print()
                 print()
                 print(self.names[0])
-                self.indices[0].count(query, intersection, verbosity=100)
-                self.indices[0].prefix(query, intersection)
+                self.indices[0].count(query, intersections, verbosity=100)
+                self.indices[0].prefix(query, intersections)
                 print()
                 print()
                 print(name)
@@ -302,13 +307,14 @@ class CountMultiple:
                 print()
                 print(name, "got a different result than", self.names[0])
                 print("expected:", reference_cnt, "but got:", cnt)
-                print("query was", query, Intersection.to_name(intersection))
+                print("query was", query, [Intersection.to_name(i) for i in intersections])
                 print("d, o was:", self.indices[0].d(), self.indices[0].orto())
                 print("seed was:", SEED)
                 print("failure at attempt", count)
                 exit()
 
-def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, intersection=Intersection.random(), count=0):
+def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, 
+             intersection=[Intersection.random(), Intersection.random()], count=0):
     data_space = Hyperrectangle.random(Hyperrectangle.square(d, data_size))
     if min(data_space.size()) <= 1:
         data_space = Hyperrectangle.square(d, data_size)
@@ -333,8 +339,8 @@ def random_n_from_s(d, o, s):
     area = s**d
     return [random.randrange(d, max(10, area))]# for _ in range(10)]
 
-def intersection_from_o():
-    return [Intersection.random() for _ in range(10)]
+def intersection_from_o(d, o):
+    return [[Intersection.random() for _ in range(o)] for _ in range(10)]
 
 def data_sizes_exp():
     return [1,2,3,4,5,10,20,30,40,50,100,1000,10000]
@@ -348,8 +354,8 @@ def test_escalate(dos=[(2, 0)],
                   ):
     c = 1
     for s in data_sizes():
-        for i in intersections():
-            for d, o in dos:
+        for d, o in dos:
+            for i in intersections(d, o):
                 for n in data_elements(d, o, s):
                     for x in query_elements(d, o, s, n):
                         test_one(d, o, s, n, x, i, c)
