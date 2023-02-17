@@ -1,311 +1,363 @@
-import sys
-import os
-sys.path.append(os.getcwd())
-#from build_test.libSps import IntersectionType, DiskDependantDimRectanglesPrefixSum_2D, DiskDependantDimPointsPrefixSum_2D
-#from build_test.libSps import IntersectionType, DiskRectanglesLookupArrPrefixSum_2D, DiskPointsLookupArrPrefixSum_2D
-from build_test.libSps import IntersectionType, RamPointsLookupArrPrefixSum_2D, RamIntervalsLookupArrPrefixSum_2D
-#from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D, DiskUniformOverlayGridIntervalsPrefixSum_2D, CachedUniformOverlayGridPointsPrefixSum_2D
-#from build_test.libSps import IntersectionType, CachedUniformOverlayGridIntervalsPrefixSum_1D, DiskUniformOverlayGridPointsPrefixSum_1D, DiskUniformOverlayGridIntervalsPrefixSum_1D, CachedUniformOverlayGridPointsPrefixSum_1D
-#from build_rel.libSps import *
 import random
+import sps
+import sys
 
-print_all = False
+class Point:
+    def __init__(self, pos):
+        self._pos = pos
 
-if False:
-    from bokeh.plotting import figure, output_file, save
-    from bokeh.models import ColumnDataSource
-    from bokeh.models import HoverTool
+    def __getitem__(self, key):
+        return self._pos[key]
 
+    def __setitem__(self, key, val):
+        self._pos[key] = val
 
+    def __iter__(self):
+        yield from self._pos
+    
+    @staticmethod
+    def random(data_space):
+        return Point([random.randrange(f, t) for f, t in zip(data_space.from_pos(), data_space.to_pos())])
 
+    def max(self, other):
+        return Point([max(self_x, other_x) for self_x, other_x in zip(self, other)])
 
-    def render_overlays(tree, x, title):
-        do = {
-            "left": [],
-            "right": [],
-            "bottom": [],
-            "top": [],
-            "grid_pos": [],
-            "index": [],
-            "pred_indices": []
-        }
-        dp = {
-            "x": [],
-            "y": [],
-            "index": [],
-        }
-        def m(x):
-            return min(x, 100)
+    def min(self, other):
+        return Point([min(self_x, other_x) for self_x, other_x in zip(self, other)])
 
-        for overlay_info in tree.get_overlay_info(x):
-            do["left"].append(m(overlay_info.bottom_left[0]))
-            do["bottom"].append(m(overlay_info.bottom_left[1]))
-            do["right"].append(m(overlay_info.top_right[0]))
-            do["top"].append(m(overlay_info.top_right[1]))
-            do["grid_pos"].append(str(overlay_info.grid_pos))
-            do["index"].append(str(overlay_info.index))
-            do["pred_indices"].append(str(overlay_info.pred_indices))
-            for p in overlay_info.points:
-                dp["x"].append(p[0])
-                dp["y"].append(p[1])
-                dp["index"].append(str(overlay_info.index))
-        output_file(filename="overlays.html", title=title)
-        f = figure(sizing_mode="stretch_both", title=title)
-        f.quad(source=ColumnDataSource(data=do), line_color="black", fill_color="white", fill_alpha=0.5)
-        f.x(source=ColumnDataSource(data=dp), color="blue", size=10)
-        tooltips = [
-            ("index", "@index"),
-            ("grid_pos", "@grid_pos"),
-            ("pred_indices", "@pred_indices"),
-        ]
-        hover = HoverTool(tooltips=tooltips, point_policy="follow_mouse")
-        f.add_tools(hover)
-        save(f)
+    def __str__(self):
+        return str(self._pos)
 
-def combinations(a, b):
-    assert len(a) == len(b)
-    if len(a) == 0:
-        yield []
-    else:
-        for x in combinations(a[:-1], b[:-1]):
-            yield x + [a[-1]]
-            yield x + [b[-1]]
+    def __len__(self):
+        return len(self._pos)
+
+    def d(self):
+        return len(self)
+
+    def orto(self):
+        return 0
+
+    def to_list(self):
+        return self._pos
+
+    def add(self, v):
+        return Point([x + v for x in self._pos])
 
 
-def count_truth(area, interval, p1, p2, points, intersection_mode):
-    if area or interval:
-        if intersection_mode == IntersectionType.enclosed:
-            truth = sum(v if all(i >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                            for ps, pe, v in points)
-        elif intersection_mode == IntersectionType.encloses and area:
-            truth = sum(v if all(i < k and j >= l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                            for ps, pe, v in points)
-        elif intersection_mode == IntersectionType.encloses and interval:
-            truth = sum(v if all(i < k and j >= l if idx == 0 else i >= k and j < l for idx, (i, j, k, l) in \
-                            enumerate(zip(ps, pe, p1, p2))) else 0 for ps, pe, v in points)
-        elif intersection_mode == IntersectionType.overlaps:
-            truth = sum(v if all(j >= k and i < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                            for ps, pe, v in points)
-        elif intersection_mode == IntersectionType.first:
-            truth = sum(v if all(i >= k and i < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                            for ps, pe, v in points)
-        elif intersection_mode == IntersectionType.last:
-            truth = sum(v if all(j >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                            for ps, pe, v in points)
-        elif intersection_mode == IntersectionType.points_only:
-            truth = sum(v if all(i == j and j >= k and j < l for i, j, k, l in zip(ps, pe, p1, p2)) else 0 \
-                            for ps, pe, v in points)
-        else:
-            raise "no such intersection mode"
-    else:
-        truth = sum(v if all(i >= j and i < k for i, j, k in zip(p, p1, p2)) else 0 for p, v in points)
-    return truth
+class Intersection:
+    ENCLOSES = 1
+    ENCLOSED = 2
+    OVERLAPS = 3
+    LAST = 4
+    FIRST = 5
+    POINTS_ONLY = 6
 
-def fixed(tree, points, d=2, cont=0, area=False, interval=False, enforce_wide_queries=True):
-    tree.clear()
-    for idx, pos in enumerate(points[:len(points)//2 + 1]):
-        if area or interval:
-            tree.add_point(pos[0], pos[1], val=pos[2])
-        else:
-            tree.add_point(pos[0], val=pos[1])
-    x = tree.generate(verbosity=(5 if print_all else 0))
-    if print_all:
-        print("done generating")
-        print(tree)
-        print("generated")
-    if area or interval:
-        p_start = points + [(list(range(d)), [max(p[i] for _, p, _ in points)+1 for i in range(d)], 0)]
-        p_end = p_start + [(list(range(d)), [max(p[i] for _, p, _ in p_start)+1 for i in range(d)], 0)]
-        max_w = [max(p2[i] - p1[i] for p1, p2, _ in points) for i in range(d)]
-    else:
-        p_start = points + [([max(p[i] for p, _ in points)+1 for i in range(d)], 0)]
-        p_end = p_start + [([max(p[i] for p, _ in p_start)+1 for i in range(d)], 0)]
-    for intersection_mode in [IntersectionType.enclosed, 
-                              IntersectionType.encloses, 
-                              IntersectionType.overlaps,
-                              IntersectionType.first, 
-                              IntersectionType.last, 
-                              IntersectionType.points_only]:
-        for a1 in p_start:
-            for a2 in p_end:
-                if area or interval:
-                    p1s = a1[:-1]
-                    p2s = a2[:-1]
-                else:
-                    p1s = [a1[0]]
-                    p2s = [a2[0]]
-                for p1 in p1s:
-                    for p2 in p2s:
-                        if enforce_wide_queries:
-                            if not all(j-i >= w for w, i, j in zip(max_w, p1, p2)):
-                                if print_all:
-                                    print("not wide enough")
-                                continue
-                        if all(a < b for a, b in zip(p1, p2)):
-                            truth = count_truth(area, interval, p1, p2, points[:len(points)//2 + 1], intersection_mode)
-                            if print_all:
-                                print("expected total count:", truth)
-                                print("intersection_mode:", intersection_mode)
-                                for pc in combinations(p1, p2):
-                                    if area or interval:
-                                        if pc == p2:
-                                            corner_c = sum(v if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe, v in points[:len(points)//2 + 1])
-                                        else:
-                                            corner_c = sum(v if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _, v in points[:len(points)//2 + 1])
-                                    else:
-                                        corner_c = sum(v if all(i < j for i, j in zip(p, pc)) else 0 for p, v in points[:len(points)//2 + 1])
-                                print("expected corner count", corner_c, "for", pc)
-                                print("query", p1, p2)
-                                print("points", points[:len(points)//2 + 1])
-                            cnt = tree.count(x, p1, p2, intersection_mode, verbosity=5 if print_all else 0)
-                            if not cnt == truth:
-                                #render_overlays(tree, x, str(d) + "-" + str(cont))
-                                print("counts:", cnt, truth)
-                                print("intersection_mode:", intersection_mode)
-                                for pc in combinations(p1, p2):
-                                    if area or interval:
-                                        if pc == p2:
-                                            corner_c = sum(v if all(i < j for i, j in zip(pe, pc)) else 0 for _, pe, v in points[:len(points)//2 + 1])
-                                        else:
-                                            corner_c = sum(v if all(i < j for i, j in zip(ps, pc)) else 0 for ps, _, v in points[:len(points)//2 + 1])
-                                    else:
-                                        corner_c = sum(v if all(i < j for i, j in zip(p, pc)) else 0 for p, v in points[:len(points)//2 + 1])
-                                    print("expected corner count", corner_c, "for", pc)
-                                print("query", p1, p2)
-                                print("points", points[:len(points)//2 + 1])
-                                print(tree)
-                                print("failure", d, cont, intersection_mode)
-                                exit()
-                            else:
-                                if print_all:
-                                    print("OK")
-                else:
-                    if print_all:
-                        print("not valid")
-    print("success", d, cont)
-    #if d == 2 and cont == 5:
-    #    exit()
+    @staticmethod
+    def random():
+        return random.choice([Intersection.ENCLOSES, #@todo bugged
+                              Intersection.ENCLOSED,
+                              Intersection.OVERLAPS,
+                              Intersection.LAST, 
+                              Intersection.FIRST,
+                              Intersection.POINTS_ONLY
+                              ])
+
+    @staticmethod
+    def to_name(intersection):
+        return {Intersection.ENCLOSES: "ENCLOSES",
+                Intersection.ENCLOSED: "ENCLOSED",
+                Intersection.OVERLAPS: "OVERLAPS",
+                Intersection.FIRST: "FIRST",
+                Intersection.LAST: "LAST",
+                Intersection.POINTS_ONLY: "POINTS_ONLY",
+            }[intersection]
 
 
-def test(tree, d, n=30, area=False, interval=False, enforce_wide_queries=False):
-    tree.clear()
-    cont = 0
-    for x in range(1, n):
-        for _ in range(min(2*x*2, 200)):
-            #tree.clear()
-            points = []
-            for _ in range(x**5):
-                pos_s = []
-                pos_e = []
-                pos_e_i = []
-                val = random.choice(range(x))+1
-                for dx in range(d):
-                    pos_s.append(random.choice(range(x)))
-                    pos_e.append(pos_s[-1])
-                    if dx < 2:
-                        pos_e[-1] += random.choice(range(x))
-                    pos_e_i.append(pos_s[-1])
-                    if dx < 1:
-                        pos_e_i[-1] += random.choice(range(x))
-                if area:
-                    points.append((pos_s, pos_e, val))
-                elif interval:
-                    points.append((pos_s, pos_e_i, val))
-                else:
-                    points.append((pos_s, val))
-                if print_all:
-                    print("adding", points[-1])
-            fixed(tree, points, d, cont, area, interval, enforce_wide_queries)
-            cont += 1
+class Hyperrectangle:
+    def __init__(self, from_pos, to_pos, num_orto):
+        self._from_pos = from_pos
+        self._to_pos = to_pos
+        self._num_orto = num_orto
 
-def for_each_idx_in(size):
-    if len(size) == 0:
-        return []
+    def size(self):
+        return [t - f for t, f in zip(self.to_pos(), self.from_pos())]
 
-    for x in range(size[0]):
-        for idx in for_each_idx_in(size[1:]):
-            yield [x] + idx
+    def d(self):
+        return self.from_pos().d()
 
-def fixed_grid(tree, points, d, length, num_queries, cont=0, interval=False):
-    tree.clear()
-    for pos in points:
-        if interval:
-            tree.add_point(pos[0], pos[1], val=pos[2])
-        else:
-            tree.add_point(pos[0], val=pos[1])
-    x = tree.generate(verbosity=(5 if print_all else 0))
-    for _ in range(num_queries):
-        for intersection_mode in [IntersectionType.enclosed, 
-                                IntersectionType.encloses, 
-                                IntersectionType.overlaps,
-                                IntersectionType.first, 
-                                IntersectionType.last, 
-                                IntersectionType.points_only]:
-            pos = []
-            size = []
-            num = []
-            for dx in range(d):
-                pos.append(random.randrange(length * 2))
-                size.append(random.randrange(length))
-                num.append(random.randrange(10))
-            results = tree.grid_count(x, pos, size, num, intersection_mode, verbosity=5 if print_all else 0)
-            cnt = 0
-            for idx in for_each_idx_in(num):
-                curr_result = result[cnt]
-                curr_start = [p + s*i for p, s, i in zip(pos, size, idx)]
-                curr_end = [a+b for a,b in zip(curr_start, size)]
+    def from_pos(self):
+        return self._from_pos
 
-                cnt = tree.count(x, curr_start, curr_end, intersection_mode, verbosity=5 if print_all else 0)
+    def to_pos(self):
+        return self._to_pos
 
-                if cnt != curr_result:
-                    print("grid cell", idx, "has an unexpected result. expected", cnt, "but got", curr_result)
-                    print("failure", d, cont, intersection_mode)
-                    exit()
+    @staticmethod
+    def square(d, size):
+        return Hyperrectangle(Point([0]*d), Point([size]*d), d)
 
-                cnt += 1
+    @staticmethod
+    def random(data_space, num_orto=None):
+        if num_orto is None:
+            num_orto = data_space.d()
+        a = Point.random(data_space)
+        b = Point.random(data_space)
+        for idx in range(num_orto, data_space.d()):
+            b[idx] = a[idx]
+        return Hyperrectangle(a.min(b), a.max(b), num_orto)
 
+    @staticmethod
+    def point(data_space):
+        a = Point.random(data_space)
+        return Hyperrectangle(a, Point([x + 1 for x in a]), 0)
 
-    print("success", d, cont)
+    def compare_dimension(self, other, intersection, d):
+        if intersection == Intersection.ENCLOSES:
+            return self.from_pos()[d] > other.from_pos()[d] and self.to_pos()[d] <= other.to_pos()[d]
+        if intersection == Intersection.ENCLOSED:
+            return self.from_pos()[d] <= other.from_pos()[d] and self.to_pos()[d] > other.to_pos()[d]
+        if intersection == Intersection.OVERLAPS:
+            return self.to_pos()[d] > other.from_pos()[d] and self.from_pos()[d] <= other.to_pos()[d]
+        if intersection == Intersection.LAST:
+            return other.to_pos()[d] >= self.from_pos()[d] and other.to_pos()[d] < self.to_pos()[d]
+        if intersection == Intersection.FIRST:
+            return other.from_pos()[d] >= self.from_pos()[d] and other.from_pos()[d] < self.to_pos()[d]
+        if intersection == Intersection.POINTS_ONLY:
+            return all(x == 0 for x in other.size()) and self.to_pos()[d] > other.from_pos()[d] and \
+                   self.from_pos()[d] <= other.from_pos()[d]
 
-def test_grid(tree, d, n=30, interval=False):
-    tree.clear()
-    cont = 0
-    for _x in range(1, n):
-        num_points = 2**_x
-        length = 10 * _x
-        points = []
-        for _ in range(num_points):
-            pos = []
-            for dx in range(d):
-                pos.append(random.randrange(length) + length)
-            if interval:
-                pos_e = pos
-                pos_e[0] += random.randrange(1, length)
-                points.append((pos, pos_e, 1))
+    def compare(self, other, intersection):
+        ret = True
+        for dx in range(self.d()):
+            ret = ret and self.compare_dimension(other, intersection if dx < other.orto() else Intersection.ENCLOSED, dx)
+        return ret
+
+    def __str__(self):
+        return "from: " + str(self.from_pos()) + " to: " + str(self.to_pos()) + " o: " + str(self.orto())
+
+    def orto(self):
+        return self._num_orto
+
+    def get_corner(self, b_o_t):
+        return Point([b if x else t for b, t, x in zip(self.from_pos(), self.to_pos(), b_o_t)])
+
+class HyperrectangleValue(Hyperrectangle):
+    def __init__(self, from_pos, to_pos, num_orto, value):
+        super().__init__(from_pos, to_pos, num_orto)
+        self._value = value
+
+    def value(self):
+        return self._value
+
+    @staticmethod
+    def gen(rect_gen, val_gen):
+        h = rect_gen()
+        return HyperrectangleValue(h.from_pos(), h.to_pos(), h.orto(), val_gen())
+
+    def __str__(self):
+        return super().__str__() + " value: " + str(self.value())
+
+class SpsIndexWrapper:
+    def __init__(self, index, d, o):
+        try:
+            self.index = sps.make_sps_index(num_dimensions=d, num_orthotope_dimensions=o)
+        except Exception as e:
+            print("requested num dimensions:", d)
+            print("requested num orthotope dimensions:", o)
+            raise e
+        for x in index._data:
+            if o > 0:
+                self.index.add_point(x.from_pos().to_list(), x.to_pos().to_list(), x.value())
             else:
-                points.append((pos, 1))
-        fixed_grid(tree, points, d, length, num_points * 100, cont, interval)
-        cont += 1
+                self.index.add_point(x.from_pos().to_list(), x.value())
+        self.idx = self.index.generate(verbosity=0)
+
+    def _transl_inter(self, x):
+        return {
+            Intersection.ENCLOSES: sps.IntersectionType.encloses,
+            Intersection.ENCLOSED: sps.IntersectionType.enclosed,
+            Intersection.OVERLAPS: sps.IntersectionType.overlaps,
+            Intersection.FIRST: sps.IntersectionType.first,
+            Intersection.LAST: sps.IntersectionType.last,
+            Intersection.POINTS_ONLY: sps.IntersectionType.points_only,
+        }[x]
+
+    def count(self, query, intersection=Intersection.ENCLOSES, verbosity=0):
+        return self.index.count(self.idx, query.from_pos().to_list(), query.to_pos().to_list(), 
+                         self._transl_inter(intersection), verbosity=verbosity)
+
+    def __str__(self):
+        return str(self.index)
 
 
-random.seed(6846854546132)
-#random.seed(23216401436)
-#fixed(DependantDimSparsePrefixSum_2D("test/blub2"), 2, [[0,1], [1,0], [1,2], [0,3], [1,4]])
+class Index:
+    def __init__(self, data):
+        self._data = data
 
-#test(CachedDependantDimPrefixSum_2D("test/blub1", True), 2)
-#test(CachedDependantDimPrefixSum_4D("test/blub3", True), 4)
+    def count(self, query, intersection=Intersection.ENCLOSES, verbosity=0):
+        cnt = 0
+        if verbosity > 0:
+            print("query:", query, Intersection.to_name(intersection))
+            print("data\tcount")
+        for d in self._data:
+            if query.compare(d, intersection):
+                if verbosity > 0:
+                    print(d, "\tcount:", d.value())
+                cnt += d.value()
+            else:
+                if verbosity > 0:
+                    print(d, "\tcount: -")
+        if verbosity > 0:
+            print("result:", cnt)
+        return cnt
+
+    @staticmethod
+    def all_combinations(d):
+        if d == 0:
+            yield []
+        else:
+            for x in Index.all_combinations(d - 1):
+                yield x + [True]
+                yield x + [False]
+
+    def prefix(self, query, intersection=Intersection.ENCLOSED):
+        for b_o_t in Index.all_combinations(self.d()):
+            cnt = 0
+            q_pos = query.get_corner(b_o_t)
+            for d in self._data:
+                if intersection == Intersection.ENCLOSED:
+                    d_pos = d.get_corner(b_o_t)
+                if intersection == Intersection.ENCLOSES:
+                    d_pos = d.get_corner(b_o_t)
+                if intersection == Intersection.FIRST:
+                    d_pos = d.get_corner([True]*d.d())
+                if intersection == Intersection.LAST:
+                    d_pos = d.get_corner([False]*d.d())
+                if intersection == Intersection.OVERLAPS:
+                    d_pos = d.get_corner([not x for x in b_o_t])
+                if all(d < q for q, d in zip(q_pos, d_pos)):
+                    print("\t", d, "\tcount:", d.value())
+                    if intersection == Intersection.ENCLOSES:
+                        cnt -= d.value()
+                    else:
+                        cnt += d.value()
+                else:
+                    print("\t", d, "\tcount: -")
+            if intersection in [Intersection.ENCLOSED, Intersection.ENCLOSES]:
+                print("prefix count for corner", q_pos.to_list() + query.size()[:self.orto()], "should be", cnt)
+            if intersection in [Intersection.FIRST, Intersection.LAST, Intersection.OVERLAPS]:
+                print("prefix count for corner", q_pos.to_list() + ["inf"]*self.orto(), "should be", cnt)
 
 
-#test(CachedUniformOverlayGridPointsPrefixSum_2D("test/blub2", True), 2)
-#test(DiskDependantDimPointsPrefixSum_5D("test/blub4", True), 5)
+    @staticmethod
+    def random(n, data_gen):
+        data = []
+        for _ in range(n):
+            data.append(data_gen())
+        return Index(data)
 
-#test(RamPointsLookupArrPrefixSum_2D("test/blub5", True), 2)
-test_grid(RamIntervalsLookupArrPrefixSum_2D("test/blub5", True), 2, interval=True)
+    
+    def __str__(self):
+        ret = ""
+        for d in self._data:
+            ret += str(d) + "\n"
+        return ret
 
-#test(DiskUniformOverlayGridIntervalsPrefixSum_1D("test/blub6", True), 1, area=True)
-#test(CachedDependantDimRectanglesPrefixSum_3D("test/blub8", True), 3, area=True, enforce_wide_queries=False)
+    def d(self):
+        return self._data[0].d()
+    
+    def orto(self):
+        return max(x.orto() for x in self._data)
+
+    def to_sps_index(self, d, o):
+        return SpsIndexWrapper(self, d, o)
 
 
-#test(DiskDependantDimRectanglesPrefixSum_3D("test/blub7", True), 3, area=True)
+class CountMultiple:
+    def __init__(self, names, indices):
+        self.names = names
+        self.indices = indices
 
-## libSps.index("", 2, True, 0, "Disk", True)
+    def count(self, query, intersection=Intersection.ENCLOSES, count=0):
+        reference_cnt = self.indices[0].count(query, intersection)
+        for name, index in zip(self.names[1:], self.indices[1:]):
+            cnt = index.count(query, intersection)
+
+            if cnt != reference_cnt:
+                print(name)
+                index.count(query, intersection, verbosity=100)
+                print()
+                print()
+                print(self.names[0])
+                self.indices[0].count(query, intersection, verbosity=100)
+                self.indices[0].prefix(query, intersection)
+                print()
+                print()
+                print(name)
+                print(index)
+                print()
+                print()
+                print(self.names[0])
+                print(self.indices[0])
+                print()
+                print()
+                print(name, "got a different result than", self.names[0])
+                print("expected:", reference_cnt, "but got:", cnt)
+                print("query was", query, Intersection.to_name(intersection))
+                print("d, o was:", self.indices[0].d(), self.indices[0].orto())
+                print("seed was:", SEED)
+                print("failure at attempt", count)
+                exit()
+
+def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, intersection=Intersection.random(), count=0):
+    data_space = Hyperrectangle.random(Hyperrectangle.square(d, data_size))
+    if min(data_space.size()) <= 1:
+        data_space = Hyperrectangle.square(d, data_size)
+
+    index = Index.random(data_elements,
+                         lambda: HyperrectangleValue.gen(lambda: Hyperrectangle.random(data_space, num_orto=o), 
+                                                         lambda: 1)
+                            )
+    #print("index", index, sep="\n")
+    sps_index = index.to_sps_index(d, o)
+
+    counter = CountMultiple(["py", "sps"], [index, sps_index])
+
+    for _ in range(query_elements):
+        query = Hyperrectangle.random(data_space)
+        counter.count(query, intersection, count=count)
+
+    print("success at attempt", count)
+
+
+def random_n_from_s(d, o, s):
+    area = s**d
+    return [random.randrange(d, max(10, area))]# for _ in range(10)]
+
+def intersection_from_o():
+    return [Intersection.random() for _ in range(10)]
+
+def data_sizes_exp():
+    return [1,2,3,4,5,10,20,30,40,50,100,1000,10000]
+    #return [x for i in range(6) for x in range(10**i, 6*(10**i), 10**i)]
+
+def test_escalate(dos=[(2, 0)], 
+                  data_sizes=data_sizes_exp,
+                  data_elements=random_n_from_s,
+                  query_elements=lambda d,o,s,n: [1],
+                  intersections=intersection_from_o#lambda *x: [Intersection.ENCLOSED]
+                  ):
+    c = 1
+    for s in data_sizes():
+        for i in intersections():
+            for d, o in dos:
+                for n in data_elements(d, o, s):
+                    for x in query_elements(d, o, s, n):
+                        test_one(d, o, s, n, x, i, c)
+                        c += 1
+
+
+SEED = random.randrange(sys.maxsize)
+SEED = 7723557923426601360
+random.seed(SEED)
+
+test_escalate([(2, 0), (1, 1)])
