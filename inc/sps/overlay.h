@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate( const std::array<coordinate_t, N>& rEnds,
-                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate(
+        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -999,19 +999,18 @@ template <typename type_defs> class Overlay
         return uiRet;
     }
 
-    #define CHECK_BIT(var,pos) !!((var) & (1<<(pos)))
+#define CHECK_BIT( var, pos ) !!( ( var ) & ( 1 << ( pos ) ) )
 
-    template <size_t uiD>
-    static size_t intersectionTypeToCornerIndex( [[maybe_unused]] const isect_arr_t& vInterTypes )
+    template <size_t uiD> static size_t intersectionTypeToCornerIndex( [[maybe_unused]] const isect_arr_t& vInterTypes )
     {
         if constexpr( IS_ORTHOTOPE )
         {
             size_t uiRet = 0;
-            for(size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++)
+            for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
             {
                 size_t uiIsTop;
 
-                switch( vInterTypes[uiI] )
+                switch( vInterTypes[ uiI ] )
                 {
                     case IntersectionType::points_only:
                     case IntersectionType::first:
@@ -1023,10 +1022,10 @@ template <typename type_defs> class Overlay
                     default:
                     case IntersectionType::enclosed:
                     case IntersectionType::encloses:
-                        uiIsTop = CHECK_BIT(uiD, D - uiI - 1);
+                        uiIsTop = CHECK_BIT( uiD, D - uiI - 1 );
                         break;
                     case IntersectionType::overlaps:
-                        uiIsTop = !CHECK_BIT(uiD, D - uiI - 1);
+                        uiIsTop = !CHECK_BIT( uiD, D - uiI - 1 );
                         break;
                 }
 
@@ -1043,8 +1042,8 @@ template <typename type_defs> class Overlay
     {
         size_t uiFac = 1;
         if constexpr( IS_ORTHOTOPE )
-            for(size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++)
-                if( vInterTypes[uiI] == IntersectionType::encloses )
+            for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
+                if( vInterTypes[ uiI ] == IntersectionType::encloses )
                     uiFac *= -1;
         return uiFac;
     }

@@ -187,6 +187,10 @@ class SpsIndexWrapper:
         return self.index.count(self.idx, query.from_pos().to_list(), query.to_pos().to_list(), 
                          [self._transl_inter(i) for i in intersections], verbosity=verbosity)
 
+    def grid_count(self, grid_lines, intersections, verbosity=0):
+        return self.index.grid_count(self.idx, grid_lines,
+                         [self._transl_inter(i) for i in intersections], verbosity=verbosity)
+
     def __str__(self):
         return str(self.index)
 
@@ -212,6 +216,33 @@ class Index:
             print("result:", cnt)
         return cnt
 
+
+    @staticmethod
+    def all_grid_cells(grid_lines, from_pos = Point([]), to_pos = Point([])):
+        if len(grid_lines) == 0:
+            yield Hyperrectangle(from_pos, to_pos, from_pos.d())
+        else:
+            for f, t in zip(grid_lines[0][:-1], grid_lines[0][1:]):
+                yield from Index.all_grid_cells(grid_lines[1:], Point([*from_pos, f]), Point([*to_pos, t]))
+
+    @staticmethod
+    def all_grid_points(grid_lines, from_pos = Point([])):
+        if len(grid_lines) == 0:
+            yield from_pos
+        else:
+            for p in grid_lines[0]:
+                yield from Index.all_grid_points(grid_lines[1:], Point([*from_pos, p]))
+
+    def grid_count(self, grid_lines, intersections, verbosity=0):
+        ret = []
+        if verbosity > 0:
+            print("gridquery", grid_lines, [Intersection.to_name(i) for i in intersections])
+        for rect in Index.all_grid_cells(grid_lines):
+            ret.append(self.count(rect, intersections, verbosity))
+        if verbosity > 0:
+            print("result:", ret)
+        return ret
+
     @staticmethod
     def all_combinations(d):
         if d == 0:
@@ -220,6 +251,9 @@ class Index:
             for x in Index.all_combinations(d - 1):
                 yield x + [True]
                 yield x + [False]
+
+    #def prefix_grid(self, point, intersections):
+
 
     def prefix(self, query, intersections):
         for b_o_t in Index.all_combinations(self.d()):
@@ -310,7 +344,38 @@ class CountMultiple:
                 print("failure at attempt", count)
                 exit()
 
-def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, 
+    def grid_count(self, grid_lines, intersections, count=0):
+        reference_cnt = self.indices[0].grid_count(grid_lines, intersections)
+        for name, index in zip(self.names[1:], self.indices[1:]):
+            cnt = index.grid_count(grid_lines, intersections)
+
+            if cnt != reference_cnt:
+                print(name)
+                index.grid_count(grid_lines, intersections, verbosity=100)
+                print()
+                print()
+                print(self.names[0])
+                self.indices[0].grid_count(grid_lines, intersections, verbosity=100)
+                #self.indices[0].prefix_grid(grid_lines, intersections)
+                print()
+                print()
+                print(name)
+                print(index)
+                print()
+                print()
+                print(self.names[0])
+                print(self.indices[0])
+                print()
+                print()
+                print(name, "got a different result than", self.names[0])
+                print("expected:", reference_cnt, "but got:", cnt)
+                print("query was", grid_lines, [Intersection.to_name(i) for i in intersections])
+                print("d, o was:", self.indices[0].d(), self.indices[0].orto())
+                print("seed was:", SEED)
+                print("failure at attempt", count)
+                exit()
+
+def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, grid_query_elements=3, grid_query_lines=[3, 3], 
              intersection=[Intersection.random(), Intersection.random()], count=0):
     data_space = Hyperrectangle.random(Hyperrectangle.square(d, data_size))
     if min(data_space.size()) <= 1:
@@ -329,6 +394,14 @@ def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3,
         query = Hyperrectangle.random(data_space)
         counter.count(query, intersection, count=count)
 
+    for _ in range(grid_query_elements):
+        grid_lines = []
+        for dx in range(d):
+            lines = [Point.random(data_space)[dx] for _ in range(grid_query_lines[dx])]
+            lines.sort()
+            grid_lines.append(lines)
+        counter.grid_count(grid_lines, intersection, count=count)
+
     print("success at attempt", count)
 
 
@@ -346,7 +419,9 @@ def data_sizes_exp():
 def test_escalate(dos=[(2, 0)], 
                   data_sizes=data_sizes_exp,
                   data_elements=random_n_from_s,
-                  query_elements=lambda d,o,s,n: [1],
+                  query_elements=lambda *_: [1],
+                  grid_query_elements=lambda *_: [1],
+                  grid_query_lines=lambda d, *_: [[3]*d],
                   intersections=intersection_from_o,#lambda *x: [Intersection.ENCLOSED]
                   attempts=1
                   ):
@@ -357,8 +432,10 @@ def test_escalate(dos=[(2, 0)],
                 for i in intersections(d, o):
                     for n in data_elements(d, o, s):
                         for x in query_elements(d, o, s, n):
-                            test_one(d, o, s, n, x, i, c)
-                            c += 1
+                            for y in grid_query_elements(d, o, s, n, x):
+                                for l in grid_query_lines(d, o, s, n, x, y):
+                                    test_one(d, o, s, n, x, y, l, i, c)
+                                    c += 1
 
 
 SEED = random.randrange(sys.maxsize)
