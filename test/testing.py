@@ -55,10 +55,10 @@ class Intersection:
     @staticmethod
     def random():
         return random.choice([#Intersection.ENCLOSES, #@todo bugged
-                              Intersection.ENCLOSED, 
-                              #Intersection.OVERLAPS, #@todo bugged for [0] to [0] queries
-                              #Intersection.LAST, #@todo bugged
-                              Intersection.FIRST, #@todo bugged
+                              Intersection.ENCLOSED,
+                              Intersection.OVERLAPS,
+                              Intersection.LAST, 
+                              Intersection.FIRST,
                               Intersection.POINTS_ONLY
                               ])
 
@@ -116,7 +116,7 @@ class Hyperrectangle:
         if intersection == Intersection.ENCLOSED:
             return self.from_pos()[d] <= other.from_pos()[d] and self.to_pos()[d] > other.to_pos()[d]
         if intersection == Intersection.OVERLAPS:
-            return self.to_pos()[d] >= other.from_pos()[d] and self.from_pos()[d] <= other.to_pos()[d]
+            return self.to_pos()[d] > other.from_pos()[d] and self.from_pos()[d] <= other.to_pos()[d]
         if intersection == Intersection.LAST:
             return other.to_pos()[d] >= self.from_pos()[d] and other.to_pos()[d] < self.to_pos()[d]
         if intersection == Intersection.FIRST:
@@ -194,8 +194,6 @@ class Index:
         self._data = data
 
     def count(self, query, intersection=Intersection.ENCLOSES, verbosity=0):
-        #if min(query.size()) == 0:
-        #    return 0 # @todo this is definitely a BUG
         cnt = 0
         if verbosity > 0:
             print("query:", query, Intersection.to_name(intersection))
@@ -222,7 +220,7 @@ class Index:
                 yield x + [False]
 
     def prefix(self, query, intersection=Intersection.ENCLOSES):
-        if not intersection in [Intersection.ENCLOSED, Intersection.FIRST, Intersection.LAST]:
+        if not intersection in [Intersection.ENCLOSED, Intersection.FIRST, Intersection.LAST, Intersection.OVERLAPS]:
             print("WARNING: unimplemented for", Intersection.to_name(intersection))
         for b_o_t in Index.all_combinations(self.d()):
             cnt = 0
@@ -231,14 +229,19 @@ class Index:
                 if intersection == Intersection.ENCLOSED:
                     d_pos = d.get_corner(b_o_t)
                 if intersection == Intersection.FIRST:
-                    d_pos = d.get_corner([False]*d.d())
-                if intersection == Intersection.LAST:
                     d_pos = d.get_corner([True]*d.d())
+                if intersection == Intersection.LAST:
+                    d_pos = d.get_corner([False]*d.d())
+                if intersection == Intersection.OVERLAPS:
+                    d_pos = d.get_corner([not x for x in b_o_t])
                 if all(d < q for q, d in zip(q_pos, d_pos)):
-                    cnt += 1
+                    print("\t", d, "\tcount:", d.value())
+                    cnt += d.value()
+                else:
+                    print("\t", d, "\tcount: -")
             if intersection == Intersection.ENCLOSED:
                 print("prefix count for corner", q_pos.to_list() + query.size()[:self.orto()], "should be", cnt)
-            if intersection in [Intersection.FIRST, Intersection.LAST]:
+            if intersection in [Intersection.FIRST, Intersection.LAST, Intersection.OVERLAPS]:
                 print("prefix count for corner", q_pos.to_list() + ["inf"]*self.orto(), "should be", cnt)
 
 
@@ -327,8 +330,8 @@ def random_n_from_s(d, o, s):
     area = s**d
     return [random.randrange(d, max(10, area))]# for _ in range(10)]
 
-def intersection_from_o(d,o,s,n,x):
-    return [Intersection.random()]# for _ in range(10)]
+def intersection_from_o():
+    return [Intersection.random() for _ in range(10)]
 
 def data_sizes_exp():
     return [1,2,3,4,5,10,20,30,40,50,100,1000,10000]
@@ -342,10 +345,10 @@ def test_escalate(dos=[(2, 0)],
                   ):
     c = 1
     for s in data_sizes():
-        for d, o in dos:
-            for n in data_elements(d, o, s):
-                for x in query_elements(d, o, s, n):
-                    for i in intersections(d, o, s, n, x):
+        for i in intersections():
+            for d, o in dos:
+                for n in data_elements(d, o, s):
+                    for x in query_elements(d, o, s, n):
                         test_one(d, o, s, n, x, i, c)
                         c += 1
 

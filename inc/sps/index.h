@@ -296,13 +296,12 @@ template <typename type_defs> class Index : public AbstractIndex
         )
         {
 #if GET_PROG_PRINTS
-            xProg << "query: " << xDatasetId << " " << vPos << "\n";
+            xProg << "query: " << xDatasetId << " vPos: " << vPos << " uiD: " << uiD << "\n";
 #endif
-            IntersectionType xType = uiD < ORTHOTOPE_DIMS ? vInterTypes[ uiD ] : IntersectionType::enclosed;
 
             val_t uiCurr =
                 vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
-                                             Overlay<type_defs>::template intersectionTypeToCornerIndex<uiD>( xType )
+                                             Overlay<type_defs>::template intersectionTypeToCornerIndex<uiD>( vInterTypes )
 #if GET_PROG_PRINTS
                                                  ,
                                              xProg
@@ -316,10 +315,8 @@ template <typename type_defs> class Index : public AbstractIndex
 #endif
 #endif
 
-            val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 );
-            if constexpr( IS_ORTHOTOPE )
-                if( xType == IntersectionType::encloses )
-                    uiFac *= -1;
+            val_t uiFac = ( uiDistToTo % 2 == 0 ? 1 : -1 ) 
+                        * Overlay<type_defs>::template intersectionTypeToFactor<uiD>( vInterTypes );
 #if GET_PROG_PRINTS
             xProg << "is " << ( uiFac == 1 ? "+" : "-" ) << uiCurr << " [" << uiD << "/"
                   << ( 1 << ( D - ORTHOTOPE_DIMS ) ) << "]"

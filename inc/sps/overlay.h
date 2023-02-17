@@ -999,32 +999,66 @@ template <typename type_defs> class Overlay
         return uiRet;
     }
 
+    #define CHECK_BIT(var,pos) !!((var) & (1<<(pos)))
+
     template <size_t uiD>
-    static size_t intersectionTypeToCornerIndex( [[maybe_unused]] const IntersectionType xInterType )
+    static size_t intersectionTypeToCornerIndex( [[maybe_unused]] const isect_arr_t& vInterTypes )
     {
         if constexpr( IS_ORTHOTOPE )
         {
-            constexpr size_t uiDiv = 1 << ( D - ORTHOTOPE_DIMS );
-            constexpr size_t uiFac = ( 1 << D ) - 1;
-            switch( xInterType )
+            size_t uiRet = 0;
+            for(size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++)
+            {
+                size_t uiIsTop;
+
+                switch( vInterTypes[uiI] )
+                {
+                    case IntersectionType::points_only:
+                    case IntersectionType::first:
+                        uiIsTop = 0;
+                        break;
+                    case IntersectionType::last:
+                        uiIsTop = 1;
+                        break;
+                    default:
+                    case IntersectionType::enclosed:
+                    case IntersectionType::encloses:
+                        uiIsTop = CHECK_BIT(uiD, D - uiI - 1);
+                        break;
+                    case IntersectionType::overlaps:
+                        uiIsTop = !CHECK_BIT(uiD, D - uiI - 1);
+                        break;
+                }
+
+                uiRet <<= 1;
+                uiRet += uiIsTop;
+            }
+            return uiRet;
+        }
+        else
+            return 0;
+    }
+
+    template <size_t uiD>
+    static size_t intersectionTypeToFactor( [[maybe_unused]] const isect_arr_t& vInterTypes )
+    {
+        if constexpr( IS_ORTHOTOPE )
+        {
+            switch( vInterTypes[0] )
             {
                 default:
                 case IntersectionType::points_only:
                 case IntersectionType::first:
-                    return 0;
                 case IntersectionType::last:
-                    return uiFac / uiDiv;
                 case IntersectionType::enclosed:
-                case IntersectionType::encloses:
-                    return uiD / uiDiv;
                 case IntersectionType::overlaps:
-                    // invert the last D bits of uiD
-                    // set all other bits to 0
-                    return ( ~uiD ) & uiFac / uiDiv;
+                    return 1;
+                case IntersectionType::encloses:
+                    return -1;
             }
         }
         else
-            return 0;
+            return 1;
     }
 
     using grid_ret_t = NDGrid<type_defs, val_t, RamVecGenerator>;
