@@ -193,7 +193,6 @@ template <typename type_defs> class Index : public AbstractIndex
         return vRet;
     }
 
-
     std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
                                   IntersectionType xInterType = IntersectionType::slice ) const
     {
@@ -204,17 +203,26 @@ template <typename type_defs> class Index : public AbstractIndex
         return addDims( vStart, vEnd, vInterTypes );
     }
 
-    std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2>
-    addDims( ret_pos_t vSize, IntersectionType xIntersectionType = IntersectionType::slice ) const
+#if 0
+    std::array<std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>, 2>
+    addDims( std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS> vGrid, isect_arr_t vIntersectionTypes ) const
     {
-        std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2> vRet;
+        std::array<std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>, 2> vRet;
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            vRet[ 0 ][ uiI ] = addDimFrom( vSize[ uiI ], xIntersectionType );
-            vRet[ 1 ][ uiI ] = addDimTo( vSize[ uiI ], xIntersectionType );
+            vRet[ 0 ][ uiI ].reserve( vGrid[ uiI ].size( ) - 1 );
+            vRet[ 1 ][ uiI ].reserve( vGrid[ uiI ].size( ) - 1 );
+
+            for( size_t uiJ = 1; uiJ < vGrid[ uiI ].size( ); uiJ++ )
+            {
+                coordinate_t uiSize = vGrid[ uiI ][ uiJ ] - vGrid[ uiI ][ uiJ - 1 ];
+                vRet[ 0 ][ uiI ].push_back( addDimFrom( uiSize, vIntersectionTypes[ uiI ] ) );
+                vRet[ 1 ][ uiI ].push_back( addDimTo( uiSize, vIntersectionTypes[ uiI ] ) );
+            }
         }
         return vRet;
     }
+#endif
 
     typename corners_t::Entry makeEntry( )
     {
@@ -420,6 +428,7 @@ template <typename type_defs> class Index : public AbstractIndex
         return count( xDatasetId, vFromR, vToR, vInterTypes, uiVerbosity );
     }
 
+#if 0
     /**
      * @brief Count the number of points between from and to and in the given dataset.
      *
@@ -437,42 +446,43 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return val_t the values of the grid cells.
      */
     std::vector<val_t> gridCount( class_key_t xDatasetId,
-                                  std::array<std::vector<coordinate_t>, D>
+                                  std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>
                                       vGrid,
-                                  [[maybe_unused]] const isect_arr_t& vInterTypes,
+                                  const isect_arr_t& vInterTypes,
                                   [[maybe_unused]] size_t uiVerbosity = 0 ) const
     {
         if( vDataSets[ xDatasetId ].getNumOverlays( ) == 0 )
             return std::vector<val_t>{ };
-        return std::vector<val_t>{ };
-#if 0
-        auto vP = addDims( vSize, xInterType );
-        std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoFrom = vP[ 0 ];
-        std::array<coordinate_t, ORTHOTOPE_DIMS> vOrthoTo = vP[ 1 ];
+
+        auto vP = addDims( vGrid, vInterTypes );
+        std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS> vOrthoFrom = vP[ 0 ];
+        std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS> vOrthoTo = vP[ 1 ];
 #if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
-        xProg << "gridCount pos " << vPos << " size " << vSize << " amount " << vNum << " vOrthoFrom " << vOrthoFrom << " vOrthoTo " << vOrthoTo << "\n";
+        xProg << "gridCount grid " << vGrid << " vOrthoFrom " << vOrthoFrom << " vOrthoTo " << vOrthoTo << "\n";
 #endif
-        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
-        {
-            --vOrthoFrom[ uiI ];
-            --vOrthoTo[ uiI ];
-        }
-        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
-            --vPos[ uiI ];
+        for(auto& rA : vOrthoFrom)
+            for(auto& rC : rA)
+                --rC;
+        for(auto& rA : vOrthoTo)
+            for(auto& rC : rA)
+                --rC;
+        for(auto& rA : vGrid)
+            for(auto& rC : rA)
+                --rC;
 
-        return vDataSets[ xDatasetId ].grid( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos, vSize, vNum, vOrthoFrom,
-                                             vOrthoTo, xInterType
+        return vDataSets[ xDatasetId ].grid( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vGrid, vOrthoFrom,
+                                             vOrthoTo, vInterTypes
 #if GET_PROG_PRINTS
                                              ,
                                              xProg
 #endif
         );
-#endif
+        return std::vector<val_t>{ };
     }
 
     std::vector<val_t> gridCount( class_key_t xDatasetId,
-                                  std::array<std::vector<coordinate_t>, D>
+                                  std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>
                                       vGrid,
                                   IntersectionType xInterType = IntersectionType::enclosed,
                                   size_t uiVerbosity = 0 ) const
@@ -483,7 +493,7 @@ template <typename type_defs> class Index : public AbstractIndex
 
         return gridCount( xDatasetId, vGrid, vInterTypes, uiVerbosity );
     }
-
+#endif
 
   private:
 #define COUNT_MULTIPLE( args... )                                                                                      \
@@ -1011,6 +1021,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                 .c_str( ) )
+#if 0
         .def(
             "grid_count",
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
@@ -1050,7 +1061,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def(
             "grid_count",
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
-                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D> vGrid, sps::IntersectionType xInterType,
+                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D> vGrid,
+                sps::IntersectionType xInterType,
                 size_t uiVerbosity ) { return rM.gridCount( xDatasetId, vGrid, xInterType, uiVerbosity ); },
             pybind11::arg( "dataset_id" ), pybind11::arg( "grid" ),
             pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
@@ -1082,6 +1094,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                 .c_str( ) )
+#endif
         .def(
             "count_multiple",
             []( const sps::Index<type_defs>& rM,

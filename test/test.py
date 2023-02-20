@@ -383,7 +383,7 @@ def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, grid_que
 
     index = Index.random(data_elements,
                          lambda: HyperrectangleValue.gen(lambda: Hyperrectangle.random(data_space, num_orto=o), 
-                                                         lambda: 1)
+                                                         lambda: random.randrange(5))
                             )
     #print("index", index, sep="\n")
     sps_index = index.to_sps_index(d, o)
@@ -443,3 +443,13 @@ SEED = 7047854526239717292 # comment out this line to start with a random seed
 random.seed(SEED)
 
 test_escalate([(2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)
+
+# Environment vars
+# export SPS_DIMENSIONS_A=2
+# export SPS_ORTHOTOPE_A=0 
+# export SPS_DIMENSIONS_B=1
+# export SPS_ORTHOTOPE_B=1
+# export SPS_DIMENSIONS_C=2
+# export SPS_ORTHOTOPE_C=2
+# export SPS_DIMENSIONS_D=3
+# export SPS_ORTHOTOPE_D=3

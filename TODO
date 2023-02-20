@@ -12,6 +12,8 @@ Features (ranked)
   - can also be use during construction
   - started with wrong interface: vPos, vSize, and vNum
   - change to: for each dimension a list of the coordinates that shall be queried
+  - gets super complicated, since orthotope dimensions do not follow grid
+  -> for now: forget about this...
 
 - new prefix sum computation (diagonals) debugging
 

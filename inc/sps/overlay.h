@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -1058,7 +1058,7 @@ template <typename type_defs> class Overlay
 #define PROG_PARAM uiFac
 #endif
 
-
+#if 0
 #define CALL_GRID_HELPER_ADD( uiNewD, uiNewDistToTo )                                                                  \
     gridHelperAdd<N + 1, uiNewD, uiNewDistToTo, uiDimOverlay, INTERNAL>(                                               \
         vGridPos, rRet, xRetEntry, vStartIdxThisOverlay, vNumInThisOverlay, vGridIdx, uiVal, xInterType, vNum,         \
@@ -1325,15 +1325,17 @@ template <typename type_defs> class Overlay
 
     void grid( grid_ret_t& rRet, const grid_ret_entry_t& xRetEntry,
                std::array<std::vector<coordinate_t>, D>& vvSparsePoss, const sparse_coord_t& rSparseCoords,
-               const prefix_sum_grid_t& rPrefixSums, const pos_t vMyBottomLeft, const pos_t vMyTopRight,
-               const pos_t vPos, const pos_t vSize, const pos_t vNum, const IntersectionType xInterType,
-               const val_t& uiFac
+               const prefix_sum_grid_t& rPrefixSums, std::array<std::vector<coordinate_t>, D> vGrid,
+               const isect_arr_t& vInterTypes, std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS> vOrthoFrom,
+                std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS> vOrthoTo
 #if GET_PROG_PRINTS
                ,
                progress_stream_t& xProg
 #endif
     ) const
     {
+        // @todo first iterate over all overlays within the grid...
+        // - template recursive function with loops
         // COMPUTE NUMBER OF LOOKUPS AND THEIR INDICES IN THIS OVERLAY
         pos_t vStartIdxThisOverlay;
         pos_t vNumInThisOverlay;
@@ -1417,6 +1419,7 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 3 ) << "\t\tNo grid corner in this overlay.\n";
 #endif
     }
+#endif
 
     sps_t getAll( const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums, pos_t vCoords,
                   pos_t vMyBottomLeft, progress_stream_t& xProg ) const

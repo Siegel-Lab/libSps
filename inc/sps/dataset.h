@@ -1139,18 +1139,21 @@ template <typename type_defs> class Dataset
         return vRet;
     }
 
+    coordinate_t overlayCoord( const coordinate_t uiDataCoord, size_t uiD ) const
+    {
+        assert( uiSizeOverlays[ uiD ] != 0 );
+        if( uiDataCoord < uiMinCoords[ uiD ] )
+            return std::numeric_limits<coordinate_t>::max( );
+        else
+            return std::min( xOverlays.vAxisSizes[ uiD ] - 1,
+                                    ( uiDataCoord - uiMinCoords[ uiD ] ) / uiSizeOverlays[ uiD ] );
+    }
+
     pos_t overlayCoord( const pos_t& vPos ) const
     {
         pos_t vRet;
         for( size_t uiI = 0; uiI < D; uiI++ )
-        {
-            assert( uiSizeOverlays[ uiI ] != 0 );
-            if( vPos[ uiI ] < uiMinCoords[ uiI ] )
-                vRet[ uiI ] = std::numeric_limits<coordinate_t>::max( );
-            else
-                vRet[ uiI ] = std::min( xOverlays.vAxisSizes[ uiI ] - 1,
-                                        ( vPos[ uiI ] - uiMinCoords[ uiI ] ) / uiSizeOverlays[ uiI ] );
-        }
+            vRet[ uiI ] = overlayCoord(vPos[uiI], uiI);
         return vRet;
     }
 
@@ -1242,10 +1245,13 @@ template <typename type_defs> class Dataset
             );
     }
 
+#if 0
     template <size_t N>
     inline void gridHelper( typename Overlay<type_defs>::grid_ret_t& xRet,
                             const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntry,
                             std::array<std::vector<coordinate_t>, D>& vvSparsePoss,
+                            red_pos_t& vGridFrom,
+                            red_pos_t& vGridTo,
                             pos_t& vOverlayIdx,
                             pos_t& vOverlayBottomLeft,
                             pos_t& vOverlayTopRight,
@@ -1254,10 +1260,10 @@ template <typename type_defs> class Dataset
                             const overlay_grid_t& rOverlays,
                             const sparse_coord_t& rSparseCoords,
                             const prefix_sum_grid_t& rPrefixSums,
-                            const pos_t& vPos,
-                            const pos_t& vSize,
-                            const pos_t& vNum,
-                            const IntersectionType xInterType,
+                            const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid,
+                            const isect_arr_t& vInterTypes, 
+                            const std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>& vOrthoFrom,
+                            const std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>& vOrthoTo,
                             val_t uiFac
 #if GET_PROG_PRINTS
                             ,
@@ -1265,21 +1271,31 @@ template <typename type_defs> class Dataset
 #endif
     ) const
     {
-        if constexpr( N < D )
-            for( size_t uiI = vOverlayStart[ N ]; uiI <= vOverlayEnd[ N ]; uiI++ )
+        if constexpr( N < D - ORTHOTOPE_DIMS )
+            // collect all grid entries in dimension N, that share the same overlay index using a drag pointer
+            while(vGridFrom[N] < vGrid[N].size())
             {
-                vOverlayIdx[ N ] = uiI;
-                vOverlayBottomLeft[ N ] = actualFromGridPos( uiI, N );
-                vOverlayTopRight[ N ] = actualFromGridPos( uiI + 1, N );
-                gridHelper<N + 1>( xRet, xRetEntry, vvSparsePoss, vOverlayIdx, vOverlayBottomLeft, vOverlayTopRight,
-                                   vOverlayStart, vOverlayEnd, rOverlays, rSparseCoords, rPrefixSums, vPos, vSize, vNum,
-                                   xInterType, uiFac
+                vOverlayIdx[ N ] = overlayCoord(vGrid[N][vGridFrom[N]], N);
+                vOverlayBottomLeft[ N ] = actualFromGridPos( vOverlayIdx[ N ], N );
+                vOverlayTopRight[ N ] = actualFromGridPos( vOverlayIdx[ N ] + 1, N );
+                size_t vGridTo[N] = vGridFrom[N] + 1;
+                // set uiCurr to the first grid line that is outside the current overlay
+                while(vGridTo[N] < vGrid[N].size() && vOverlayIdx[ N ] == overlayCoord(vGrid[N][vGridFrom[N]], N))
+                    ++vGridTo[N];
+                gridHelper<N + 1>( xRet, xRetEntry, vvSparsePoss, vGridFrom, vGridTo, vOverlayIdx, 
+                                   vOverlayBottomLeft, vOverlayTopRight,
+                                   vOverlayStart, vOverlayEnd, rOverlays, rSparseCoords, rPrefixSums, vGrid, 
+                                   vInterTypes, vOrthoFrom, vOrthoTo, uiFac
 #if GET_PROG_PRINTS
                                    ,
                                    xProg
 #endif
                 );
+                vGridFrom[N] = vGridTo[N];
             }
+        else if constexpr(N < D)
+        {
+        }
         else
         {
 #if GET_PROG_PRINTS
@@ -1287,7 +1303,6 @@ template <typename type_defs> class Dataset
                   << "overlay " << vOverlayIdx //
                   << "\n\t\tvOverlayStart " << vOverlayStart //
                   << "\n\t\tvOverlayEnd " << vOverlayEnd //
-                  << "\n\t\tvNum " << vNum //
                   << "\n\t\tvOverlayBottomLeft " << vOverlayBottomLeft //
                   << "\n\t\tvOverlayTopRight " << vOverlayTopRight //
                   << "\n";
@@ -1295,7 +1310,7 @@ template <typename type_defs> class Dataset
 
             rOverlays.template get<D, false, false>( vOverlayIdx, xOverlays )
                 .grid( xRet, xRetEntry, vvSparsePoss, rSparseCoords, rPrefixSums, vOverlayBottomLeft, vOverlayTopRight,
-                       vPos, vSize, vNum, xInterType, uiFac
+                       vGridFrom, vGridTo, vGrid, vInterTypes, vOrthoFrom, vOrthoTo, uiFac
 #if GET_PROG_PRINTS
                        ,
                        xProg
@@ -1307,59 +1322,32 @@ template <typename type_defs> class Dataset
     std::vector<val_t> grid( const overlay_grid_t& rOverlays,
                              const sparse_coord_t& rSparseCoords,
                              const prefix_sum_grid_t& rPrefixSums,
-                             const ret_pos_t& vPos,
-                             const ret_pos_t& vSize,
-                             const ret_pos_t& vNum,
-                             const std::array<coordinate_t, ORTHOTOPE_DIMS>& vOrthoFrom,
-                             const std::array<coordinate_t, ORTHOTOPE_DIMS>& vOrthoTo,
-                             const IntersectionType xInterType
+                             const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid,
+                             const isect_arr_t& vInterTypes, 
+                             const std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>& vOrthoFrom,
+                             const std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>& vOrthoTo
 #if GET_PROG_PRINTS
                              ,
                              progress_stream_t& xProg
 #endif
     ) const
     {
-        pos_t vEndPos;
-        pos_t vPosAct;
-        pos_t vSizeAct;
-        pos_t vNumAct;
+        pos_t vNum;
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
-        {
-            vEndPos[ uiI ] = vPos[ uiI ] + vSize[ uiI ] * vNum[ uiI ];
-            vNumAct[ uiI ] = vNum[ uiI ];
-            vPosAct[ uiI ] = vPos[ uiI ];
-            vSizeAct[ uiI ] = vSize[ uiI ];
-        }
+            vNum[ uiI ] = vGrid[ uiI ].size() - 1;
         for( size_t uiI = D - ORTHOTOPE_DIMS; uiI < D; uiI++ )
-        {
-            vEndPos[ uiI ] = vOrthoTo[ uiI - ( D - ORTHOTOPE_DIMS ) ];
-            vNumAct[ uiI ] = 1;
-            vPosAct[ uiI ] = vOrthoFrom[ uiI - ( D - ORTHOTOPE_DIMS ) ];
-            vSizeAct[ uiI ] = vOrthoTo[ uiI - ( D - ORTHOTOPE_DIMS ) ] - vPosAct[ uiI ];
-        }
+            vNum[ uiI ] = 1;
 
-        pos_t vPosOverlay;
-        for( size_t uiI = 0; uiI < D; uiI++ )
-        {
-            vPosOverlay[ uiI ] =
-                vPosAct[ uiI ] != std::numeric_limits<coordinate_t>::max( ) ? vPosAct[ uiI ] : vSizeAct[ uiI ] - 1;
-            if( vEndPos[ uiI ] == std::numeric_limits<coordinate_t>::max( ) )
-                return std::vector<val_t>{ };
-        }
-        auto vOverlayStart = overlayCoord( vPosOverlay );
-        auto vOverlayEnd = overlayCoord( vEndPos );
-
+        red_pos_t vGridFrom {};
+        red_pos_t vGridTo {};
         pos_t vOverlayIdx;
         pos_t vOverlayBottomLeft;
         pos_t vOverlayTopRight;
         typename Overlay<type_defs>::grid_ret_t xRet( ".tmp", true );
-        typename Overlay<type_defs>::grid_ret_entry_t xRetEntry = xRet.template add<D, false, true>( vNumAct );
+        typename Overlay<type_defs>::grid_ret_entry_t xRetEntry = xRet.template add<D, false, true>( vNum );
 
 
-        val_t uiFac = 1;
-        if constexpr( IS_ORTHOTOPE )
-            if( xInterType == IntersectionType::encloses )
-                uiFac = -1;
+        val_t uiFac = Overlay<type_defs>::intersectionTypeToFactor( vInterTypes );
 
         std::array<std::vector<coordinate_t>, D> vvSparsePoss;
 
@@ -1373,8 +1361,9 @@ template <typename type_defs> class Dataset
               << "\n";
 #endif
 
-        gridHelper<0>( xRet, xRetEntry, vvSparsePoss, vOverlayIdx, vOverlayBottomLeft, vOverlayTopRight, vOverlayStart,
-                       vOverlayEnd, rOverlays, rSparseCoords, rPrefixSums, vPosAct, vSizeAct, vNumAct, xInterType, uiFac
+        gridHelper<0>( xRet, xRetEntry, vvSparsePoss, vGridFrom, vGridTo, vOverlayIdx, vOverlayBottomLeft,
+                       vOverlayTopRight, rOverlays, rSparseCoords, rPrefixSums, vGrid, vInterTypes, uiFac,
+                       vOrthoFrom, vOrthoTo
 #if GET_PROG_PRINTS
                        ,
                        xProg
@@ -1383,6 +1372,7 @@ template <typename type_defs> class Dataset
 
         return xRet.vData;
     }
+#endif
 
     sps_t getAll( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
                   const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg ) const
