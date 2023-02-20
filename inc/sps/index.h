@@ -73,7 +73,7 @@ template <typename type_defs> class Index : public AbstractIndex
         : vSparseCoord( sPrefix, bWrite ),
           vPrefixSumGrid( sPrefix + ".prefix_sums", bWrite ),
           vOverlayGrid( sPrefix + ".overlays", bWrite ),
-          xFile( dataset_vec_generator.file( sPrefix + ".datsets", bWrite ) ),
+          xFile( dataset_vec_generator.file( sPrefix + ".datasets", bWrite ) ),
           vDataSets( dataset_vec_generator.vec( xFile ) )
     {
         // corners should never be persistent...
