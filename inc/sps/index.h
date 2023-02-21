@@ -17,6 +17,7 @@
 #include "sps/util.h"
 #include <cassert>
 #include <functional>
+#include <optional>
 #include <string>
 #include <stxxl/vector>
 
@@ -203,26 +204,23 @@ template <typename type_defs> class Index : public AbstractIndex
         return addDims( vStart, vEnd, vInterTypes );
     }
 
-#if 0
-    std::array<std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>, 2>
+    std::optional<std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2>>
     addDims( std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS> vGrid, isect_arr_t vIntersectionTypes ) const
     {
-        std::array<std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>, 2> vRet;
+        std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2> vRet;
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            vRet[ 0 ][ uiI ].reserve( vGrid[ uiI ].size( ) - 1 );
-            vRet[ 1 ][ uiI ].reserve( vGrid[ uiI ].size( ) - 1 );
-
-            for( size_t uiJ = 1; uiJ < vGrid[ uiI ].size( ); uiJ++ )
-            {
-                coordinate_t uiSize = vGrid[ uiI ][ uiJ ] - vGrid[ uiI ][ uiJ - 1 ];
-                vRet[ 0 ][ uiI ].push_back( addDimFrom( uiSize, vIntersectionTypes[ uiI ] ) );
-                vRet[ 1 ][ uiI ].push_back( addDimTo( uiSize, vIntersectionTypes[ uiI ] ) );
-            }
+            coordinate_t uiSize = 0;
+            if( vGrid[ uiI ].size( ) > 1 )
+                uiSize = vGrid[ uiI ][ 1 ] - vGrid[ uiI ][ 0 ];
+            for( size_t uiJ = 2; uiJ < vGrid[ uiI ].size( ); uiJ++ )
+                if( vGrid[ uiI ][ uiJ ] - vGrid[ uiI ][ uiJ - 1 ] != uiSize )
+                    return std::nullopt;
+            vRet[ uiI ][ 0 ] = addDimFrom( uiSize, vIntersectionTypes[ uiI ] );
+            vRet[ uiI ][ 1 ] = addDimTo( uiSize, vIntersectionTypes[ uiI ] );
         }
         return vRet;
     }
-#endif
 
     typename corners_t::Entry makeEntry( )
     {
@@ -428,7 +426,6 @@ template <typename type_defs> class Index : public AbstractIndex
         return count( xDatasetId, vFromR, vToR, vInterTypes, uiVerbosity );
     }
 
-#if 0
     /**
      * @brief Count the number of points between from and to and in the given dataset.
      *
@@ -455,24 +452,35 @@ template <typename type_defs> class Index : public AbstractIndex
             return std::vector<val_t>{ };
 
         auto vP = addDims( vGrid, vInterTypes );
-        std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS> vOrthoFrom = vP[ 0 ];
-        std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS> vOrthoTo = vP[ 1 ];
+
+        if( !vP.has_value( ) )
+        {
+            if( uiVerbosity > 0 )
+                std::cout
+                    << "WARNING: gridCount is not implemented grids with uneven cell sizes in orthotope dimensions. "
+                    << "Falling back to individual count operations." << std::endl;
+            throw std::runtime_error( "unimplemented error" );
+        }
+
+        std::array<std::vector<coordinate_t>, D> vGridExt;
+
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            vGridExt[ uiI ].swap( vGrid[ uiI ] );
+        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
+        {
+            vGridExt[ uiI + D - ORTHOTOPE_DIMS ].push_back( vP.value( )[ uiI ][ 0 ] );
+            vGridExt[ uiI + D - ORTHOTOPE_DIMS ].push_back( vP.value( )[ uiI ][ 1 ] );
+        }
+
 #if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
-        xProg << "gridCount grid " << vGrid << " vOrthoFrom " << vOrthoFrom << " vOrthoTo " << vOrthoTo << "\n";
+        xProg << "gridCount grid " << vGrid << "\n";
 #endif
-        for(auto& rA : vOrthoFrom)
-            for(auto& rC : rA)
-                --rC;
-        for(auto& rA : vOrthoTo)
-            for(auto& rC : rA)
-                --rC;
-        for(auto& rA : vGrid)
-            for(auto& rC : rA)
+        for( auto& rA : vGridExt )
+            for( auto& rC : rA )
                 --rC;
 
-        return vDataSets[ xDatasetId ].grid( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vGrid, vOrthoFrom,
-                                             vOrthoTo, vInterTypes
+        return vDataSets[ xDatasetId ].grid( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vGridExt, vInterTypes
 #if GET_PROG_PRINTS
                                              ,
                                              xProg
@@ -493,7 +501,6 @@ template <typename type_defs> class Index : public AbstractIndex
 
         return gridCount( xDatasetId, vGrid, vInterTypes, uiVerbosity );
     }
-#endif
 
   private:
 #define COUNT_MULTIPLE( args... )                                                                                      \
@@ -1021,11 +1028,11 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                 .c_str( ) )
-#if 0
         .def(
             "grid_count",
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
-                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D> vGrid,
+                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D - type_defs::ORTHOTOPE_DIMS>
+                    vGrid,
                 const typename type_defs::isect_arr_t& vInterTypes,
                 size_t uiVerbosity ) { return rM.gridCount( xDatasetId, vGrid, vInterTypes, uiVerbosity ); },
             pybind11::arg( "dataset_id" ), pybind11::arg( "grid" ),
@@ -1061,7 +1068,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def(
             "grid_count",
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
-                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D> vGrid,
+                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D - type_defs::ORTHOTOPE_DIMS>
+                    vGrid,
                 sps::IntersectionType xInterType,
                 size_t uiVerbosity ) { return rM.gridCount( xDatasetId, vGrid, xInterType, uiVerbosity ); },
             pybind11::arg( "dataset_id" ), pybind11::arg( "grid" ),
@@ -1094,7 +1102,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                 .c_str( ) )
-#endif
         .def(
             "count_multiple",
             []( const sps::Index<type_defs>& rM,
