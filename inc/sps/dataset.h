@@ -1449,11 +1449,17 @@ template <typename type_defs> class Dataset
                 addGridValuesToCurrCellItr<uiO, uiD + 1, uiN + ( 1 << ( D - ( uiD + 1 ) ) ), uiDistToTo>( );
             }
             else
-                *puiCurrCellValue +=
-                    ( uiDistToTo % 2 == 0 ? -1 : 1 ) * uiFac *
-                    xCollectedVals.template get<D, false>(
-                        xCollectedIdx,
-                        *pCurrEntry )[ Overlay<type_defs>::template intersectionTypeToCornerIndex<uiN>( vInterTypes ) ];
+            {
+                const sps_t& uiCurrArr = xCollectedVals.template get<D, false>( xCollectedIdx, *pCurrEntry );
+                val_t uiCurr;
+                if constexpr( IS_ORTHOTOPE )
+                    uiCurr =
+                        uiCurrArr[ Overlay<type_defs>::template intersectionTypeToCornerIndex<uiN>( vInterTypes ) ];
+                else
+                    uiCurr = uiCurrArr;
+
+                *puiCurrCellValue += ( uiDistToTo % 2 == 0 ? -1 : 1 ) * uiFac * uiCurr;
+            }
         }
 
         void addGridValuesToCurrCell( )

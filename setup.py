@@ -41,8 +41,9 @@ class CMakeBuild(build_ext):
         # Using this requires trailing slash for auto-detection & inclusion of
         # auxiliary "native" libs
 
-        debug = int(os.environ.get("DEBUG", 0)) if self.debug is None else self.debug
-        cfg = "Debug" if debug else "Release"
+        rel_w_debg = int(os.environ.get("RELWITHDEBINFO", 0)) == 1
+        debug = int(os.environ.get("DEBUG", 0)) == 1 if self.debug is None else self.debug
+        cfg = "RelWithDebInfo" if rel_w_debg else ("Debug" if debug else "Release")
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.

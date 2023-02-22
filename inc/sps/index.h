@@ -519,7 +519,7 @@ template <typename type_defs> class Index : public AbstractIndex
 
         auto vP = addDims( vGrid, vInterTypes );
 
-        if( !vP.has_value( ) )
+        if( !vP.has_value( ) || ALWAYS_SIMULATE_GRID_QUERY )
         {
             if( uiVerbosity > 0 )
                 std::cout << "WARNING: gridCount is not implemented for grids with uneven cell sizes in orthotope "
