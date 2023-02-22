@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -1050,13 +1050,12 @@ template <typename type_defs> class Overlay
     }
 
     using grid_ret_t = NDGrid<type_defs, sps_t, RamVecGenerator>;
-    using grid_ret_internal_entry_t = typename grid_ret_t::template Entry<D>;
-    using grid_ret_overlay_entry_t = typename grid_ret_t::template Entry<D - 1>;
+    using grid_ret_entry_t = typename grid_ret_t::template Entry<D>;
 
     template <size_t uiD>
-    void addInternalValuesToGrid( grid_ret_t& rRet, red_pos_t& rSparsePos, pos_t& rGridIdx,
-                                  const grid_ret_internal_entry_t& xRetEntry, const pos_t& vGridFrom,
-                                  const pos_t& vGridTo, const std::array<std::vector<coordinate_t>, D>& vvSparsePoss,
+    void addInternalValuesToGrid( grid_ret_t& rRet, pos_t& rSparsePos, pos_t& rGridIdx,
+                                  const grid_ret_entry_t& xRetEntry, const pos_t& vGridFrom, const pos_t& vGridTo,
+                                  const std::array<std::vector<coordinate_t>, D>& vvSparsePoss,
                                   const prefix_sum_grid_t& rPrefixSums
 #if GET_PROG_PRINTS
                                   ,
@@ -1090,92 +1089,99 @@ template <typename type_defs> class Overlay
         }
     }
 
-    template <size_t uiO, size_t uiD>
-    inline void addOverlayValuesToGridInDim( grid_ret_t& rRet, red_pos_t& rSparsePos, red_pos_t& rGridIdx,
-                                             const grid_ret_overlay_entry_t& xRetEntry,
-                                             const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
-                                             const pos_t& vOverlayBottomLeft, const pos_t& vOverlayTopRight,
-                                             const pos_t& vGridFrom, const pos_t& vGridTo,
-                                             const std::array<std::vector<coordinate_t>, D>& vGrid
-#if GET_PROG_PRINTS
-                                             ,
-                                             progress_stream_t& xProg
-#endif
-    ) const
+    class AddOverlayValuesToGrid
     {
-        if constexpr( uiD == uiO )
-            // for dimension uiO we will do the iteration once we have queried the overlay value
-            addOverlayValuesToGridInDim<uiO, uiD + 1>( rRet, rSparsePos, rGridIdx, xRetEntry, rSparseCoords,
-                                                       rPrefixSums, vOverlayBottomLeft, vOverlayTopRight, vGridFrom,
-                                                       vGridTo, vGrid
+        grid_ret_t& rRet;
+        red_pos_t rSparsePos;
+        pos_t rGridIdx;
+        const std::array<grid_ret_entry_t, D>& vRetEntries;
+        const sparse_coord_t& rSparseCoords;
+        const prefix_sum_grid_t& rPrefixSums;
+        const pos_t& vOverlayBottomLeft;
+        const pos_t& vOverlayTopRight;
+        const pos_t& vGridFrom;
+        const pos_t& vGridTo;
+        const std::array<std::vector<coordinate_t>, D>& vGrid;
+        const pos_t& vOverlayIdx;
+        const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries;
+        const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay;
 #if GET_PROG_PRINTS
-                                                       ,
-                                                       xProg
+        progress_stream_t& xProg;
 #endif
-            );
-        else if constexpr( uiD < D )
-            // iterate over grid-line intersections on the face of dimension uiO
-            for( size_t uiX = vGridFrom[ uiD ]; uiX < vGridTo[ uiD ]; uiX++ )
-            {
-                constexpr size_t uiDmO = uiD - ( uiD >= uiO ? 1 : 0 );
-                rGridIdx[ uiDmO ] = uiX;
-                rSparsePos[ uiDmO ] = rSparseCoords.template sparse<D - 1, false>( vGrid[ uiD ][ uiX ],
-                                                                                   vSparseCoordsOverlay[ uiD ], uiD );
-                addOverlayValuesToGridInDim<uiO, uiD + 1>( rRet, rSparsePos, rGridIdx, xRetEntry, rSparseCoords,
-                                                           rPrefixSums, vOverlayBottomLeft, vOverlayTopRight, vGridFrom,
-                                                           vGridTo, vGrid
-#if GET_PROG_PRINTS
-                                                           ,
-                                                           xProg
-#endif
-                );
-            }
-        else
-            rRet.template get<D - 1, false>( rGridIdx, xRetEntry ) =
-                rPrefixSums.template get<D - 1, false>( rSparsePos, vOverlayEntries[ uiO ] );
-    }
 
-    template <size_t uiD>
-    inline void addOverlayValuesToGrid( grid_ret_t& rRet, red_pos_t& rSparsePos, red_pos_t& rGridIdx,
-                                        const std::array<grid_ret_overlay_entry_t, D>& vRetEntries,
-                                        const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
-                                        const pos_t& vOverlayBottomLeft, const pos_t& vOverlayTopRight,
-                                        const pos_t& vGridFrom, const pos_t& vGridTo,
-                                        const std::array<std::vector<coordinate_t>, D>& vGrid
-#if GET_PROG_PRINTS
-                                        ,
-                                        progress_stream_t& xProg
-#endif
-    ) const
-    {
-        if constexpr( uiD < D )
+        template <size_t uiO, size_t uiD> inline void addValuesInDim( )
         {
-            // no overlay values for bottom box anyways
-            if( vOverlayBottomLeft[ uiD ] > 0 && rPrefixSums.sizeOf( vOverlayEntries[ uiD ] ) > 0 )
-                addOverlayValuesToGridInDim<uiD, 0>( rRet, rSparsePos, rGridIdx, vRetEntries[ uiD ], rSparseCoords,
-                                                     rPrefixSums, vOverlayBottomLeft, vOverlayTopRight, vGridFrom,
-                                                     vGridTo, vGrid
-#if GET_PROG_PRINTS
-                                                     ,
-                                                     xProg
-#endif
-                );
-            addOverlayValuesToGrid<uiD + 1>( rRet, rSparsePos, rGridIdx, vRetEntries, rSparseCoords, rPrefixSums,
-                                             vOverlayBottomLeft, vOverlayTopRight, vGridFrom, vGridTo, vGrid
-#if GET_PROG_PRINTS
-                                             ,
-                                             xProg
-#endif
-            );
+            if constexpr( uiD == uiO )
+            {
+                rGridIdx[ uiD ] = vOverlayIdx[ uiD ];
+                // for dimension uiO we will do the iteration once we have queried the overlay value
+                addValuesInDim<uiO, uiD + 1>( );
+            }
+            else if constexpr( uiD < D )
+                // iterate over grid-line intersections on the face of dimension uiO
+                for( size_t uiX = vGridFrom[ uiD ]; uiX < vGridTo[ uiD ]; uiX++ )
+                {
+                    constexpr size_t uiDmO = uiD - ( uiD >= uiO ? 1 : 0 );
+                    rGridIdx[ uiD ] = uiX;
+                    rSparsePos[ uiDmO ] = rSparseCoords.template sparse<D - 1, false>(
+                        vGrid[ uiD ][ uiX ], vSparseCoordsOverlay[ uiD ], uiD );
+                    addValuesInDim<uiO, uiD + 1>( );
+                }
+            else
+                rRet.template get<D, false>( rGridIdx, vRetEntries[ uiD ] ) =
+                    rPrefixSums.template get<D - 1, false>( rSparsePos, vOverlayEntries[ uiO ] );
         }
-    }
+
+        template <size_t uiD> inline void addValues( )
+        {
+            if constexpr( uiD < D )
+            {
+                if( vOverlayBottomLeft[ uiD ] > 0 && rPrefixSums.sizeOf( vOverlayEntries[ uiD ] ) > 0 )
+                    addValuesInDim<uiD, 0>( );
+                addValues<uiD + 1>( );
+            }
+        }
+
+      public:
+        AddOverlayValuesToGrid( grid_ret_t& rRet, const std::array<grid_ret_entry_t, D>& vRetEntries,
+                                const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
+                                const pos_t& vOverlayBottomLeft, const pos_t& vOverlayTopRight, const pos_t& vGridFrom,
+                                const pos_t& vGridTo, const std::array<std::vector<coordinate_t>, D>& vGrid,
+                                const pos_t& vOverlayIdx,
+                                const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+                                const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay
+#if GET_PROG_PRINTS
+                                ,
+                                progress_stream_t& xProg
+#endif
+                                )
+            : rRet( rRet ),
+              vRetEntries( vRetEntries ),
+              rSparseCoords( rSparseCoords ),
+              rPrefixSums( rPrefixSums ),
+              vOverlayBottomLeft( vOverlayBottomLeft ),
+              vOverlayTopRight( vOverlayTopRight ),
+              vGridFrom( vGridFrom ),
+              vGridTo( vGridTo ),
+              vGrid( vGrid ),
+              vOverlayIdx( vOverlayIdx ),
+              vOverlayEntries( vOverlayEntries ),
+              vSparseCoordsOverlay( vSparseCoordsOverlay )
+#if GET_PROG_PRINTS
+              ,
+              xProg( xProg )
+#endif
+        {
+            addValues<0>( );
+        }
+    };
 
 
     void grid( grid_ret_t& rRet, std::array<std::vector<coordinate_t>, D>& vvSparsePoss,
-               const grid_ret_internal_entry_t& xRetEntryInternal,
-               const std::array<grid_ret_overlay_entry_t, D>& vRetEntriesOverlay, const sparse_coord_t& rSparseCoords,
-               const prefix_sum_grid_t& rPrefixSums, const pos_t& vOverlayBottomLeft, const pos_t& vOverlayTopRight,
-               const pos_t& vGridFrom, const pos_t& vGridTo, const std::array<std::vector<coordinate_t>, D>& vGrid
+               const grid_ret_entry_t& xRetEntryInternal, const std::array<grid_ret_entry_t, D>& vRetEntriesOverlay,
+               const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
+               const pos_t& vOverlayBottomLeft, const pos_t& vOverlayTopRight, const pos_t& vGridFrom,
+               const pos_t& vGridTo, const std::array<std::vector<coordinate_t>, D>& vGrid, const pos_t& vOverlayIdx
 #if GET_PROG_PRINTS
                ,
                progress_stream_t& xProg
@@ -1183,13 +1189,12 @@ template <typename type_defs> class Overlay
     ) const
     {
         // query overlay values and add them to the grid if necessary
-        red_pos_t rSparsePos;
-        red_pos_t rGridIdx;
-        addOverlayValuesToGrid<0>( rRet, rSparsePos, rGridIdx, vRetEntriesOverlay, rSparseCoords, rPrefixSums,
-                                   vOverlayBottomLeft, vOverlayTopRight, vGridFrom, vGridTo, vGrid
+        AddOverlayValuesToGrid( rRet, vRetEntriesOverlay, rSparseCoords, rPrefixSums, vOverlayBottomLeft,
+                                vOverlayTopRight, vGridFrom, vGridTo, vGrid, vOverlayIdx, vOverlayEntries,
+                                vSparseCoordsOverlay
 #if GET_PROG_PRINTS
-                                   ,
-                                   xProg
+                                ,
+                                xProg
 #endif
         );
 

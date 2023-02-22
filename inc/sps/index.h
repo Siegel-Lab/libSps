@@ -426,6 +426,72 @@ template <typename type_defs> class Index : public AbstractIndex
         return count( xDatasetId, vFromR, vToR, vInterTypes, uiVerbosity );
     }
 
+  private:
+    class GridCountFallback
+    {
+        const Index& rIndex;
+        const class_key_t xDatasetId;
+        const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid;
+        const isect_arr_t& vInterTypes;
+
+        typename dataset_t::grid_ret_t xRet;
+        const ret_pos_t vNumMin1;
+        const typename dataset_t::grid_ret_t::template Entry<D - ORTHOTOPE_DIMS> rRetEntry;
+        const size_t uiVerbosity;
+
+        // no initialization needed
+        ret_pos_t vCurrIdx;
+        ret_pos_t vCurrStart;
+        ret_pos_t vCurrEnd;
+
+        static ret_pos_t initVNumMin1( const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid )
+        {
+            ret_pos_t vNumMin1;
+            for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+                vNumMin1[ uiI ] = vGrid[ uiI ].size( ) - 1;
+            return vNumMin1;
+        }
+
+        template <size_t uiN> inline void fallback( )
+        {
+            if constexpr( uiN < D - ORTHOTOPE_DIMS )
+                for( size_t uiI = 0; uiI < vNumMin1[ uiN ]; uiI++ )
+                {
+                    vCurrIdx[ uiN ] = uiI;
+                    vCurrStart[ uiN ] = vGrid[ uiN ][ uiI ];
+                    vCurrEnd[ uiN ] = vGrid[ uiN ][ uiI + 1 ];
+                    fallback<uiN + 1>( );
+                }
+            else
+                xRet.template get<D - ORTHOTOPE_DIMS, false, false>( vCurrIdx, rRetEntry ) =
+                    rIndex.count( xDatasetId, vCurrStart, vCurrEnd, vInterTypes, uiVerbosity );
+        }
+
+      public:
+        GridCountFallback( const Index& rIndex,
+                           const class_key_t xDatasetId,
+                           const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid,
+                           const isect_arr_t& vInterTypes,
+                           const size_t uiVerbosity )
+            : rIndex( rIndex ),
+              xDatasetId( xDatasetId ),
+              vGrid( vGrid ),
+              vInterTypes( vInterTypes ),
+              xRet( ".tmp", true ),
+              vNumMin1( initVNumMin1( vGrid ) ),
+              rRetEntry( xRet.template add<D - ORTHOTOPE_DIMS, false, true>( vNumMin1 ) ),
+              uiVerbosity( uiVerbosity )
+        {
+            fallback<0>( );
+        }
+
+        std::vector<val_t> getData( ) const
+        {
+            return xRet.vData;
+        }
+    };
+
+  public:
     /**
      * @brief Count the number of points between from and to and in the given dataset.
      *
@@ -456,10 +522,10 @@ template <typename type_defs> class Index : public AbstractIndex
         if( !vP.has_value( ) )
         {
             if( uiVerbosity > 0 )
-                std::cout
-                    << "WARNING: gridCount is not implemented grids with uneven cell sizes in orthotope dimensions. "
-                    << "Falling back to individual count operations." << std::endl;
-            throw std::runtime_error( "unimplemented error" );
+                std::cout << "WARNING: gridCount is not implemented for grids with uneven cell sizes in orthotope "
+                             "dimensions. "
+                          << "Falling back to individual count operations." << std::endl;
+            return GridCountFallback( *this, xDatasetId, vGrid, vInterTypes, uiVerbosity ).getData( );
         }
 
         std::array<std::vector<coordinate_t>, D> vGridExt;
