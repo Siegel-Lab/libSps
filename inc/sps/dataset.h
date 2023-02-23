@@ -1485,7 +1485,7 @@ template <typename type_defs> class Dataset
             {
 #if GET_PROG_PRINTS
                 xProg << Verbosity( 3 ) << "\t\t\taddGridValuesToCurrCellItr " << xCollectedIdx << " " << uiN << " "
-                      << uiDistToTo << "\n";
+                      << uiDistToTo;
 #endif
                 const sps_t& uiCurrArr = xCollectedVals.template get<D, false>( xCollectedIdx, *pCurrEntry );
                 val_t uiCurr;
@@ -1494,8 +1494,12 @@ template <typename type_defs> class Dataset
                         uiCurrArr[ Overlay<type_defs>::template intersectionTypeToCornerIndex<uiN>( vInterTypes ) ];
                 else
                     uiCurr = uiCurrArr;
+                    
+#if GET_PROG_PRINTS
+                xProg << " " << uiCurr << " " << uiFac << "\n";
+#endif
 
-                *puiCurrCellValue += ( uiDistToTo % 2 == 0 ? -1 : 1 ) * uiFac * uiCurr;
+                *puiCurrCellValue += ( uiDistToTo % 2 == 0 ? 1 : -1 ) * uiFac * uiCurr;
             }
         }
 

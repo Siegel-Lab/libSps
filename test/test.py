@@ -159,7 +159,7 @@ class HyperrectangleValue(Hyperrectangle):
         return super().__str__() + " value: " + str(self.value())
 
 class SpsIndexWrapper:
-    ALWAYS_PRINT = True
+    ALWAYS_PRINT = False
     def __init__(self, index, d, o):
         try:
             self.index = sps.make_sps_index(num_dimensions=d, num_orthotope_dimensions=o)
