@@ -528,6 +528,11 @@ template <typename type_defs> class Index : public AbstractIndex
             return GridCountFallback( *this, xDatasetId, vGrid, vInterTypes, uiVerbosity ).getData( );
         }
 
+#if GET_PROG_PRINTS
+        progress_stream_t xProg( uiVerbosity );
+        xProg << "gridCount grid " << vGrid << "\n";
+#endif
+
         std::array<std::vector<coordinate_t>, D> vGridExt;
 
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
@@ -538,10 +543,6 @@ template <typename type_defs> class Index : public AbstractIndex
             vGridExt[ uiI + D - ORTHOTOPE_DIMS ].push_back( vP.value( )[ uiI ][ 1 ] );
         }
 
-#if GET_PROG_PRINTS
-        progress_stream_t xProg( uiVerbosity );
-        xProg << "gridCount grid " << vGrid << "\n";
-#endif
         for( auto& rA : vGridExt )
             for( auto& rC : rA )
                 --rC;

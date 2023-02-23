@@ -1252,6 +1252,14 @@ template <typename type_defs> class Dataset
         size_t uiOverlayIdx;
         coordinate_t uiBottomLeft;
         coordinate_t uiTopRight;
+
+        friend std::ostream& operator<<( std::ostream& os, const OverlayBounds& rBounds )
+        {
+            os << "grid: [" << rBounds.uiGridFrom << ", " << rBounds.uiGridTo << "] o_idx: " << rBounds.uiOverlayIdx
+               << " coords: [" << rBounds.uiBottomLeft << ", " << rBounds.uiTopRight << "]";
+
+            return os;
+        }
     };
 
     using OverlayBoundsGrid = std::array<std::vector<OverlayBounds>, D>;
@@ -1299,8 +1307,8 @@ template <typename type_defs> class Dataset
                     vOverlayIdx[ N ] = rBounds.uiOverlayIdx;
                     vOverlayBottomLeft[ N ] = rBounds.uiBottomLeft;
                     vOverlayTopRight[ N ] = rBounds.uiTopRight;
+                    callGridOnOverlays<N + 1>( );
                 }
-                callGridOnOverlays<N + 1>( );
             }
             else
             {
@@ -1356,6 +1364,14 @@ template <typename type_defs> class Dataset
             {
                 vRet[ uiD ].reserve( vGrid[ uiD ].size( ) );
                 xCurr.uiGridFrom = 0;
+
+                // skip entries before start of index (i.e. before the first point)
+                while( xCurr.uiGridFrom < vGrid[ uiD ].size( ) &&
+                       ( vGrid[ uiD ][ xCurr.uiGridFrom ] == std::numeric_limits<coordinate_t>::max( ) ||
+                         rDataset.overlayCoord( vGrid[ uiD ][ xCurr.uiGridFrom ], uiD ) ==
+                             std::numeric_limits<coordinate_t>::max( ) ) )
+                    ++xCurr.uiGridFrom;
+
                 while( xCurr.uiGridFrom < vGrid[ uiD ].size( ) )
                 {
                     xCurr.uiOverlayIdx = rDataset.overlayCoord( vGrid[ uiD ][ xCurr.uiGridFrom ], uiD );
@@ -1387,7 +1403,7 @@ template <typename type_defs> class Dataset
             : xRet( ".tmp", true ),
               vvSparsePoss{ },
               vNum( initVNum( vGrid ) ),
-              xRetEntryInternal( xRet.template add<D, false, true>( vNum ) ),
+              xRetEntryInternal( xRet.template add<D, true, true>( vNum ) ),
               rOverlayBounds( initOverlayBounds( rDataset, vGrid ) ),
               vRetEntriesOverlay( initVRetEntriesOverlay( xRet, vNum, rOverlayBounds ) ),
               rOverlays( rOverlays ),
@@ -1400,10 +1416,27 @@ template <typename type_defs> class Dataset
               xProg( xProg )
 #endif
         {
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "collecting grid values in grid of size " << vNum << "\n";
+            xProg << "with overlay borders " << rOverlayBounds << "\n";
+#endif
             for( size_t uiI = 0; uiI < D; uiI++ )
                 vvSparsePoss[ uiI ].reserve( vGrid[ uiI ].size( ) );
 
             callGridOnOverlays<0>( );
+
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "grid internal values: " << xRetEntryInternal << "; ";
+            xRetEntryInternal.streamOp( xProg, xRet );
+            xProg << "\n";
+            xProg << "grid overlay values:\n";
+            for( size_t uiI = 0; uiI < D; uiI++ )
+            {
+                xProg << "\tdim " << uiI << ": " << vRetEntriesOverlay[ uiI ] << "; ";
+                vRetEntriesOverlay[ uiI ].streamOp( xProg, xRet );
+                xProg << "\n";
+            }
+#endif
         }
     };
 
@@ -1439,17 +1472,21 @@ template <typename type_defs> class Dataset
         size_t uiCurrOverlay;
 
 
-        template <size_t uiO, size_t uiD, size_t uiN, size_t uiDistToTo> inline void addGridValuesToCurrCellItr( )
+        template <size_t uiD, size_t uiN, size_t uiDistToTo> inline void addGridValuesToCurrCellItr( )
         {
             if constexpr( uiD < D )
             {
                 xCollectedIdx[ uiD ] = xGridIdx[ uiD ];
-                addGridValuesToCurrCellItr<uiO, uiD + 1, uiN, uiDistToTo + 1>( );
+                addGridValuesToCurrCellItr<uiD + 1, uiN, uiDistToTo + 1>( );
                 xCollectedIdx[ uiD ] = xGridIdx[ uiD ] + 1;
-                addGridValuesToCurrCellItr<uiO, uiD + 1, uiN + ( 1 << ( D - ( uiD + 1 ) ) ), uiDistToTo>( );
+                addGridValuesToCurrCellItr<uiD + 1, uiN + ( 1 << ( D - ( uiD + 1 ) ) ), uiDistToTo>( );
             }
             else
             {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << "\t\t\taddGridValuesToCurrCellItr " << xCollectedIdx << " " << uiN << " "
+                      << uiDistToTo << "\n";
+#endif
                 const sps_t& uiCurrArr = xCollectedVals.template get<D, false>( xCollectedIdx, *pCurrEntry );
                 val_t uiCurr;
                 if constexpr( IS_ORTHOTOPE )
@@ -1464,7 +1501,7 @@ template <typename type_defs> class Dataset
 
         void addGridValuesToCurrCell( )
         {
-            addGridValuesToCurrCellItr<0, 0, 0, 0>( );
+            addGridValuesToCurrCellItr<0, 0, 0>( );
         }
 
         template <size_t uiD> inline void execOnAllCells( )
@@ -1477,29 +1514,40 @@ template <typename type_defs> class Dataset
                 }
             else
             {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << "\t\texecOnAllCells " << xGridIdx << "\n";
+#endif
                 puiCurrCellValue = &xRet.template get<D, false, false>( xGridIdx, rRetEntry );
                 pCurrEntry = &xRetEntryInternal;
                 addGridValuesToCurrCell( );
             }
         }
 
-        template <size_t uiO, size_t uiD> inline void execOnAllBorderAdjacentCells( )
+        template <size_t uiO, size_t uiD> inline void execOnAllBorderOverlappingCells( )
         {
             if constexpr( uiD == uiO )
-                for( const OverlayBounds& rBounds : vOverlayBounds[ uiD ] )
+                for( size_t uiI = 1; uiI < vOverlayBounds[ uiD ].size( ); uiI++ )
                 {
-                    uiCurrOverlay = rBounds.uiOverlayIdx;
-                    xGridIdx[ uiD ] = rBounds.uiGridFrom;
-                    execOnAllBorderAdjacentCells<uiO, uiD + 1>( );
+                    const OverlayBounds& rBounds = vOverlayBounds[ uiD ][ uiI ];
+                    if( rBounds.uiOverlayIdx != std::numeric_limits<coordinate_t>::max( ) )
+                    {
+                        uiCurrOverlay = rBounds.uiOverlayIdx;
+                        xGridIdx[ uiD ] = rBounds.uiGridFrom;
+                        execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
+                    }
                 }
             else if constexpr( uiD < D )
                 for( size_t uiX = 0; uiX < vNumMin1[ uiD ]; uiX++ )
                 {
                     xGridIdx[ uiD ] = uiX;
-                    execOnAllBorderAdjacentCells<uiO, uiD + 1>( );
+                    execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                 }
             else
             {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << "\t\texecOnAllBorderOverlappingCells " << xGridIdx << " " << uiO << " "
+                      << uiCurrOverlay << "\n";
+#endif
                 puiCurrCellValue = &xRet.template get<D, false, false>( xGridIdx, rRetEntry );
                 xGridIdx[ uiO ] = uiCurrOverlay;
                 pCurrEntry = &vRetEntriesOverlay[ uiO ];
@@ -1511,7 +1559,10 @@ template <typename type_defs> class Dataset
         {
             if constexpr( N < D )
             {
-                execOnAllBorderAdjacentCells<N, 0>( );
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << "\texecOnAllOverlayBorders " << N << "\n";
+#endif
+                execOnAllBorderOverlappingCells<N, 0>( );
                 execOnAllOverlayBorders<N + 1>( );
             }
         }
@@ -1552,8 +1603,17 @@ template <typename type_defs> class Dataset
               xProg( xProg )
 #endif
         {
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "collecting cell values in grid of size " << vNumMin1 << "\n";
+#endif
             execOnAllCells<0>( );
             execOnAllOverlayBorders<0>( );
+
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "cell values: " << rRetEntry << "; ";
+            rRetEntry.streamOp( xProg, xRet );
+            xProg << "\n";
+#endif
         }
     };
 

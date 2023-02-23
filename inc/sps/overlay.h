@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -1064,10 +1064,11 @@ template <typename type_defs> class Overlay
     ) const
     {
         if constexpr( uiD < D )
+        {
             // iterate over grid-line intersections on the face of dimension uiO
-            for( size_t uiX = vGridFrom[ uiD ]; uiX < vGridTo[ uiD ]; uiX++ )
+            for( size_t uiX = 0; uiX < vGridTo[ uiD ] - vGridFrom[ uiD ]; uiX++ )
             {
-                rGridIdx[ uiD ] = uiX;
+                rGridIdx[ uiD ] = uiX + vGridFrom[ uiD ];
                 rSparsePos[ uiD ] = vvSparsePoss[ uiD ][ uiX ];
                 addInternalValuesToGrid<uiD + 1>( rRet, rSparsePos, rGridIdx, xRetEntry, vGridFrom, vGridTo,
                                                   vvSparsePoss, rPrefixSums
@@ -1077,11 +1078,13 @@ template <typename type_defs> class Overlay
 #endif
                 );
             }
+        }
         else
         {
 #if GET_PROG_PRINTS
-            xProg << Verbosity( 2 ) << "\t\tQuerying " //
+            xProg << Verbosity( 2 ) << "\t\tQuerying" //
                   << " sparse position " << rSparsePos //
+                  << " grid pos " << rGridIdx //
                   << "\n";
 #endif
             rRet.template get<D, false>( rGridIdx, xRetEntry ) =
@@ -1121,10 +1124,10 @@ template <typename type_defs> class Overlay
             }
             else if constexpr( uiD < D )
                 // iterate over grid-line intersections on the face of dimension uiO
-                for( size_t uiX = vGridFrom[ uiD ]; uiX < vGridTo[ uiD ]; uiX++ )
+                for( size_t uiX = 0; uiX < vGridTo[ uiD ] - vGridFrom[ uiD ]; uiX++ )
                 {
                     constexpr size_t uiDmO = uiD - ( uiD >= uiO ? 1 : 0 );
-                    rGridIdx[ uiD ] = uiX;
+                    rGridIdx[ uiD ] = uiX + vGridFrom[ uiD ];
                     rSparsePos[ uiD ] = vvSparsePoss[ uiD ][ uiX ];
 
                     if( rSparsePos[ uiDmO ] != std::numeric_limits<coordinate_t>::max( ) && bValid )
@@ -1155,7 +1158,7 @@ template <typename type_defs> class Overlay
                             vvSparsePoss[ uiI ].clear( );
                             for( size_t uiX = vGridFrom[ uiI ]; uiX < vGridTo[ uiI ]; uiX++ )
                                 vvSparsePoss[ uiI ].push_back( rSparseCoords.template sparse<D - 1, false>(
-                                    vGrid[ uiI ][ uiX ], vSparseCoordsOverlay[uiI], uiI ) );
+                                    vGrid[ uiI ][ uiX ], vSparseCoordsOverlay[ uiI ], uiI ) );
                         }
 
                     addValuesInDim<uiD, 0, true>( );
@@ -1235,6 +1238,9 @@ template <typename type_defs> class Overlay
                     vvSparsePoss[ uiD ].push_back(
                         rSparseCoords.template sparse<D, false>( vGrid[ uiD ][ uiX ], vSparseCoordsInternal, uiD ) );
             }
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "\t\tvvSparsePoss: " << vvSparsePoss << "\n";
+#endif
 
             // LOOK UP VALUES FOR EACH CELL OF THE GRID (FOR INTERNAL VALUES)
             pos_t rSparsePos;
