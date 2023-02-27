@@ -159,8 +159,8 @@ class HyperrectangleValue(Hyperrectangle):
         return super().__str__() + " value: " + str(self.value())
 
 class SpsIndexWrapper:
-    ALWAYS_PRINT = False
-    def __init__(self, index, d, o):
+    ALWAYS_PRINT = True
+    def __init__(self, index, d, o, fac):
         try:
             self.index = sps.make_sps_index(num_dimensions=d, num_orthotope_dimensions=o)
         except Exception as e:
@@ -172,7 +172,7 @@ class SpsIndexWrapper:
                 self.index.add_point(x.from_pos().to_list(), x.to_pos().to_list(), x.value())
             else:
                 self.index.add_point(x.from_pos().to_list(), x.value())
-        self.idx = self.index.generate(verbosity=0)
+        self.idx = self.index.generate(verbosity=0, factor=fac)
 
     def _transl_inter(self, x):
         return {
@@ -337,8 +337,8 @@ class Index:
     def orto(self):
         return max(x.orto() for x in self._data)
 
-    def to_sps_index(self, d, o):
-        return SpsIndexWrapper(self, d, o)
+    def to_sps_index(self, d, o, fac=-1):
+        return SpsIndexWrapper(self, d, o, fac)
 
 
 class CountMultiple:
@@ -410,7 +410,7 @@ class CountMultiple:
                 exit()
 
 def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, grid_query_elements=3, grid_query_lines=[3, 3], 
-             intersection=[Intersection.random(), Intersection.random()], count=0):
+             intersection=[Intersection.random(), Intersection.random()], count=0, fac=-1):
     data_space = Hyperrectangle.random(Hyperrectangle.square(d, data_size))
     if min(data_space.size()) <= 1:
         data_space = Hyperrectangle.square(d, data_size)
@@ -420,7 +420,7 @@ def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, grid_que
                                                          lambda: random.randrange(5))
                             )
     #print("index", index, sep="\n")
-    sps_index = index.to_sps_index(d, o)
+    sps_index = index.to_sps_index(d, o, fac=fac)
 
     counter = CountMultiple(["py", "sps"], [index, sps_index])
 
@@ -457,6 +457,7 @@ def test_escalate(dos=[(2, 0)],
                   grid_query_elements=lambda *_: [1],
                   grid_query_lines=lambda d, *_: [[3]*d],
                   intersections=intersection_from_o,#lambda *x: [Intersection.ENCLOSED]
+                  facs=[-1, 10],
                   attempts=1
                   ):
     c = 1
@@ -468,16 +469,17 @@ def test_escalate(dos=[(2, 0)],
                         for x in query_elements(d, o, s, n):
                             for y in grid_query_elements(d, o, s, n, x):
                                 for l in grid_query_lines(d, o, s, n, x, y):
-                                    test_one(d, o, s, n, x, y, l, i, c)
-                                    c += 1
+                                    for fac in facs:
+                                        test_one(d, o, s, n, x, y, l, i, c, fac=fac)
+                                        c += 1
 
 
 SEED = random.randrange(sys.maxsize)
 SEED = 7047854526239717292 # comment out this line to start with a random seed
 random.seed(SEED)
 
-test_escalate([(1, 0)], attempts=10)
-#test_escalate([(1, 0), (2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)
+#test_escalate([(1, 0), (2, 0)], attempts=10)
+test_escalate([(1, 0), (2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)
 
 # Environment vars
 # export DEBUG=1

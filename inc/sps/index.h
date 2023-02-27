@@ -259,15 +259,11 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * This may take a long time to compute.
      *
-     * Use len(index) to determine the index of the first and last point, as add_point may add multiple points per call.
-     *
      * This function is multithreaded.
      *
      * @param fFac Overlay size factor, defaults to -1.
      *             -1: factor is picked so that the estimated size of the datastructure is minimal
      * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
-     * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
-     * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @return class_key_t The id of the generated dataset.
      */
     class_key_t generate( double fFac = -1, size_t uiVerbosity = 1 )
@@ -515,23 +511,29 @@ template <typename type_defs> class Index : public AbstractIndex
                                   [[maybe_unused]] size_t uiVerbosity = 0 ) const
     {
         if( vDataSets[ xDatasetId ].getNumOverlays( ) == 0 )
-            return std::vector<val_t>{ };
+        {
+            size_t uiSize = 1;
+            for( const auto& rDim : vGrid )
+                uiSize *= rDim.size( ) - 1;
+            return std::vector<val_t>( uiSize );
+        }
 
         auto vP = addDims( vGrid, vInterTypes );
 
+#if GET_PROG_PRINTS
+        progress_stream_t xProg( uiVerbosity );
+        xProg << Verbosity( 1 ) << "gridCount grid " << vGrid << "\n";
+#endif
+
         if( !vP.has_value( ) || ALWAYS_SIMULATE_GRID_QUERY )
         {
-            if( uiVerbosity > 0 )
+            if( uiVerbosity > 0 && !ALWAYS_SIMULATE_GRID_QUERY )
                 std::cout << "WARNING: gridCount is not implemented for grids with uneven cell sizes in orthotope "
                              "dimensions. "
                           << "Falling back to individual count operations." << std::endl;
             return GridCountFallback( *this, xDatasetId, vGrid, vInterTypes, uiVerbosity ).getData( );
         }
 
-#if GET_PROG_PRINTS
-        progress_stream_t xProg( uiVerbosity );
-        xProg << "gridCount grid " << vGrid << "\n";
-#endif
 
         std::array<std::vector<coordinate_t>, D> vGridExt;
 
@@ -553,7 +555,6 @@ template <typename type_defs> class Index : public AbstractIndex
                                              xProg
 #endif
         );
-        return std::vector<val_t>{ };
     }
 
     std::vector<val_t> gridCount( class_key_t xDatasetId,

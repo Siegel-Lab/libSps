@@ -1255,8 +1255,8 @@ template <typename type_defs> class Dataset
 
         friend std::ostream& operator<<( std::ostream& os, const OverlayBounds& rBounds )
         {
-            os << "grid: [" << rBounds.uiGridFrom << ", " << rBounds.uiGridTo << "] o_idx: " << rBounds.uiOverlayIdx
-               << " coords: [" << rBounds.uiBottomLeft << ", " << rBounds.uiTopRight << "]";
+            os << "g[" << rBounds.uiGridFrom << ", " << rBounds.uiGridTo << "] i" << rBounds.uiOverlayIdx << " c["
+               << rBounds.uiBottomLeft << ", " << rBounds.uiTopRight << "]";
 
             return os;
         }
@@ -1341,7 +1341,12 @@ template <typename type_defs> class Dataset
 
         static std::array<typename Overlay<type_defs>::grid_ret_entry_t, D>
         initVRetEntriesOverlay( typename Overlay<type_defs>::grid_ret_t& xRet, pos_t vNum,
-                                const OverlayBoundsGrid& rOverlayBounds )
+                                const OverlayBoundsGrid& rOverlayBounds
+#if GET_PROG_PRINTS
+                                ,
+                                [[maybe_unused]] progress_stream_t& xProg
+#endif
+        )
         {
             std::array<typename Overlay<type_defs>::grid_ret_entry_t, D> vRetEntriesOverlay;
             for( size_t uiI = 0; uiI < D; uiI++ )
@@ -1349,8 +1354,11 @@ template <typename type_defs> class Dataset
                 // the overlay values are flat in one dimension
                 // instead of removing this flat dimensions, we keep it and have it at a size accorting to the number of
                 // boxes in this dimension. Hence each box can store its overlay values.
+                size_t uiPrev = vNum[ uiI ];
                 vNum[ uiI ] = rOverlayBounds[ uiI ].size( );
+
                 vRetEntriesOverlay[ uiI ] = xRet.template add<D, true, true>( vNum );
+                vNum[ uiI ] = uiPrev;
             }
             return vRetEntriesOverlay;
         }
@@ -1405,7 +1413,12 @@ template <typename type_defs> class Dataset
               vNum( initVNum( vGrid ) ),
               xRetEntryInternal( xRet.template add<D, true, true>( vNum ) ),
               rOverlayBounds( initOverlayBounds( rDataset, vGrid ) ),
-              vRetEntriesOverlay( initVRetEntriesOverlay( xRet, vNum, rOverlayBounds ) ),
+              vRetEntriesOverlay( initVRetEntriesOverlay( xRet, vNum, rOverlayBounds
+#if GET_PROG_PRINTS
+                                                          ,
+                                                          xProg
+#endif
+                                                          ) ),
               rOverlays( rOverlays ),
               xOverlays( xOverlays ),
               rSparseCoords( rSparseCoords ),
@@ -1494,7 +1507,7 @@ template <typename type_defs> class Dataset
                         uiCurrArr[ Overlay<type_defs>::template intersectionTypeToCornerIndex<uiN>( vInterTypes ) ];
                 else
                     uiCurr = uiCurrArr;
-                    
+
 #if GET_PROG_PRINTS
                 xProg << " " << uiCurr << " " << uiFac << "\n";
 #endif
@@ -1535,8 +1548,8 @@ template <typename type_defs> class Dataset
                     const OverlayBounds& rBounds = vOverlayBounds[ uiD ][ uiI ];
                     if( rBounds.uiOverlayIdx != std::numeric_limits<coordinate_t>::max( ) )
                     {
-                        uiCurrOverlay = rBounds.uiOverlayIdx;
-                        xGridIdx[ uiD ] = rBounds.uiGridFrom;
+                        uiCurrOverlay = vOverlayBounds[ uiD ][ uiI - 1 ].uiOverlayIdx;
+                        xGridIdx[ uiD ] = rBounds.uiGridFrom - 1;
                         execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                     }
                 }
