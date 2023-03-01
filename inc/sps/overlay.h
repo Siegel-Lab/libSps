@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -1105,7 +1105,7 @@ template <typename type_defs> class Overlay
         const pos_t& vGridFrom;
         const pos_t& vGridTo;
         const std::array<std::vector<coordinate_t>, D>& vGrid;
-        const pos_t& vOverlayIdx;
+        const pos_t& vOverlayIdxInGrid;
         const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries;
         const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay;
         const sps_t& uiBottomLeftPrefixSum;
@@ -1118,7 +1118,7 @@ template <typename type_defs> class Overlay
         {
             if constexpr( uiD == uiO )
             {
-                rGridIdx[ uiD ] = vOverlayIdx[ uiD ];
+                rGridIdx[ uiD ] = vOverlayIdxInGrid[ uiD ];
                 // for dimension uiO we will do the iteration once we have queried the overlay value
                 addValuesInDim<uiO, uiD + 1, bValid>( );
             }
@@ -1137,11 +1137,14 @@ template <typename type_defs> class Overlay
                 }
             else
             {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 4 ) << "\t\t\tat pos " << rGridIdx << "\n";
+#endif
                 if constexpr( bValid )
-                    rRet.template get<D, false>( rGridIdx, vRetEntries[ uiD ] ) =
+                    rRet.template get<D, false>( rGridIdx, vRetEntries[ uiO ] ) =
                         rPrefixSums.template get<D - 1, false>( rSparsePos, vOverlayEntries[ uiO ] );
                 else
-                    rRet.template get<D, false>( rGridIdx, vRetEntries[ uiD ] ) = uiBottomLeftPrefixSum;
+                    rRet.template get<D, false>( rGridIdx, vRetEntries[ uiO ] ) = uiBottomLeftPrefixSum;
             }
         }
 
@@ -1155,12 +1158,16 @@ template <typename type_defs> class Overlay
                     for( size_t uiI = 0; uiI < D; uiI++ )
                         if( uiI != uiD )
                         {
-                            vvSparsePoss[ uiI ].clear( );
+                            vvSparsePoss[ uiD ].clear( );
                             for( size_t uiX = vGridFrom[ uiI ]; uiX < vGridTo[ uiI ]; uiX++ )
                                 vvSparsePoss[ uiI ].push_back( rSparseCoords.template sparse<D - 1, false>(
-                                    vGrid[ uiI ][ uiX ], vSparseCoordsOverlay[ uiI ], uiI ) );
+                                    vGrid[ uiI ][ uiX ], vSparseCoordsOverlay[ uiI ], uiI - (uiI > uiD ? 1 : 0) ) );
                         }
 
+#if GET_PROG_PRINTS
+                    xProg << Verbosity( 4 ) << "\t\taddValuesInDim " << uiD << " ret grid size " << vRetEntries[ uiD ]
+                          << "\n";
+#endif
                     addValuesInDim<uiD, 0, true>( );
                 }
                 addValues<uiD + 1>( );
@@ -1172,7 +1179,7 @@ template <typename type_defs> class Overlay
                                 const sparse_coord_t& rSparseCoords, const prefix_sum_grid_t& rPrefixSums,
                                 const pos_t& vOverlayBottomLeft, const pos_t& vOverlayTopRight, const pos_t& vGridFrom,
                                 const pos_t& vGridTo, const std::array<std::vector<coordinate_t>, D>& vGrid,
-                                const pos_t& vOverlayIdx,
+                                const pos_t& vOverlayIdxInGrid,
                                 const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
                                 const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay,
                                 const sps_t& uiBottomLeftPrefixSum,
@@ -1191,7 +1198,7 @@ template <typename type_defs> class Overlay
               vGridFrom( vGridFrom ),
               vGridTo( vGridTo ),
               vGrid( vGrid ),
-              vOverlayIdx( vOverlayIdx ),
+              vOverlayIdxInGrid( vOverlayIdxInGrid ),
               vOverlayEntries( vOverlayEntries ),
               vSparseCoordsOverlay( vSparseCoordsOverlay ),
               uiBottomLeftPrefixSum( uiBottomLeftPrefixSum ),
@@ -1201,6 +1208,10 @@ template <typename type_defs> class Overlay
               xProg( xProg )
 #endif
         {
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 4 ) << "\tAddOverlayValuesToGrid in overlay " << vOverlayIdxInGrid << " vGridFrom "
+                  << vGridFrom << " vGridTo " << vGridTo << "\n";
+#endif
             addValues<0>( );
         }
     };

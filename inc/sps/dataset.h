@@ -1293,6 +1293,7 @@ template <typename type_defs> class Dataset
         pos_t vGridFrom;
         pos_t vGridTo;
         pos_t vOverlayIdx;
+        pos_t vOverlayIdxInGrid;
         pos_t vOverlayBottomLeft;
         pos_t vOverlayTopRight;
 
@@ -1300,11 +1301,13 @@ template <typename type_defs> class Dataset
         {
             if constexpr( N < D )
             {
-                for( const OverlayBounds& rBounds : rOverlayBounds[ N ] )
+                for( size_t uiI = 0; uiI < rOverlayBounds[ N ].size( ); uiI++ )
                 {
+                    const OverlayBounds& rBounds = rOverlayBounds[ N ][ uiI ];
                     vGridFrom[ N ] = rBounds.uiGridFrom;
                     vGridTo[ N ] = rBounds.uiGridTo;
                     vOverlayIdx[ N ] = rBounds.uiOverlayIdx;
+                    vOverlayIdxInGrid[ N ] = uiI;
                     vOverlayBottomLeft[ N ] = rBounds.uiBottomLeft;
                     vOverlayTopRight[ N ] = rBounds.uiTopRight;
                     callGridOnOverlays<N + 1>( );
@@ -1315,6 +1318,7 @@ template <typename type_defs> class Dataset
 #if GET_PROG_PRINTS
                 xProg << Verbosity( 2 ) << "\tQuerying " //
                       << "overlay " << vOverlayIdx //
+                      << "\n\t\tvOverlayIdxInGrid " << vOverlayIdxInGrid //
                       << "\n\t\tvOverlayBottomLeft " << vOverlayBottomLeft //
                       << "\n\t\tvOverlayTopRight " << vOverlayTopRight //
                       << "\n";
@@ -1322,7 +1326,7 @@ template <typename type_defs> class Dataset
 
                 rOverlays.template get<D, false, false>( vOverlayIdx, xOverlays )
                     .grid( xRet, vvSparsePoss, xRetEntryInternal, vRetEntriesOverlay, rSparseCoords, rPrefixSums,
-                           vOverlayBottomLeft, vOverlayTopRight, vGridFrom, vGridTo, vGrid, vOverlayIdx
+                           vOverlayBottomLeft, vOverlayTopRight, vGridFrom, vGridTo, vGrid, vOverlayIdxInGrid
 #if GET_PROG_PRINTS
                            ,
                            xProg
@@ -1358,6 +1362,11 @@ template <typename type_defs> class Dataset
                 vNum[ uiI ] = rOverlayBounds[ uiI ].size( );
 
                 vRetEntriesOverlay[ uiI ] = xRet.template add<D, true, true>( vNum );
+
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 4 ) << "\tinitVRetEntriesOverlay size " << vNum << " dim " << uiI 
+                      << " entry " << vRetEntriesOverlay[ uiI ] << "\n";
+#endif
                 vNum[ uiI ] = uiPrev;
             }
             return vRetEntriesOverlay;
