@@ -482,14 +482,4 @@ random.seed(SEED)
 test_escalate([(1, 0), (2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)
 
 # Environment vars
-# export DEBUG=1
-# export SPS_DIMENSIONS_A=2
-# export SPS_ORTHOTOPE_A=0 
-# export SPS_DIMENSIONS_B=1
-# export SPS_ORTHOTOPE_B=1
-# export SPS_DIMENSIONS_C=2
-# export SPS_ORTHOTOPE_C=2
-# export SPS_DIMENSIONS_D=3
-# export SPS_ORTHOTOPE_D=3
-# export SPS_DIMENSIONS_E=1
-# export SPS_ORTHOTOPE_E=0
+# export DEBUG=1; export SPS_DIMENSIONS_A=2; export SPS_ORTHOTOPE_A=0; export SPS_DIMENSIONS_B=1; export SPS_ORTHOTOPE_B=1; export SPS_DIMENSIONS_C=2; export SPS_ORTHOTOPE_C=2; export SPS_DIMENSIONS_D=3; export SPS_ORTHOTOPE_D=3; export SPS_DIMENSIONS_E=1; export SPS_ORTHOTOPE_E=0
