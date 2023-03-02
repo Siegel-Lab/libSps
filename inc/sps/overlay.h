@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -803,7 +803,10 @@ template <typename type_defs> class Overlay
 #endif
         )
         {
-            if constexpr( uiDistToTo == 0 || D == 1 )
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiFirstZero << "\n";
+#endif
+            if constexpr( uiDistToTo == 0 )
                 return;
             if constexpr( uiFirstZero == D )
                 return;
@@ -811,7 +814,7 @@ template <typename type_defs> class Overlay
                 return;
 
 #if GET_PROG_PRINTS
-            xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiFirstZero << "\n";
+            xProg << Verbosity( 3 ) << "\t\tpast return\n";
 #endif
             red_pos_t vRelevant = relevant( vPos, uiFirstZero );
             red_pos_t vSparse =
@@ -869,7 +872,7 @@ template <typename type_defs> class Overlay
 #endif
         )
         {
-            if constexpr( uiDistToTo == 0 || D == 1 )
+            if constexpr( uiDistToTo == 0 )
                 return;
             if constexpr( uiFirstZero == D )
                 return;
@@ -1126,12 +1129,16 @@ template <typename type_defs> class Overlay
                 // iterate over grid-line intersections on the face of dimension uiO
                 for( size_t uiX = 0; uiX < vGridTo[ uiD ] - vGridFrom[ uiD ]; uiX++ )
                 {
-                    constexpr size_t uiDmO = uiD - ( uiD >= uiO ? 1 : 0 );
                     rGridIdx[ uiD ] = uiX + vGridFrom[ uiD ];
-                    rSparsePos[ uiDmO ] = vvSparsePoss[ uiD ][ uiX ];
-
-                    if( rSparsePos[ uiDmO ] != std::numeric_limits<coordinate_t>::max( ) && bValid )
-                        addValuesInDim<uiO, uiD + 1, true>( );
+                    if constexpr( bValid )
+                    {
+                        constexpr size_t uiDmO = uiD - ( uiD >= uiO ? 1 : 0 );
+                        rSparsePos[ uiDmO ] = vvSparsePoss[ uiD ][ uiX ];
+                        if( rSparsePos[ uiDmO ] != std::numeric_limits<coordinate_t>::max( ) )
+                            addValuesInDim<uiO, uiD + 1, true>( );
+                        else
+                            addValuesInDim<uiO, uiD + 1, false>( );
+                    }
                     else
                         addValuesInDim<uiO, uiD + 1, false>( );
                 }
@@ -1172,10 +1179,13 @@ template <typename type_defs> class Overlay
 #endif
                     addValuesInDim<uiD, 0, true>( );
                 }
-#if GET_PROG_PRINTS
                 else
+                {
+#if GET_PROG_PRINTS
                     xProg << Verbosity( 4 ) << "\t\tno overlay values in dim " << uiD << "\n";
 #endif
+                    addValuesInDim<uiD, 0, false>( );
+                }
                 addValues<uiD + 1>( );
             }
         }
@@ -1424,6 +1434,9 @@ template <typename type_defs> class Overlay
 
         os << "\txInternalEntires: ";
         xInternalEntires.streamOp( os, rPrefixSums ) << std::endl;
+
+        os << "\tbottom left prefix sum: ";
+        os << uiBottomLeftPrefixSum << std::endl;
 
         return os;
     }

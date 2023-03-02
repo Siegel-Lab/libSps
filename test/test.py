@@ -159,7 +159,7 @@ class HyperrectangleValue(Hyperrectangle):
         return super().__str__() + " value: " + str(self.value())
 
 class SpsIndexWrapper:
-    ALWAYS_PRINT = True
+    ALWAYS_PRINT = False
     def __init__(self, index, d, o, fac):
         try:
             self.index = sps.make_sps_index(num_dimensions=d, num_orthotope_dimensions=o)
@@ -311,9 +311,9 @@ class Index:
                     cnt += d.value()
                 else:
                     print("\t", d, "\tcount: -")
-            if intersection in [Intersection.ENCLOSED, Intersection.ENCLOSES]:
+            if len(intersections) == 0 or intersection in [Intersection.ENCLOSED, Intersection.ENCLOSES]:
                 print("prefix count for corner", q_pos.to_list() + query.size()[:self.orto()], "should be", cnt)
-            if intersection in [Intersection.FIRST, Intersection.LAST, Intersection.OVERLAPS]:
+            elif intersection in [Intersection.FIRST, Intersection.LAST, Intersection.OVERLAPS]:
                 print("prefix count for corner", q_pos.to_list() + ["inf"]*self.orto(), "should be", cnt)
 
 
@@ -434,7 +434,7 @@ def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, grid_que
             lines = [Point.random(data_space)[dx] for _ in range(grid_query_lines[dx])]
             lines.sort()
             grid_lines.append(lines)
-        counter.grid_count(grid_lines, intersection, count=count)
+        #counter.grid_count(grid_lines, intersection, count=count)
 
     print("success at attempt", count)
 

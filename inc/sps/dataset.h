@@ -1039,7 +1039,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
             // 'round up' size to make sure that no points are past the last overlay
-            uiSizeOverlays[ uiI ] = 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlaysPerDim[ uiI ];
+            // also make overlays at least size 2
+            uiSizeOverlays[ uiI ] = std::max(
+                (coordinate_t)2, (coordinate_t)( 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlaysPerDim[ uiI ] ) );
             xProg << "generating " << uiNumOverlaysPerDim[ uiI ] << " overlays in dimension " << uiI << "\n";
         }
 
@@ -1505,7 +1507,7 @@ template <typename type_defs> class Dataset
             if constexpr( uiD < D )
             {
                 xCollectedIdx[ uiD ] = xGridIdx[ uiD ];
-                if(xCollectedIdx[ uiD ] != std::numeric_limits<size_t>::max())
+                if( xCollectedIdx[ uiD ] != std::numeric_limits<size_t>::max( ) )
                     addGridValuesToCurrCellItr<uiD + 1, uiN, uiDistToTo + 1>( );
                 xCollectedIdx[ uiD ] = xGridIdx[ uiD ] + 1;
                 addGridValuesToCurrCellItr<uiD + 1, uiN + ( 1 << ( D - ( uiD + 1 ) ) ), uiDistToTo>( );
@@ -1525,8 +1527,8 @@ template <typename type_defs> class Dataset
                     uiCurr = uiCurrArr;
 
 #if GET_PROG_PRINTS
-                xProg << " uiCurr: " << uiCurr << " uiFac: " << uiFac << " fac2: " 
-                      << ( uiDistToTo % 2 == 0 ? "1" : "-1" ) << "\n";
+                xProg << " uiCurr: " << uiCurr << " uiFac: " << ( uiFac == 1 ? "1" : "-1" )
+                      << " fac2: " << ( uiDistToTo % 2 == 0 ? "1" : "-1" ) << "\n";
 #endif
 
                 *puiCurrCellValue += ( uiDistToTo % 2 == 0 ? 1 : -1 ) * uiFac * uiCurr;
@@ -1565,11 +1567,11 @@ template <typename type_defs> class Dataset
                 xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_4 N: " << uiO << " uiD: " << uiD
                       << " size: " << vOverlayBounds[ uiD ].size( ) << "\n";
 #endif
-                if(vOverlayBounds[ uiD ].size( ) > 0)
+                if( vOverlayBounds[ uiD ].size( ) > 0 )
                 {
-                    if(vOverlayBounds[ uiD ][ 0 ].uiGridFrom > 0)
+                    if( vOverlayBounds[ uiD ][ 0 ].uiGridFrom > 0 )
                     {
-                        uiCurrOverlay = std::numeric_limits<size_t>::max();
+                        uiCurrOverlay = std::numeric_limits<size_t>::max( );
                         xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ 0 ].uiGridFrom - 1;
                         execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                     }
@@ -1579,7 +1581,7 @@ template <typename type_defs> class Dataset
                         xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ uiI ].uiGridFrom - 1;
 #if GET_PROG_PRINTS
                         xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_2 N: " << uiO << " uiD: " << uiD
-                                << "\n";
+                              << "\n";
 #endif
                         execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                     }
