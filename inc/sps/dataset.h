@@ -1565,7 +1565,7 @@ template <typename type_defs> class Dataset
             {
 #if GET_PROG_PRINTS
                 xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_4 N: " << uiO << " uiD: " << uiD
-                      << " size: " << vOverlayBounds[ uiD ].size( ) << "\n";
+                      << " size: " << vOverlayBounds[ uiD ].size( ) << " cell_pos: " << xGridIdx << "\n";
 #endif
                 if( vOverlayBounds[ uiD ].size( ) > 0 )
                 {
@@ -1573,6 +1573,10 @@ template <typename type_defs> class Dataset
                     {
                         uiCurrOverlay = std::numeric_limits<size_t>::max( );
                         xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ 0 ].uiGridFrom - 1;
+#if GET_PROG_PRINTS
+                        xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_3 N: " << uiO << " uiD: " << uiD
+                               << " cell_pos: " << xGridIdx << " uiCurrOverlay: " << uiCurrOverlay << "\n";
+#endif
                         execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                     }
                     for( size_t uiI = 1; uiI < vOverlayBounds[ uiD ].size( ); uiI++ )
@@ -1581,7 +1585,7 @@ template <typename type_defs> class Dataset
                         xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ uiI ].uiGridFrom - 1;
 #if GET_PROG_PRINTS
                         xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_2 N: " << uiO << " uiD: " << uiD
-                              << "\n";
+                               << " cell_pos: " << xGridIdx << " uiCurrOverlay: " << uiCurrOverlay << "\n";
 #endif
                         execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                     }
@@ -1592,7 +1596,8 @@ template <typename type_defs> class Dataset
                 {
                     xGridIdx[ uiD ] = uiX;
 #if GET_PROG_PRINTS
-                    xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_1 N: " << uiO << " uiD: " << uiD << "\n";
+                    xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_1 N: " << uiO << " uiD: " << uiD 
+                          << " cell_pos: " << xGridIdx << "\n";
 #endif
                     execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                 }

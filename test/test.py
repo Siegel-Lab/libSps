@@ -434,7 +434,7 @@ def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, grid_que
             lines = [Point.random(data_space)[dx] for _ in range(grid_query_lines[dx])]
             lines.sort()
             grid_lines.append(lines)
-        #counter.grid_count(grid_lines, intersection, count=count)
+        counter.grid_count(grid_lines, intersection, count=count)
 
     print("success at attempt", count)
 
@@ -475,11 +475,11 @@ def test_escalate(dos=[(2, 0)],
 
 
 SEED = random.randrange(sys.maxsize)
-SEED = 7047854526239717292 # comment out this line to start with a random seed
+SEED = 7309575998713145354 # comment out this line to start with a random seed
 random.seed(SEED)
 
-#test_escalate([(1, 0), (2, 0)], attempts=10)
-test_escalate([(1, 0), (2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)
+test_escalate([(1, 0), (2, 0)], attempts=100)
+#test_escalate([(1, 0), (2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)
 
 # Environment vars
 # export DEBUG=1; export SPS_DIMENSIONS_A=2; export SPS_ORTHOTOPE_A=0; export SPS_DIMENSIONS_B=1; export SPS_ORTHOTOPE_B=1; export SPS_DIMENSIONS_C=2; export SPS_ORTHOTOPE_C=2; export SPS_DIMENSIONS_D=3; export SPS_ORTHOTOPE_D=3; export SPS_DIMENSIONS_E=1; export SPS_ORTHOTOPE_E=0
