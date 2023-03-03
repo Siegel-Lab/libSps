@@ -1295,6 +1295,8 @@ template <typename type_defs> class Dataset
         // no need to initialize
         pos_t vGridFrom;
         pos_t vGridTo;
+        pos_t vGridFromOverlay;
+        pos_t vGridToOverlay;
         pos_t vOverlayIdx;
         pos_t vOverlayIdxInGrid;
         pos_t vOverlayBottomLeft;
@@ -1309,6 +1311,8 @@ template <typename type_defs> class Dataset
                     const OverlayBounds& rBounds = rOverlayBounds[ N ][ uiI ];
                     vGridFrom[ N ] = rBounds.uiGridFrom;
                     vGridTo[ N ] = rBounds.uiGridTo;
+                    vGridFromOverlay[ N ] = rBounds.uiGridFrom + uiI;
+                    vGridToOverlay[ N ] = rBounds.uiGridTo + uiI + 1;
                     vOverlayIdx[ N ] = rBounds.uiOverlayIdx;
                     vOverlayIdxInGrid[ N ] = uiI;
                     vOverlayBottomLeft[ N ] = rBounds.uiBottomLeft;
@@ -1329,7 +1333,8 @@ template <typename type_defs> class Dataset
 
                 rOverlays.template get<D, false, false>( vOverlayIdx, xOverlays )
                     .grid( xRet, vvSparsePoss, xRetEntryInternal, vRetEntriesOverlay, rSparseCoords, rPrefixSums,
-                           vOverlayBottomLeft, vOverlayTopRight, vGridFrom, vGridTo, vGrid, vOverlayIdxInGrid
+                           vOverlayBottomLeft, vOverlayTopRight, vGridFrom, vGridTo, vGridFromOverlay, vGridToOverlay,
+                           vGrid, vOverlayIdxInGrid
 #if GET_PROG_PRINTS
                            ,
                            xProg
@@ -1356,6 +1361,8 @@ template <typename type_defs> class Dataset
         )
         {
             std::array<typename Overlay<type_defs>::grid_ret_entry_t, D> vRetEntriesOverlay;
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                vNum[ uiI ] += rOverlayBounds[ uiI ].size( );
             for( size_t uiI = 0; uiI < D; uiI++ )
             {
                 // the overlay values are flat in one dimension
@@ -1497,6 +1504,8 @@ template <typename type_defs> class Dataset
         // no need to initialize
         const typename Overlay<type_defs>::grid_ret_entry_t* pCurrEntry;
         pos_t xGridIdx;
+        pos_t xGridIdxBottomLeft;
+        // running variable for addGridValuesToCurrCellItr
         pos_t xCollectedIdx;
         val_t* puiCurrCellValue;
         size_t uiCurrOverlay;
@@ -1569,23 +1578,31 @@ template <typename type_defs> class Dataset
 #endif
                 if( vOverlayBounds[ uiD ].size( ) > 0 )
                 {
+                    // first overlay bounds might be the transition from
+                    // before the first overlay-box into the first overlay-box. 
+                    // in that case we need the overlay entries for these grid-cells
+                    // why are they not all zero?:
+                    // Answer: e.g. the box at x: 0 (<- first box) y: 3 (<- not first box) will have overlay entries,
+                    // below it (in y-direction) that are non empty eventhough all the entries to the left (x-direction)
+                    // are empty.
                     if( vOverlayBounds[ uiD ][ 0 ].uiGridFrom > 0 )
                     {
                         uiCurrOverlay = std::numeric_limits<size_t>::max( );
+                        // -1 since we need the grid-cell that overlaps the two overlay-boxes
                         xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ 0 ].uiGridFrom - 1;
 #if GET_PROG_PRINTS
                         xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_3 N: " << uiO << " uiD: " << uiD
-                               << " cell_pos: " << xGridIdx << " uiCurrOverlay: " << uiCurrOverlay << "\n";
+                              << " cell_pos: " << xGridIdx << " uiCurrOverlay: " << uiCurrOverlay << "\n";
 #endif
                         execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                     }
                     for( size_t uiI = 1; uiI < vOverlayBounds[ uiD ].size( ); uiI++ )
                     {
-                        uiCurrOverlay = vOverlayBounds[ uiD ][ uiI - 1 ].uiOverlayIdx;
-                        xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ uiI ].uiGridFrom - 1;
+                        uiCurrOverlay = vOverlayBounds[ uiD ][ uiI - 1 ].uiOverlayIdx + uiI;
+                        xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ uiI ].uiGridFrom - 1; // see above
 #if GET_PROG_PRINTS
                         xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_2 N: " << uiO << " uiD: " << uiD
-                               << " cell_pos: " << xGridIdx << " uiCurrOverlay: " << uiCurrOverlay << "\n";
+                              << " cell_pos: " << xGridIdx << " uiCurrOverlay: " << uiCurrOverlay << "\n";
 #endif
                         execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
                     }
@@ -1596,7 +1613,7 @@ template <typename type_defs> class Dataset
                 {
                     xGridIdx[ uiD ] = uiX;
 #if GET_PROG_PRINTS
-                    xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_1 N: " << uiO << " uiD: " << uiD 
+                    xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_1 N: " << uiO << " uiD: " << uiD
                           << " cell_pos: " << xGridIdx << "\n";
 #endif
                     execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
