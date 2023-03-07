@@ -1,0 +1,4 @@
+#pragma once
+
+
+#define SPS_BUILD_TIME "???"

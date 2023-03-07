@@ -61,16 +61,16 @@ if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    include(CheckCXXSourceCompiles)
-    check_cxx_source_compiles(
-    "#include <stxxl/bits/config.h>
-     #include <cmath>
+    # include(CheckCXXSourceCompiles)
+    # check_cxx_source_compiles(
+    # "#include <stxxl/bits/config.h>
+    #  #include <cmath>
 
-     inline double log2(double x){}"
-    HAVE_LOG2_DEFINITION)
-    if(NOT HAVE_LOG2_DEFINITION)
-        add_compile_definitions(STXXL_MSVC_COMPATIBILITY_HEADER)
-    endif()
+    #  inline double log2(double x){}"
+    # HAVE_LOG2_DEFINITION)
+    # if(NOT HAVE_LOG2_DEFINITION)
+    #     add_compile_definitions(STXXL_MSVC_COMPATIBILITY_HEADER)
+    # endif()
 endif()
 
 # Enable Link time optimization
@@ -90,7 +90,7 @@ endif(WITH_STXXL)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 
-find_package (Python QUIET COMPONENTS Interpreter Development)
+find_package (Python COMPONENTS Interpreter Development)
 
 if(Python_FOUND)
     set(conf_version_exec "${CMAKE_CURRENT_SOURCE_DIR}/src/conf_version.h.in.py")
@@ -112,6 +112,17 @@ if(Python_FOUND)
             "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         VERBATIM)
+else(Python_FOUND)
+    add_custom_target(sps_config_version)
+    add_custom_command(TARGET sps_config_version PRE_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E copy 
+                     "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/version.h.backup" 
+                     "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h")
+    add_custom_target(sps_config_build_time)
+    add_custom_command(TARGET sps_config_build_time PRE_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E copy 
+                     "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/build_time.h.backup" 
+                     "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h")
 endif(Python_FOUND)
 
 

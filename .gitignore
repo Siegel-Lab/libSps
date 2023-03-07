@@ -31,3 +31,4 @@ sps*.so
 out/*
 .vs/*
 CmakeSettings.json
+*.pyd
