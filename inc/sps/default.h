@@ -3,10 +3,12 @@
 #include "sps/type_defs.h"
 #include <chrono>
 #include <iostream>
+
+#ifdef WITH_STXXL
 #include <stxxl/io>
 #include <stxxl/sort>
 #include <stxxl/vector>
-
+#endif
 
 using namespace sps;
 
@@ -171,6 +173,7 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               StdOutProgressStream>;
 
 
+#ifdef WITH_STXXL
 template <typename val_t, size_t PageSize, size_t CachePages, size_t BlockSize>
 struct CacheVec : public stxxl::VECTOR_GENERATOR<val_t, PageSize, CachePages, BlockSize>::result
 {
@@ -223,6 +226,7 @@ template <typename val_t> struct CachedVecGenerator
                                   stxxl::file::open_mode::DIRECT );
     }
 };
+#endif
 
 
 template <typename val_t> struct DiskVec : public std::vector<val_t>
@@ -369,6 +373,8 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              EXPLAIN, //
                              StdOutProgressStream>;
 
+
+#ifdef WITH_STXXL
 /**
  * @brief Type definitions for a Cached Index
  *
@@ -397,3 +403,4 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                orthope, //
                                EXPLAIN, //
                                StdOutProgressStream>;
+#endif

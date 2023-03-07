@@ -18,7 +18,10 @@
 #include <cassert>
 #include <functional>
 #include <string>
+#include <sstream>
+#ifdef WITH_STXXL
 #include <stxxl/vector>
+#endif
 
 #if WITH_PYTHON
 #include <pybind11/pybind11.h>
@@ -711,9 +714,9 @@ template <typename type_defs> class Index : public AbstractIndex
      */
     std::string str( ) const
     {
-        std::stringstream ss;
-        ss << *this;
-        return ss.str( );
+        std::stringstream xStrStream;
+        xStrStream << *this;
+        return xStrStream.str( );
     }
 
     friend std::ostream& operator<<( std::ostream& os, const Index& rMain )

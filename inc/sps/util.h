@@ -5,7 +5,11 @@
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
+
+#ifdef WITH_STXXL
 #include <stxxl/vector>
+#endif
+
 #include <thread>
 #include <utility>
 #include <vector>
@@ -77,6 +81,7 @@ template <typename T> ostream& stream( ostream& out, const std::vector<T>& vecto
 }
 
 
+#ifdef WITH_STXXL
 template <typename ValueType, unsigned PageSize, typename PagerType, unsigned BlockSize, typename AllocStr,
           typename SizeType>
 ostream& operator<<( ostream& out,
@@ -105,7 +110,7 @@ ostream& stream( ostream& out,
     out << "}";
     return out;
 }
-
+#endif
 
 } // namespace std
 

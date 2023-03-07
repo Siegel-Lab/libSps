@@ -309,7 +309,7 @@ template <typename type_defs> class Dataset
                 : 0;
         std::vector<coordinate_t> vPrefixSumSize( std::max( (size_t)1, uiNumThreads ) );
         // actually process the overlays
-        xIterator.process( uiNumThreads, xProgIn, [ & ]( size_t uiTid, size_t uiOverlayId ) {
+        xIterator->process( uiNumThreads, xProgIn, [ & ]( size_t uiTid, size_t uiOverlayId ) {
 #if WITH_PYTHON
             if( PyErr_CheckSignals( ) != 0 ) // allow Ctrl-C cancel
                 throw pybind11::error_already_set( );
@@ -400,7 +400,7 @@ template <typename type_defs> class Dataset
 
         auto xIterator = rOverlays.template genIterator<D>( xOverlays, successors );
         // actually process the overlays
-        xIterator.process(
+        xIterator->process(
             rSparseCoords.THREADSAVE && rOverlays.THREADSAVE && rPrefixSums.THREADSAVE
                 ? std::min( (size_t)overlay_grid_t::sizeOf( xOverlays ), (size_t)std::thread::hardware_concurrency( ) )
                 : 0,

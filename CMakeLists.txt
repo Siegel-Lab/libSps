@@ -28,6 +28,13 @@ set(STORAGE_C "0" CACHE STRING "The storage type of this index (one of Ram, Disk
 set(STORAGE_D "0" CACHE STRING "The storage type of this index (one of Ram, Disk, Cached).")
 set(STORAGE_E "0" CACHE STRING "The storage type of this index (one of Ram, Disk, Cached).")
 
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(WITH_STXXL_DEFAULT ON)
+else(CMAKE_COMPILER_IS_GNUCC)
+    set(WITH_STXXL_DEFAULT OFF)
+endif(CMAKE_COMPILER_IS_GNUCC)
+option(WITH_STXXL "Use stxxl to build the cached forms of the index" WITH_STXXL_DEFAULT)
+
 #################
 # Configuration #
 #################
@@ -37,7 +44,7 @@ if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
   message(SEND_ERROR "In-source builds are not allowed.")
 endif("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -77,7 +84,9 @@ else()
 endif()
 
 # include subprojects
-add_subdirectory ( contrib/stxxl EXCLUDE_FROM_ALL )
+if(WITH_STXXL)
+    add_subdirectory ( contrib/stxxl EXCLUDE_FROM_ALL )
+endif(WITH_STXXL)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 
@@ -115,7 +124,10 @@ find_package( pybind11 QUIET PATHS ${Python_SITEARCH} )
 if (pybind11_FOUND)
     pybind11_add_module( sps src/tree.cpp )
     target_include_directories( sps PUBLIC inc )
-    target_include_directories( sps SYSTEM PRIVATE ${STXXL_INCLUDE_DIRS} )
+    if(WITH_STXXL)
+        target_include_directories( sps SYSTEM PRIVATE ${STXXL_INCLUDE_DIRS} )
+        target_compile_definitions( sps PRIVATE WITH_STXXL )
+    endif(WITH_STXXL)
 
     target_compile_definitions( sps PRIVATE WITH_PYTHON )
 
@@ -137,7 +149,9 @@ if (pybind11_FOUND)
     target_compile_definitions( sps PRIVATE STORAGE_D=${STORAGE_D} )
     target_compile_definitions( sps PRIVATE STORAGE_E=${STORAGE_E} )
 
-    target_link_libraries( sps PUBLIC stxxl )
+    if(WITH_STXXL)
+        target_link_libraries( sps PUBLIC stxxl )
+    endif(WITH_STXXL)
     target_include_directories( sps PUBLIC ${CMAKE_BINARY_DIR}/generated/inc )
     add_dependencies(sps sps_config_version sps_config_build_time)
 else(pybind11_FOUND)
@@ -219,7 +233,9 @@ target_include_directories( libsps INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/inc>
     $<INSTALL_INTERFACE:inc>
 )
-target_link_libraries( libsps INTERFACE stxxl )
+if(WITH_STXXL)
+    target_link_libraries( libsps INTERFACE stxxl )
+endif(WITH_STXXL)
 add_dependencies(libsps sps_config_version sps_config_build_time)
 
 write_basic_package_version_file(

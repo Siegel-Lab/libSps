@@ -41,10 +41,12 @@ template <size_t D, size_t O, size_t storage_t> std::string exportPrefixSumIndex
 {
     if constexpr( storage_t == 0 )
         return exportPrefixSumIndex<D, O, InMemTypeDef>( m, "Ram" );
-    else if constexpr( storage_t == 1 )
-        return exportPrefixSumIndex<D, O, DiskTypeDef>( m, "Disk" );
-    else
+#ifdef WITH_STXXL
+    else if constexpr( storage_t == 2 )
         return exportPrefixSumIndex<D, O, CachedTypeDef>( m, "Cached" );
+#endif
+    else 
+        return exportPrefixSumIndex<D, O, DiskTypeDef>( m, "Disk" );
 }
 
 template <size_t D> std::string exportStorageSimpleVec( pybind11::module& m, std::string sSuff )
@@ -54,7 +56,9 @@ template <size_t D> std::string exportStorageSimpleVec( pybind11::module& m, std
     sRet += exportSimpleVector<DiskTypeDef<D, D, true>>( m, ( "DiskSimpleVector" + sSuff ).c_str( ) );
 #endif
 #ifdef CACHED
+#ifdef WITH_STXXL
     sRet += exportSimpleVector<CachedTypeDef<D, D, true>>( m, ( "CachedSimpleVector" + sSuff ).c_str( ) );
+#endif
 #endif
 #ifdef RAM
     sRet += exportSimpleVector<InMemTypeDef<D, D, true>>( m, ( "RamSimpleVector" + sSuff ).c_str( ) );
@@ -91,9 +95,11 @@ std::unique_ptr<AbstractIndex> factoryHelper( [[maybe_unused]] size_t uiD, [[may
         if constexpr( storage_t == 1 )
             if( sStorageType == "Disk" )
                 return factoryHelper<D, O, DiskTypeDef>( uiD, uiOrthtopeDims, sPrefix, bWrite, bSimpleVec );
+#ifdef WITH_STXXL
         if constexpr( storage_t == 2 )
             if( sStorageType == "Cached" )
                 return factoryHelper<D, O, CachedTypeDef>( uiD, uiOrthtopeDims, sPrefix, bWrite, bSimpleVec );
+#endif
     }
     return nullptr;
 }
@@ -129,11 +135,14 @@ std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t 
 
 PYBIND11_MODULE( sps, m )
 {
+    
+#ifdef WITH_STXXL
     // prevent creation of stxxl log files
     if( getenv( (char*)"STXXLLOGFILE" ) == nullptr )
         putenv( (char*)"STXXLLOGFILE=/dev/null" );
     if( getenv( (char*)"STXXLERRLOGFILE" ) == nullptr )
         putenv( (char*)"STXXLERRLOGFILE=/dev/null" );
+#endif
 
     m.attr( "VERSION" ) = SPS_VERSION;
     m.attr( "BUILD_TIME" ) = SPS_BUILD_TIME;

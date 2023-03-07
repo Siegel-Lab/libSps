@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sps/type_defs.h"
+#include <functional>
 
 namespace sps
 {

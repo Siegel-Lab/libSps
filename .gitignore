@@ -30,3 +30,4 @@ sps*.so
 *.egg-info
 out/*
 .vs/*
+CmakeSettings.json
