@@ -107,13 +107,6 @@ ostream& stream( ostream& out,
 }
 
 
-template <typename stream_t, typename T> optional<stream_t>& operator<<( optional<stream_t>& out, const T& rT )
-{
-    if( out )
-        *out << rT;
-    return out;
-}
-
 } // namespace std
 
 namespace sps

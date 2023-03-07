@@ -495,19 +495,6 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 #endif
 
-  private:
-#define COUNT_MULTIPLE( args... )                                                                                      \
-    std::vector<val_t> vRet;                                                                                           \
-    vRet.reserve( vRegions.size( ) );                                                                                  \
-                                                                                                                       \
-    for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )                                                               \
-    {                                                                                                                  \
-        if( PyErr_CheckSignals( ) != 0 )                                                                               \
-            throw pybind11::error_already_set( );                                                                      \
-        vRet.push_back( count( args ) );                                                                               \
-    }                                                                                                                  \
-    return vRet;
-
   public:
     /**
      * @brief Count the number of points between from and to and in the given dataset.
@@ -524,16 +511,35 @@ template <typename type_defs> class Index : public AbstractIndex
                                       IntersectionType xInterType = IntersectionType::enclosed,
                                       size_t uiVerbosity = 0 ) const
     {
-        COUNT_MULTIPLE( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), std::get<2>( vRegions[ uiI ] ),
-                        xInterType, uiVerbosity );
+
+        std::vector<val_t> vRet;
+        vRet.reserve( vRegions.size( ) );
+
+        for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
+        {
+            if( PyErr_CheckSignals( ) != 0 )
+                throw pybind11::error_already_set( );
+            vRet.push_back( count( std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
+                                   std::get<2>( vRegions[ uiI ] ), xInterType, uiVerbosity ) );
+        }
+        return vRet;
     }
 
     std::vector<val_t> countMultiple( class_key_t uiDatasetId, std::vector<std::tuple<ret_pos_t, ret_pos_t>> vRegions,
                                       IntersectionType xInterType = IntersectionType::enclosed,
                                       size_t uiVerbosity = 0 ) const
     {
-        COUNT_MULTIPLE( uiDatasetId, std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ), xInterType,
-                        uiVerbosity );
+        std::vector<val_t> vRet;
+        vRet.reserve( vRegions.size( ) );
+
+        for( size_t uiI = 0; uiI < vRegions.size( ); uiI++ )
+        {
+            if( PyErr_CheckSignals( ) != 0 )
+                throw pybind11::error_already_set( );
+            vRet.push_back( count( uiDatasetId, std::get<0>( vRegions[ uiI ] ), std::get<1>( vRegions[ uiI ] ),
+                                   xInterType, uiVerbosity ) );
+        }
+        return vRet;
     }
 
     val_t maxPrefixSumValue( ) const

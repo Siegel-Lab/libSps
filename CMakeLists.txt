@@ -37,22 +37,34 @@ if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
   message(SEND_ERROR "In-source builds are not allowed.")
 endif("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
-# enable warnings (always good)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall")
-# throw error for undefined symbols
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-undefined")
+if(CMAKE_COMPILER_IS_GNUCC)
+    # enable warnings (always good)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall")
+    # throw error for undefined symbols
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-undefined")
 
-# Add -O0 to remove optimizations when using gcc
-IF(CMAKE_COMPILER_IS_GNUCC)
+    # Add -O0 to remove optimizations when using gcc
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
+
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    include(CheckCXXSourceCompiles)
+    check_cxx_source_compiles(
+    "#include <stxxl/bits/config.h>
+     #include <cmath>
+
+     inline double log2(double x){}"
+    HAVE_LOG2_DEFINITION)
+    if(NOT HAVE_LOG2_DEFINITION)
+        add_compile_definitions(STXXL_MSVC_COMPATIBILITY_HEADER)
+    endif()
+endif()
 
 # Enable Link time optimization
 include(CheckIPOSupported)
@@ -69,27 +81,35 @@ add_subdirectory ( contrib/stxxl EXCLUDE_FROM_ALL )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 
-# configure the version.h.in file
-add_custom_target(
-    sps_config_version ALL
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/src/conf_version.h.in.sh
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/version.h.in"
-        "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
-        "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
-    VERBATIM)
+find_package (Python QUIET COMPONENTS Interpreter Development)
 
-add_custom_target(
-    sps_config_build_time ALL
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/src/conf_build_time.h.in.sh
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/build_time.h.in"
-        "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h"
-    VERBATIM)
+if(Python_FOUND)
+    set(conf_version_exec "${CMAKE_CURRENT_SOURCE_DIR}/src/conf_version.h.in.py")
+    set(conf_build_time_exec "${CMAKE_CURRENT_SOURCE_DIR}/src/conf_build_time.h.in.py")
+    # configure the version.h.in file
+    add_custom_target(
+        sps_config_version ALL
+        COMMAND ${conf_version_exec}
+            "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/version.h.in"
+            "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        VERBATIM)
+
+    add_custom_target(
+        sps_config_build_time ALL
+        COMMAND ${conf_build_time_exec}
+            "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/build_time.h.in"
+            "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        VERBATIM)
+endif(Python_FOUND)
+
 
 ########################
 # Python Module Target #
 ########################
 
-find_package (Python QUIET COMPONENTS Interpreter Development)
 #set(requested_python_version 3.5)
 find_package( pybind11 QUIET PATHS ${Python_SITEARCH} )
 if (pybind11_FOUND)
@@ -230,4 +250,5 @@ install(FILES "${PROJECT_BINARY_DIR}/libspsConfigVersion.cmake"
         DESTINATION lib/cmake/libsps)
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/inc/ ${CMAKE_BINARY_DIR}/generated/inc/ DESTINATION inc)
 
-add_custom_target(format COMMAND cmake/format.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} VERBATIM)
+add_custom_target(format COMMAND "clang-format" "-i" "-style=file" "inc/sps/*.h" "src/*.cpp" 
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} VERBATIM)

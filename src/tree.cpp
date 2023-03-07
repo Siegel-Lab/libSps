@@ -8,7 +8,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <string_view>
-#include <unistd.h>
+//#include <unistd.h>
 
 
 constexpr bool bBinSearchSparse = false;
@@ -126,7 +126,6 @@ std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t 
         return pRet;
     throw std::invalid_argument( "sps has not been compiled with the requested parameter combination." );
 }
-#pragma GCC diagnostic pop
 
 PYBIND11_MODULE( sps, m )
 {

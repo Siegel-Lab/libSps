@@ -28,3 +28,5 @@ perf.data.old
 firefox.perf
 sps*.so
 *.egg-info
+out/*
+.vs/*

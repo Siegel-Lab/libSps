@@ -176,8 +176,6 @@ class TypeDefs
                                                                                                                        \
     static constexpr bool IS_ORTHOTOPE = type_defs::IS_ORTHOTOPE;                                                      \
                                                                                                                        \
-    static constexpr bool IS_ORTHOTOPE_CAT = type_defs::IS_ORTHOTOPE_CAT;                                              \
-                                                                                                                       \
     using sps_t = typename type_defs::sps_t;                                                                           \
                                                                                                                        \
     using progress_stream_t = typename type_defs::progress_stream_t;                                                   \
