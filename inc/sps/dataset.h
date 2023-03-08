@@ -1039,7 +1039,9 @@ template <typename type_defs> class Dataset
         for( size_t uiI = 0; uiI < D; uiI++ )
         {
             // 'round up' size to make sure that no points are past the last overlay
-            uiSizeOverlays[ uiI ] = 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlaysPerDim[ uiI ];
+            // also make overlays at least size 2
+            uiSizeOverlays[ uiI ] = std::max(
+                (coordinate_t)2, (coordinate_t)( 1 + ( uiCoordinateSizes[ uiI ] - 1 ) / uiNumOverlaysPerDim[ uiI ] ) );
             xProg << "generating " << uiNumOverlaysPerDim[ uiI ] << " overlays in dimension " << uiI << "\n";
         }
 
@@ -1245,134 +1247,543 @@ template <typename type_defs> class Dataset
             );
     }
 
-#if 0
-    template <size_t N>
-    inline void gridHelper( typename Overlay<type_defs>::grid_ret_t& xRet,
-                            const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntry,
-                            std::array<std::vector<coordinate_t>, D>& vvSparsePoss,
-                            red_pos_t& vGridFrom,
-                            red_pos_t& vGridTo,
-                            pos_t& vOverlayIdx,
-                            pos_t& vOverlayBottomLeft,
-                            pos_t& vOverlayTopRight,
-                            [[maybe_unused]] const pos_t vOverlayStart,
-                            [[maybe_unused]] const pos_t vOverlayEnd,
-                            const overlay_grid_t& rOverlays,
-                            const sparse_coord_t& rSparseCoords,
-                            const prefix_sum_grid_t& rPrefixSums,
-                            const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid,
-                            const isect_arr_t& vInterTypes, 
-                            const std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>& vOrthoFrom,
-                            const std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>& vOrthoTo,
-                            val_t uiFac
-#if GET_PROG_PRINTS
-                            ,
-                            progress_stream_t& xProg
-#endif
-    ) const
+    struct OverlayBounds
     {
-        if constexpr( N < D - ORTHOTOPE_DIMS )
-            // collect all grid entries in dimension N, that share the same overlay index using a drag pointer
-            while(vGridFrom[N] < vGrid[N].size())
-            {
-                vOverlayIdx[ N ] = overlayCoord(vGrid[N][vGridFrom[N]], N);
-                vOverlayBottomLeft[ N ] = actualFromGridPos( vOverlayIdx[ N ], N );
-                vOverlayTopRight[ N ] = actualFromGridPos( vOverlayIdx[ N ] + 1, N );
-                size_t vGridTo[N] = vGridFrom[N] + 1;
-                // set uiCurr to the first grid line that is outside the current overlay
-                while(vGridTo[N] < vGrid[N].size() && vOverlayIdx[ N ] == overlayCoord(vGrid[N][vGridFrom[N]], N))
-                    ++vGridTo[N];
-                gridHelper<N + 1>( xRet, xRetEntry, vvSparsePoss, vGridFrom, vGridTo, vOverlayIdx, 
-                                   vOverlayBottomLeft, vOverlayTopRight,
-                                   vOverlayStart, vOverlayEnd, rOverlays, rSparseCoords, rPrefixSums, vGrid, 
-                                   vInterTypes, vOrthoFrom, vOrthoTo, uiFac
-#if GET_PROG_PRINTS
-                                   ,
-                                   xProg
-#endif
-                );
-                vGridFrom[N] = vGridTo[N];
-            }
-        else if constexpr(N < D)
+        size_t uiGridFrom;
+        size_t uiGridTo;
+        size_t uiOverlayIdx;
+        coordinate_t uiBottomLeft;
+        coordinate_t uiTopRight;
+
+        friend std::ostream& operator<<( std::ostream& os, const OverlayBounds& rBounds )
         {
+            os << "< grid_from: " << rBounds.uiGridFrom << " grid_to: " << rBounds.uiGridTo
+               << " overlay_idx: " << rBounds.uiOverlayIdx << " bottom_left: " << rBounds.uiBottomLeft
+               << " top_right: " << rBounds.uiTopRight << " >";
+
+            return os;
         }
-        else
-        {
+    };
+
+    using OverlayBoundsGrid = std::array<std::vector<OverlayBounds>, D>;
+
+    using grid_ret_t = NDGrid<type_defs, val_t, RamVecGenerator>;
+    // @todo this needs not to consider orthotope dimensions
+    using grid_ret_entry_t = typename grid_ret_t::template Entry<D>;
+
+
+    class CollectGridValues
+    {
+      public:
+        typename Overlay<type_defs>::grid_ret_t xRet;
+        std::array<std::vector<coordinate_t>, D> vvSparsePoss;
+        pos_t vNum;
+        const typename Overlay<type_defs>::grid_ret_entry_t xRetEntryInternal;
+        const OverlayBoundsGrid rOverlayBounds;
+        const std::array<typename Overlay<type_defs>::grid_ret_entry_t, D> vRetEntriesOverlay;
+
+      private:
+        const overlay_grid_t& rOverlays;
+        const typename overlay_grid_t::template Entry<D>& xOverlays;
+        const sparse_coord_t& rSparseCoords;
+        const prefix_sum_grid_t& rPrefixSums;
+        const std::array<std::vector<coordinate_t>, D>& vGrid;
 #if GET_PROG_PRINTS
-            xProg << Verbosity( 2 ) << "\tQuerying " //
-                  << "overlay " << vOverlayIdx //
-                  << "\n\t\tvOverlayStart " << vOverlayStart //
-                  << "\n\t\tvOverlayEnd " << vOverlayEnd //
-                  << "\n\t\tvOverlayBottomLeft " << vOverlayBottomLeft //
-                  << "\n\t\tvOverlayTopRight " << vOverlayTopRight //
-                  << "\n";
+        progress_stream_t& xProg;
 #endif
 
-            rOverlays.template get<D, false, false>( vOverlayIdx, xOverlays )
-                .grid( xRet, xRetEntry, vvSparsePoss, rSparseCoords, rPrefixSums, vOverlayBottomLeft, vOverlayTopRight,
-                       vGridFrom, vGridTo, vGrid, vInterTypes, vOrthoFrom, vOrthoTo, uiFac
+        // no need to initialize
+        pos_t vGridFrom;
+        pos_t vGridTo;
+        pos_t vGridFromOverlay;
+        pos_t vGridToOverlay;
+        pos_t vOverlayIdx;
+        pos_t vOverlayIdxInGrid;
+        pos_t vOverlayBottomLeft;
+        pos_t vOverlayTopRight;
+
+        template <size_t N> inline void callGridOnOverlays( )
+        {
+            if constexpr( N < D )
+            {
+                for( size_t uiI = 0; uiI < rOverlayBounds[ N ].size( ); uiI++ )
+                {
+                    const OverlayBounds& rBounds = rOverlayBounds[ N ][ uiI ];
+                    vGridFrom[ N ] = rBounds.uiGridFrom;
+                    vGridTo[ N ] = rBounds.uiGridTo;
+                    vGridFromOverlay[ N ] = rBounds.uiGridFrom + uiI;
+                    vGridToOverlay[ N ] = rBounds.uiGridTo + uiI + 1;
+                    vOverlayIdx[ N ] = rBounds.uiOverlayIdx;
+                    vOverlayIdxInGrid[ N ] = uiI;
+                    vOverlayBottomLeft[ N ] = rBounds.uiBottomLeft;
+                    vOverlayTopRight[ N ] = rBounds.uiTopRight;
+                    callGridOnOverlays<N + 1>( );
+                }
+            }
+            else
+            {
 #if GET_PROG_PRINTS
-                       ,
-                       xProg
+                xProg << Verbosity( 2 ) << "\tQuerying " //
+                      << "overlay " << vOverlayIdx //
+                      << "\n\t\tvOverlayIdxInGrid " << vOverlayIdxInGrid //
+                      << "\n\t\tvOverlayBottomLeft " << vOverlayBottomLeft //
+                      << "\n\t\tvOverlayTopRight " << vOverlayTopRight //
+                      << "\n";
 #endif
-                );
+
+                rOverlays.template get<D, false, false>( vOverlayIdx, xOverlays )
+                    .grid( xRet, vvSparsePoss, xRetEntryInternal, vRetEntriesOverlay, rSparseCoords, rPrefixSums,
+                           vOverlayBottomLeft, vOverlayTopRight, vGridFrom, vGridTo, vGridFromOverlay, vGridToOverlay,
+                           vGrid, vOverlayIdxInGrid
+#if GET_PROG_PRINTS
+                           ,
+                           xProg
+#endif
+                    );
+            }
         }
-    }
+
+        static pos_t initVNum( const std::array<std::vector<coordinate_t>, D>& vGrid )
+        {
+            pos_t vNum;
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                vNum[ uiI ] = vGrid[ uiI ].size( );
+            return vNum;
+        }
+
+        static std::array<typename Overlay<type_defs>::grid_ret_entry_t, D>
+        initVRetEntriesOverlay( typename Overlay<type_defs>::grid_ret_t& xRet, pos_t vNum,
+                                const OverlayBoundsGrid& rOverlayBounds
+#if GET_PROG_PRINTS
+                                ,
+                                [[maybe_unused]] progress_stream_t& xProg
+#endif
+        )
+        {
+            std::array<typename Overlay<type_defs>::grid_ret_entry_t, D> vRetEntriesOverlay;
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                vNum[ uiI ] += rOverlayBounds[ uiI ].size( );
+            for( size_t uiI = 0; uiI < D; uiI++ )
+            {
+                // the overlay values are flat in one dimension
+                // instead of removing this flat dimensions, we keep it and have it at a size according to the number of
+                // boxes in this dimension. Hence each box can store its overlay values.
+                // here, "number of boxes" refers to the number of overlay bounds,
+                // i.e. if boxes are skipped they do not get an entry.
+                // Also boxes that do not have a query-cell overlapping their bounds do not get an entry.
+                size_t uiPrev = vNum[ uiI ];
+                vNum[ uiI ] = rOverlayBounds[ uiI ].size( );
+
+                vRetEntriesOverlay[ uiI ] = xRet.template add<D, true, true>( vNum );
+
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 4 ) << "\tinitVRetEntriesOverlay size " << vNum << " dim " << uiI << " entry "
+                      << vRetEntriesOverlay[ uiI ] << "\n";
+#endif
+                vNum[ uiI ] = uiPrev;
+            }
+            return vRetEntriesOverlay;
+        }
+
+        static OverlayBoundsGrid initOverlayBounds( const Dataset& rDataset,
+                                                    const std::array<std::vector<coordinate_t>, D>& vGrid )
+        {
+            OverlayBoundsGrid vRet;
+            OverlayBounds xCurr;
+            for( size_t uiD = 0; uiD < D; uiD++ )
+            {
+                vRet[ uiD ].reserve( vGrid[ uiD ].size( ) );
+                xCurr.uiGridFrom = 0;
+
+                // skip entries before start of index (i.e. before the first point)
+                while( xCurr.uiGridFrom < vGrid[ uiD ].size( ) &&
+                       ( vGrid[ uiD ][ xCurr.uiGridFrom ] == std::numeric_limits<coordinate_t>::max( ) ||
+                         rDataset.overlayCoord( vGrid[ uiD ][ xCurr.uiGridFrom ], uiD ) ==
+                             std::numeric_limits<coordinate_t>::max( ) ) )
+                    ++xCurr.uiGridFrom;
+
+                while( xCurr.uiGridFrom < vGrid[ uiD ].size( ) )
+                {
+                    xCurr.uiOverlayIdx = rDataset.overlayCoord( vGrid[ uiD ][ xCurr.uiGridFrom ], uiD );
+                    xCurr.uiBottomLeft = rDataset.actualFromGridPos( xCurr.uiOverlayIdx, uiD );
+                    xCurr.uiTopRight = rDataset.actualFromGridPos( xCurr.uiOverlayIdx + 1, uiD );
+                    xCurr.uiGridTo = xCurr.uiGridFrom + 1;
+                    while( xCurr.uiGridTo < vGrid[ uiD ].size( ) &&
+                           xCurr.uiOverlayIdx == rDataset.overlayCoord( vGrid[ uiD ][ xCurr.uiGridTo ], uiD ) )
+                        ++xCurr.uiGridTo;
+                    vRet[ uiD ].push_back( xCurr );
+                    xCurr.uiGridFrom = xCurr.uiGridTo;
+                }
+            }
+            return vRet;
+        }
+
+      public:
+        CollectGridValues( const Dataset& rDataset,
+                           const overlay_grid_t& rOverlays,
+                           const typename overlay_grid_t::template Entry<D>& xOverlays,
+                           const sparse_coord_t& rSparseCoords,
+                           const prefix_sum_grid_t& rPrefixSums,
+                           const std::array<std::vector<coordinate_t>, D>& vGrid
+#if GET_PROG_PRINTS
+                           ,
+                           progress_stream_t& xProg
+#endif
+                           )
+            : xRet( ".tmp", true ),
+              vvSparsePoss{ },
+              vNum( initVNum( vGrid ) ),
+              xRetEntryInternal( xRet.template add<D, true, true>( vNum ) ),
+              rOverlayBounds( initOverlayBounds( rDataset, vGrid ) ),
+              vRetEntriesOverlay( initVRetEntriesOverlay( xRet, vNum, rOverlayBounds
+#if GET_PROG_PRINTS
+                                                          ,
+                                                          xProg
+#endif
+                                                          ) ),
+              rOverlays( rOverlays ),
+              xOverlays( xOverlays ),
+              rSparseCoords( rSparseCoords ),
+              rPrefixSums( rPrefixSums ),
+              vGrid( vGrid )
+#if GET_PROG_PRINTS
+              ,
+              xProg( xProg )
+#endif
+        {
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "collecting grid values in grid of size " << vNum << "\n";
+            xProg << "with overlay borders " << rOverlayBounds << "\n";
+            xProg << "box size " << rDataset.uiSizeOverlays << "\n";
+            xProg << "min coords " << rDataset.uiMinCoords << "\n";
+#endif
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                vvSparsePoss[ uiI ].reserve( vGrid[ uiI ].size( ) );
+
+            callGridOnOverlays<0>( );
+
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "grid internal values: " << xRetEntryInternal << "; ";
+            xRetEntryInternal.streamOp( xProg, xRet );
+            xProg << "\n";
+            xProg << "grid overlay values:\n";
+            for( size_t uiI = 0; uiI < D; uiI++ )
+            {
+                xProg << "\tdim " << uiI << ": " << vRetEntriesOverlay[ uiI ] << "; ";
+                vRetEntriesOverlay[ uiI ].streamOp( xProg, xRet );
+                xProg << "\n";
+            }
+#endif
+        }
+    };
+
+    class CollectCellValues
+    {
+      public:
+        grid_ret_t xRet;
+
+      private:
+        const std::array<std::vector<coordinate_t>, D>& vGrid;
+        const pos_t vNumMin1;
+        const grid_ret_entry_t rRetEntry;
+
+        const OverlayBoundsGrid& vOverlayBounds;
+        struct ExtractedOverlayBounds
+        {
+            size_t uiBottomLeftIndex;
+            size_t uiIndex;
+        };
+        using ExtractedOverlayBoundsGrid = std::array<std::vector<ExtractedOverlayBounds>, D>;
+
+        const ExtractedOverlayBoundsGrid vExtractedOverlayBounds;
+        const typename Overlay<type_defs>::grid_ret_t& xCollectedVals;
+        const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntryInternal;
+        const isect_arr_t& vInterTypes;
+        const size_t uiFac;
+
+        const std::array<typename Overlay<type_defs>::grid_ret_entry_t, D>& vRetEntriesOverlay;
+
+        size_t uiNumOverlayBorders;
+
+#if GET_PROG_PRINTS
+        progress_stream_t& xProg;
+#endif
+
+        // no need to initialize
+        const typename Overlay<type_defs>::grid_ret_entry_t* pCurrEntry;
+        pos_t xGridIdx;
+        pos_t xGridIdxBottomLeft;
+        // running variable for addGridValuesToCurrCellItr
+        pos_t xCollectedIdx;
+        val_t* puiCurrCellValue;
+        size_t uiCurrOverlay;
+
+
+        template <size_t uiD, size_t uiN, size_t uiDistToTo> inline void addGridValuesToCurrCellItr( )
+        {
+            if constexpr( uiD < D )
+            {
+                xCollectedIdx[ uiD ] = xGridIdx[ uiD ];
+                if( xCollectedIdx[ uiD ] != std::numeric_limits<size_t>::max( ) )
+                    addGridValuesToCurrCellItr<uiD + 1, uiN, uiDistToTo + 1>( );
+                xCollectedIdx[ uiD ] = xGridIdx[ uiD ] + 1;
+                addGridValuesToCurrCellItr<uiD + 1, uiN + ( 1 << ( D - ( uiD + 1 ) ) ), uiDistToTo>( );
+            }
+            else
+            {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << "\t\t\taddGridValuesToCurrCellItr grid_pos: " << xCollectedIdx
+                      << " uiN: " << uiN << " uiDistToTo: " << uiDistToTo;
+#endif
+                const sps_t& uiCurrArr = xCollectedVals.template get<D, false>( xCollectedIdx, *pCurrEntry );
+                val_t uiCurr;
+                if constexpr( IS_ORTHOTOPE )
+                    uiCurr =
+                        uiCurrArr[ Overlay<type_defs>::template intersectionTypeToCornerIndex<uiN>( vInterTypes ) ];
+                else
+                    uiCurr = uiCurrArr;
+
+#if GET_PROG_PRINTS
+                xProg << " uiCurr: " << uiCurr << " uiFac: " << ( uiFac == 1 ? "1" : "-1" )
+                      << " fac2: " << ( uiDistToTo % 2 == 0 ? "1" : "-1" ) << "\n";
+#endif
+
+                *puiCurrCellValue += ( uiDistToTo % 2 == 0 ? 1 : -1 ) * uiFac * uiCurr;
+            }
+        }
+
+        void addGridValuesToCurrCell( )
+        {
+            addGridValuesToCurrCellItr<0, 0, 0>( );
+        }
+
+        /*
+         * @todo instead of nested loops have one loop that sets the coordinates while iterating...
+         * for each dimension there can be a divisor and modulator. so we iterate over the raw 1d array.
+         * then for each cell compute the coordinates by division & modulo.
+         * This would be an almost if-less implementation (there is one if left in the loop termination...)
+         *
+         * To figure out the box-borders, there should then be a bool vector for each dimension.
+         */
+        template <size_t uiD> inline void execOnAllCells( )
+        {
+            if constexpr( uiD < D )
+                for( size_t uiX = 0; uiX < vNumMin1[ uiD ]; uiX++ )
+                {
+                    xGridIdx[ uiD ] = uiX;
+                    execOnAllCells<uiD + 1>( );
+                }
+            else
+            {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << "\t\texecOnAllCells " << xGridIdx << "\n";
+#endif
+                puiCurrCellValue = &xRet.template get<D, false, false>( xGridIdx, rRetEntry );
+                pCurrEntry = &xRetEntryInternal;
+                addGridValuesToCurrCell( );
+            }
+        }
+
+        template <size_t uiO, size_t uiD> inline void execOnAllBorderOverlappingCells( )
+        {
+            if constexpr( uiD == uiO )
+            {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_4 N: " << uiO << " uiD: " << uiD
+                      << " size: " << vOverlayBounds[ uiD ].size( ) << " cell_pos: " << xGridIdx << "\n";
+#endif
+                if( vOverlayBounds[ uiD ].size( ) > 0 )
+                {
+                    // first overlay bounds might be the transition from
+                    // before the first overlay-box into the first overlay-box.
+                    // in that case we need the overlay entries for these grid-cells
+                    // why are they not all zero?:
+                    // Answer: e.g. the box at x: 0 (<- first box) y: 3 (<- not first box) will have overlay entries,
+                    // below it (in y-direction) that are non empty eventhough all the entries to the left (x-direction)
+                    // are empty.
+                    if( vOverlayBounds[ uiD ][ 0 ].uiGridFrom > 0 )
+                    {
+                        uiCurrOverlay = std::numeric_limits<size_t>::max( );
+                        // -1 since we need the grid-cell that overlaps the two overlay-boxes
+                        xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ 0 ].uiGridFrom - 1;
+#if GET_PROG_PRINTS
+                        xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_3 N: " << uiO << " uiD: " << uiD
+                              << " cell_pos: " << xGridIdx << " uiCurrOverlay: " << uiCurrOverlay << "\n";
+#endif
+                        execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
+                    }
+                    for( size_t uiI = 1; uiI < vOverlayBounds[ uiD ].size( ); uiI++ )
+                    {
+                        uiCurrOverlay = vOverlayBounds[ uiD ][ uiI - 1 ].uiOverlayIdx + uiI;
+                        xGridIdx[ uiD ] = vOverlayBounds[ uiD ][ uiI ].uiGridFrom - 1; // see above
+#if GET_PROG_PRINTS
+                        xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_2 N: " << uiO << " uiD: " << uiD
+                              << " cell_pos: " << xGridIdx << " uiCurrOverlay: " << uiCurrOverlay << "\n";
+#endif
+                        execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
+                    }
+                }
+            }
+            else if constexpr( uiD < D )
+                for( size_t uiX = 0; uiX < vNumMin1[ uiD ]; uiX++ )
+                {
+                    xGridIdx[ uiD ] = uiX;
+#if GET_PROG_PRINTS
+                    xProg << Verbosity( 4 ) << "\t\texecOnAllOverlayBorders_1 N: " << uiO << " uiD: " << uiD
+                          << " cell_pos: " << xGridIdx << "\n";
+#endif
+                    execOnAllBorderOverlappingCells<uiO, uiD + 1>( );
+                }
+            else
+            {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << "\t\texecOnAllBorderOverlappingCells cell_pos: " << xGridIdx
+                      << " uiO: " << uiO << " uiCurrOverlay: " << uiCurrOverlay;
+#endif
+                puiCurrCellValue = &xRet.template get<D, false, false>( xGridIdx, rRetEntry );
+                coordinate_t uiPrev = xGridIdx[ uiO ];
+                xGridIdx[ uiO ] = uiCurrOverlay;
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << " xGridIdx: " << xGridIdx << "\n";
+#endif
+                pCurrEntry = &vRetEntriesOverlay[ uiO ];
+                addGridValuesToCurrCell( );
+                xGridIdx[ uiO ] = uiPrev;
+            }
+        }
+
+        template <size_t N> inline void execOnAllOverlayBorders( )
+        {
+            if constexpr( N < D )
+            {
+#if GET_PROG_PRINTS
+                xProg << Verbosity( 3 ) << "\texecOnAllOverlayBorders N: " << N << "\n";
+#endif
+                execOnAllBorderOverlappingCells<N, 0>( );
+                execOnAllOverlayBorders<N + 1>( );
+            }
+        }
+
+        static pos_t initVNumMin1( const std::array<std::vector<coordinate_t>, D>& vGrid )
+        {
+            pos_t vNumMin1;
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                vNumMin1[ uiI ] = vGrid[ uiI ].size( ) - 1;
+            return vNumMin1;
+        }
+
+        static ExtractedOverlayBoundsGrid
+        initExtractedOverlayBoundsGrid( [[maybe_unused]] const OverlayBoundsGrid& vOverlayBounds )
+        {
+            ExtractedOverlayBoundsGrid vRet;
+#if 0
+            for( size_t uiD = 0; uiD < D; uiI++ )
+                if( vOverlayBounds[ uiD ].size( ) > 0 )
+                {
+                    vRet[uiD].reserve(vOverlayBounds[uiD].back().uiGridTo);
+                    for( size_t uiX = 0; uiX < vOverlayBounds[ uiD ][ 0 ].uiGridFrom; uiX++ )
+                        vRet[uiD].push_back( ExtractedOverlayBounds{
+                            .uiBottomLeftIndex = std::numeric_limits<size_t>::max( ),
+                            .uiIndex = std::numeric_limits<size_t>::max( ),
+                        } );
+                    for( size_t uiI = 0; uiI < vOverlayBounds[ uiD ].size( ); uiI++ )
+                    {
+                        vRet[uiD].push_back( ExtractedOverlayBounds{
+                            .uiBottomLeftIndex = vOverlayBounds[ uiD ][ uiI ].uiGridFrom - 1,
+                            .uiIndex = vOverlayBounds[ uiD ][ uiI ].uiGridFrom + uiI, // - 1 + 1
+                        } );
+                        for(size_t uiX = rBounds.uiGridFrom; uiX < rBounds.uiGridTo; uiX++)
+                            vRet[uiD].push_back( ExtractedOverlayBounds{
+                                .uiBottomLeftIndex = std::numeric_limits<size_t>::max( ),
+                                .uiIndex = uiI + uiX, // - 1 + 1
+                            } );
+                    }
+                }
+#endif
+            return vRet;
+        }
+
+      public:
+        CollectCellValues( const std::array<std::vector<coordinate_t>, D>& vGrid,
+                           const OverlayBoundsGrid& vOverlayBounds,
+                           const typename Overlay<type_defs>::grid_ret_t& xCollectedVals,
+                           const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntryInternal,
+                           const std::array<typename Overlay<type_defs>::grid_ret_entry_t, D>& vRetEntriesOverlay,
+                           const isect_arr_t& vInterTypes
+#if GET_PROG_PRINTS
+                           ,
+                           progress_stream_t& xProg
+#endif
+                           )
+            : xRet( ".tmp", true ),
+              vGrid( vGrid ),
+              vNumMin1( initVNumMin1( vGrid ) ),
+              rRetEntry( xRet.template add<D, false, true>( vNumMin1 ) ),
+              vOverlayBounds( vOverlayBounds ),
+              vExtractedOverlayBounds( initExtractedOverlayBoundsGrid( vOverlayBounds ) ),
+              xCollectedVals( xCollectedVals ),
+              xRetEntryInternal( xRetEntryInternal ),
+              vInterTypes( vInterTypes ),
+              uiFac( Overlay<type_defs>::intersectionTypeToFactor( vInterTypes ) ),
+              vRetEntriesOverlay( vRetEntriesOverlay ),
+              uiNumOverlayBorders( 0 )
+#if GET_PROG_PRINTS
+              ,
+              xProg( xProg )
+#endif
+        {
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "collecting cell values in grid of size " << vNumMin1 << "\n";
+#endif
+            execOnAllCells<0>( );
+            execOnAllOverlayBorders<0>( );
+
+#if GET_PROG_PRINTS
+            xProg << Verbosity( 3 ) << "cell values: " << rRetEntry << "; ";
+            rRetEntry.streamOp( xProg, xRet );
+            xProg << "\n";
+#endif
+        }
+    };
+
 
     std::vector<val_t> grid( const overlay_grid_t& rOverlays,
                              const sparse_coord_t& rSparseCoords,
                              const prefix_sum_grid_t& rPrefixSums,
-                             const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid,
-                             const isect_arr_t& vInterTypes, 
-                             const std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>& vOrthoFrom,
-                             const std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>& vOrthoTo
+                             const std::array<std::vector<coordinate_t>, D>& vGrid,
+                             const isect_arr_t& vInterTypes
 #if GET_PROG_PRINTS
                              ,
                              progress_stream_t& xProg
 #endif
     ) const
     {
-        pos_t vNum;
-        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
-            vNum[ uiI ] = vGrid[ uiI ].size() - 1;
-        for( size_t uiI = D - ORTHOTOPE_DIMS; uiI < D; uiI++ )
-            vNum[ uiI ] = 1;
-
-        red_pos_t vGridFrom {};
-        red_pos_t vGridTo {};
-        pos_t vOverlayIdx;
-        pos_t vOverlayBottomLeft;
-        pos_t vOverlayTopRight;
-        typename Overlay<type_defs>::grid_ret_t xRet( ".tmp", true );
-        typename Overlay<type_defs>::grid_ret_entry_t xRetEntry = xRet.template add<D, false, true>( vNum );
-
-
-        val_t uiFac = Overlay<type_defs>::intersectionTypeToFactor( vInterTypes );
-
-        std::array<std::vector<coordinate_t>, D> vvSparsePoss;
 
 #if GET_PROG_PRINTS
         xProg << Verbosity( 2 ) << "\t"
-              << " vPosAct " << vPosAct //
-              << " vEndPos " << vEndPos //
-              << " vOverlayStart " << vOverlayStart //
-              << " vOverlayEnd " << vOverlayEnd //
-              << " vNum " << vNum //
+              << " vGrid " << vGrid //
               << "\n";
 #endif
 
-        gridHelper<0>( xRet, xRetEntry, vvSparsePoss, vGridFrom, vGridTo, vOverlayIdx, vOverlayBottomLeft,
-                       vOverlayTopRight, rOverlays, rSparseCoords, rPrefixSums, vGrid, vInterTypes, uiFac,
-                       vOrthoFrom, vOrthoTo
+        // work is done in constructor
+        CollectGridValues xGridValues( *this, rOverlays, xOverlays, rSparseCoords, rPrefixSums, vGrid
 #if GET_PROG_PRINTS
-                       ,
-                       xProg
+                                       ,
+                                       xProg
+#endif
+        );
+        // work is done in constructor
+        CollectCellValues xCellValues( vGrid, xGridValues.rOverlayBounds, xGridValues.xRet,
+                                       xGridValues.xRetEntryInternal, xGridValues.vRetEntriesOverlay, vInterTypes
+#if GET_PROG_PRINTS
+                                       ,
+                                       xProg
 #endif
         );
 
-        return xRet.vData;
+
+        return xCellValues.xRet.vData;
     }
-#endif
 
     sps_t getAll( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords,
                   const prefix_sum_grid_t& rPrefixSums, const pos_t& vPos, progress_stream_t& xProg ) const
@@ -1464,6 +1875,18 @@ template <typename type_defs> class Dataset
     {
         os << "<" << std::endl;
 
+        os << "\txOverlayGridShape: " << xOverlays.vAxisSizes << "\n";
+        for( size_t uiI = 0; uiI < D; uiI++ )
+        {
+            os << "\txOverlayGridCoords: dim: " << uiI << " coords: {";
+            for( size_t uiX = 0; uiX < xOverlays.vAxisSizes[ uiI ]; uiX++ )
+            {
+                if( uiX > 0 )
+                    os << ", ";
+                os << actualFromGridPos( uiX, uiI );
+            }
+            os << "}\n";
+        }
         os << "\txOverlayGrid: ";
         xOverlays.stream( os, rOverlays, rSparseCoords, rPrefixSums, *this, vCorners ) << std::endl;
 

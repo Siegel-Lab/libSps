@@ -59,7 +59,7 @@ template <typename type_defs, typename data_t, template <typename> typename data
             return os;
         }
 
-        std::ostream& streamOp( std::ostream& os, const NDGrid& rGrid ) const
+        template <typename ostream_t> ostream_t& streamOp( ostream_t& os, const NDGrid& rGrid ) const
         {
             os << "{ ";
             for( size_t uiI = 0; uiI < rGrid.sizeOf( *this ); uiI++ )

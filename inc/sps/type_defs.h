@@ -16,6 +16,8 @@ namespace sps
 
 #define DU_UNREALISTIC_VALUE_CHECK 0
 
+#define ALWAYS_SIMULATE_GRID_QUERY false
+
 class Verbosity
 {
   public:

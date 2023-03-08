@@ -159,7 +159,8 @@ class HyperrectangleValue(Hyperrectangle):
         return super().__str__() + " value: " + str(self.value())
 
 class SpsIndexWrapper:
-    def __init__(self, index, d, o):
+    ALWAYS_PRINT = False
+    def __init__(self, index, d, o, fac):
         try:
             self.index = sps.make_sps_index(num_dimensions=d, num_orthotope_dimensions=o)
         except Exception as e:
@@ -171,7 +172,7 @@ class SpsIndexWrapper:
                 self.index.add_point(x.from_pos().to_list(), x.to_pos().to_list(), x.value())
             else:
                 self.index.add_point(x.from_pos().to_list(), x.value())
-        self.idx = self.index.generate(verbosity=0)
+        self.idx = self.index.generate(verbosity=0, factor=fac)
 
     def _transl_inter(self, x):
         return {
@@ -185,11 +186,13 @@ class SpsIndexWrapper:
 
     def count(self, query, intersections, verbosity=0):
         return self.index.count(self.idx, query.from_pos().to_list(), query.to_pos().to_list(), 
-                         [self._transl_inter(i) for i in intersections], verbosity=verbosity)
+                         [self._transl_inter(i) for i in intersections], 
+                         verbosity=5 if SpsIndexWrapper.ALWAYS_PRINT else verbosity)
 
     def grid_count(self, grid_lines, intersections, verbosity=0):
         return self.index.grid_count(self.idx, grid_lines,
-                         [self._transl_inter(i) for i in intersections], verbosity=verbosity)
+                         [self._transl_inter(i) for i in intersections], 
+                         verbosity=5 if SpsIndexWrapper.ALWAYS_PRINT else verbosity)
 
     def __str__(self):
         return str(self.index)
@@ -252,7 +255,37 @@ class Index:
                 yield x + [True]
                 yield x + [False]
 
-    #def prefix_grid(self, point, intersections):
+    def prefix_grid(self, grid_lines, intersections):
+        for q_pos in Index.all_grid_points(grid_lines):
+            for b_o_t in (Index.all_combinations(self.d()) if len(intersections) > 0 else [False]):
+                cnt = 0
+                for d in self._data:
+                    if len(intersections) > 0:
+                        corner = []
+                        for dx, intersection in enumerate(intersections):
+                            if intersection == Intersection.ENCLOSED:
+                                corner.append(b_o_t[dx])
+                            if intersection == Intersection.ENCLOSES:
+                                corner.append(b_o_t[dx])
+                            if intersection == Intersection.FIRST:
+                                corner.append(True)
+                            if intersection == Intersection.LAST:
+                                corner.append(False)
+                            if intersection == Intersection.OVERLAPS:
+                                corner.append(not b_o_t[dx])
+                        d_pos = d.get_corner(corner)
+                    else:
+                        d_pos = d.from_pos()
+                    if all(d < q for q, d in zip(q_pos, d_pos)):
+                        print("\t", d, "\tcount:", d.value())
+                        cnt += d.value()
+                    else:
+                        print("\t", d, "\tcount: -")
+                if len(intersections) == 0 or intersection in [Intersection.ENCLOSED, Intersection.ENCLOSES]:
+                    print("prefix count for corner", q_pos.to_list(), b_o_t, "should be", cnt)
+                if len(intersections) > 0 and intersection in [Intersection.FIRST, Intersection.LAST, Intersection.OVERLAPS]:
+                    print("prefix count for corner", q_pos.to_list() + ["inf"]*self.orto(), b_o_t, "should be", cnt)
+
 
 
     def prefix(self, query, intersections):
@@ -278,9 +311,9 @@ class Index:
                     cnt += d.value()
                 else:
                     print("\t", d, "\tcount: -")
-            if intersection in [Intersection.ENCLOSED, Intersection.ENCLOSES]:
+            if len(intersections) == 0 or intersection in [Intersection.ENCLOSED, Intersection.ENCLOSES]:
                 print("prefix count for corner", q_pos.to_list() + query.size()[:self.orto()], "should be", cnt)
-            if intersection in [Intersection.FIRST, Intersection.LAST, Intersection.OVERLAPS]:
+            elif intersection in [Intersection.FIRST, Intersection.LAST, Intersection.OVERLAPS]:
                 print("prefix count for corner", q_pos.to_list() + ["inf"]*self.orto(), "should be", cnt)
 
 
@@ -304,8 +337,8 @@ class Index:
     def orto(self):
         return max(x.orto() for x in self._data)
 
-    def to_sps_index(self, d, o):
-        return SpsIndexWrapper(self, d, o)
+    def to_sps_index(self, d, o, fac=-1):
+        return SpsIndexWrapper(self, d, o, fac)
 
 
 class CountMultiple:
@@ -356,7 +389,7 @@ class CountMultiple:
                 print()
                 print(self.names[0])
                 self.indices[0].grid_count(grid_lines, intersections, verbosity=100)
-                #self.indices[0].prefix_grid(grid_lines, intersections)
+                self.indices[0].prefix_grid(grid_lines, intersections)
                 print()
                 print()
                 print(name)
@@ -369,14 +402,15 @@ class CountMultiple:
                 print()
                 print(name, "got a different result than", self.names[0])
                 print("expected:", reference_cnt, "but got:", cnt)
-                print("query was", grid_lines, [Intersection.to_name(i) for i in intersections])
+                print("query was", grid_lines)
+                print("intersection mode was", [Intersection.to_name(i) for i in intersections])
                 print("d, o was:", self.indices[0].d(), self.indices[0].orto())
                 print("seed was:", SEED)
                 print("failure at attempt", count)
                 exit()
 
 def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, grid_query_elements=3, grid_query_lines=[3, 3], 
-             intersection=[Intersection.random(), Intersection.random()], count=0):
+             intersection=[Intersection.random(), Intersection.random()], count=0, fac=-1):
     data_space = Hyperrectangle.random(Hyperrectangle.square(d, data_size))
     if min(data_space.size()) <= 1:
         data_space = Hyperrectangle.square(d, data_size)
@@ -386,7 +420,7 @@ def test_one(d=2, o=0, data_size=10, data_elements=3, query_elements=3, grid_que
                                                          lambda: random.randrange(5))
                             )
     #print("index", index, sep="\n")
-    sps_index = index.to_sps_index(d, o)
+    sps_index = index.to_sps_index(d, o, fac=fac)
 
     counter = CountMultiple(["py", "sps"], [index, sps_index])
 
@@ -423,6 +457,7 @@ def test_escalate(dos=[(2, 0)],
                   grid_query_elements=lambda *_: [1],
                   grid_query_lines=lambda d, *_: [[3]*d],
                   intersections=intersection_from_o,#lambda *x: [Intersection.ENCLOSED]
+                  facs=[-1, 10],
                   attempts=1
                   ):
     c = 1
@@ -434,22 +469,17 @@ def test_escalate(dos=[(2, 0)],
                         for x in query_elements(d, o, s, n):
                             for y in grid_query_elements(d, o, s, n, x):
                                 for l in grid_query_lines(d, o, s, n, x, y):
-                                    test_one(d, o, s, n, x, y, l, i, c)
-                                    c += 1
+                                    for fac in facs:
+                                        test_one(d, o, s, n, x, y, l, i, c, fac=fac)
+                                        c += 1
 
 
 SEED = random.randrange(sys.maxsize)
-SEED = 7047854526239717292 # comment out this line to start with a random seed
+SEED = 7309575998713145354 # comment out this line to start with a random seed
 random.seed(SEED)
 
-test_escalate([(2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)
+test_escalate([(1, 0), (2, 0)], attempts=100)
+#test_escalate([(1, 0), (2, 0), (1, 1), (2, 2), (3, 3)], attempts=10)
 
 # Environment vars
-# export SPS_DIMENSIONS_A=2
-# export SPS_ORTHOTOPE_A=0 
-# export SPS_DIMENSIONS_B=1
-# export SPS_ORTHOTOPE_B=1
-# export SPS_DIMENSIONS_C=2
-# export SPS_ORTHOTOPE_C=2
-# export SPS_DIMENSIONS_D=3
-# export SPS_ORTHOTOPE_D=3
+# export DEBUG=1; export SPS_DIMENSIONS_A=2; export SPS_ORTHOTOPE_A=0; export SPS_DIMENSIONS_B=1; export SPS_ORTHOTOPE_B=1; export SPS_DIMENSIONS_C=2; export SPS_ORTHOTOPE_C=2; export SPS_DIMENSIONS_D=3; export SPS_ORTHOTOPE_D=3; export SPS_DIMENSIONS_E=1; export SPS_ORTHOTOPE_E=0

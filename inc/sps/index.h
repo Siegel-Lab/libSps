@@ -17,6 +17,7 @@
 #include "sps/util.h"
 #include <cassert>
 #include <functional>
+#include <optional>
 #include <string>
 #include <sstream>
 #ifdef WITH_STXXL
@@ -206,26 +207,23 @@ template <typename type_defs> class Index : public AbstractIndex
         return addDims( vStart, vEnd, vInterTypes );
     }
 
-#if 0
-    std::array<std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>, 2>
+    std::optional<std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2>>
     addDims( std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS> vGrid, isect_arr_t vIntersectionTypes ) const
     {
-        std::array<std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS>, 2> vRet;
+        std::array<std::array<coordinate_t, ORTHOTOPE_DIMS>, 2> vRet;
         for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
         {
-            vRet[ 0 ][ uiI ].reserve( vGrid[ uiI ].size( ) - 1 );
-            vRet[ 1 ][ uiI ].reserve( vGrid[ uiI ].size( ) - 1 );
-
-            for( size_t uiJ = 1; uiJ < vGrid[ uiI ].size( ); uiJ++ )
-            {
-                coordinate_t uiSize = vGrid[ uiI ][ uiJ ] - vGrid[ uiI ][ uiJ - 1 ];
-                vRet[ 0 ][ uiI ].push_back( addDimFrom( uiSize, vIntersectionTypes[ uiI ] ) );
-                vRet[ 1 ][ uiI ].push_back( addDimTo( uiSize, vIntersectionTypes[ uiI ] ) );
-            }
+            coordinate_t uiSize = 0;
+            if( vGrid[ uiI ].size( ) > 1 )
+                uiSize = vGrid[ uiI ][ 1 ] - vGrid[ uiI ][ 0 ];
+            for( size_t uiJ = 2; uiJ < vGrid[ uiI ].size( ); uiJ++ )
+                if( vGrid[ uiI ][ uiJ ] - vGrid[ uiI ][ uiJ - 1 ] != uiSize )
+                    return std::nullopt;
+            vRet[ uiI ][ 0 ] = addDimFrom( uiSize, vIntersectionTypes[ uiI ] );
+            vRet[ uiI ][ 1 ] = addDimTo( uiSize, vIntersectionTypes[ uiI ] );
         }
         return vRet;
     }
-#endif
 
     typename corners_t::Entry makeEntry( )
     {
@@ -264,15 +262,11 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * This may take a long time to compute.
      *
-     * Use len(index) to determine the index of the first and last point, as add_point may add multiple points per call.
-     *
      * This function is multithreaded.
      *
      * @param fFac Overlay size factor, defaults to -1.
      *             -1: factor is picked so that the estimated size of the datastructure is minimal
      * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
-     * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
-     * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @return class_key_t The id of the generated dataset.
      */
     class_key_t generate( double fFac = -1, size_t uiVerbosity = 1 )
@@ -431,7 +425,72 @@ template <typename type_defs> class Index : public AbstractIndex
         return count( xDatasetId, vFromR, vToR, vInterTypes, uiVerbosity );
     }
 
-#if 0
+  private:
+    class GridCountFallback
+    {
+        const Index& rIndex;
+        const class_key_t xDatasetId;
+        const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid;
+        const isect_arr_t& vInterTypes;
+
+        typename dataset_t::grid_ret_t xRet;
+        const ret_pos_t vNumMin1;
+        const typename dataset_t::grid_ret_t::template Entry<D - ORTHOTOPE_DIMS> rRetEntry;
+        const size_t uiVerbosity;
+
+        // no initialization needed
+        ret_pos_t vCurrIdx;
+        ret_pos_t vCurrStart;
+        ret_pos_t vCurrEnd;
+
+        static ret_pos_t initVNumMin1( const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid )
+        {
+            ret_pos_t vNumMin1;
+            for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+                vNumMin1[ uiI ] = vGrid[ uiI ].size( ) - 1;
+            return vNumMin1;
+        }
+
+        template <size_t uiN> inline void fallback( )
+        {
+            if constexpr( uiN < D - ORTHOTOPE_DIMS )
+                for( size_t uiI = 0; uiI < vNumMin1[ uiN ]; uiI++ )
+                {
+                    vCurrIdx[ uiN ] = uiI;
+                    vCurrStart[ uiN ] = vGrid[ uiN ][ uiI ];
+                    vCurrEnd[ uiN ] = vGrid[ uiN ][ uiI + 1 ];
+                    fallback<uiN + 1>( );
+                }
+            else
+                xRet.template get<D - ORTHOTOPE_DIMS, false, false>( vCurrIdx, rRetEntry ) =
+                    rIndex.count( xDatasetId, vCurrStart, vCurrEnd, vInterTypes, uiVerbosity );
+        }
+
+      public:
+        GridCountFallback( const Index& rIndex,
+                           const class_key_t xDatasetId,
+                           const std::array<std::vector<coordinate_t>, D - ORTHOTOPE_DIMS>& vGrid,
+                           const isect_arr_t& vInterTypes,
+                           const size_t uiVerbosity )
+            : rIndex( rIndex ),
+              xDatasetId( xDatasetId ),
+              vGrid( vGrid ),
+              vInterTypes( vInterTypes ),
+              xRet( ".tmp", true ),
+              vNumMin1( initVNumMin1( vGrid ) ),
+              rRetEntry( xRet.template add<D - ORTHOTOPE_DIMS, false, true>( vNumMin1 ) ),
+              uiVerbosity( uiVerbosity )
+        {
+            fallback<0>( );
+        }
+
+        std::vector<val_t> getData( ) const
+        {
+            return xRet.vData;
+        }
+    };
+
+  public:
     /**
      * @brief Count the number of points between from and to and in the given dataset.
      *
@@ -455,33 +514,50 @@ template <typename type_defs> class Index : public AbstractIndex
                                   [[maybe_unused]] size_t uiVerbosity = 0 ) const
     {
         if( vDataSets[ xDatasetId ].getNumOverlays( ) == 0 )
-            return std::vector<val_t>{ };
+        {
+            size_t uiSize = 1;
+            for( const auto& rDim : vGrid )
+                uiSize *= rDim.size( ) - 1;
+            return std::vector<val_t>( uiSize );
+        }
 
         auto vP = addDims( vGrid, vInterTypes );
-        std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS> vOrthoFrom = vP[ 0 ];
-        std::array<std::vector<coordinate_t>, ORTHOTOPE_DIMS> vOrthoTo = vP[ 1 ];
+
 #if GET_PROG_PRINTS
         progress_stream_t xProg( uiVerbosity );
-        xProg << "gridCount grid " << vGrid << " vOrthoFrom " << vOrthoFrom << " vOrthoTo " << vOrthoTo << "\n";
+        xProg << Verbosity( 1 ) << "gridCount grid " << vGrid << "\n";
 #endif
-        for(auto& rA : vOrthoFrom)
-            for(auto& rC : rA)
-                --rC;
-        for(auto& rA : vOrthoTo)
-            for(auto& rC : rA)
-                --rC;
-        for(auto& rA : vGrid)
-            for(auto& rC : rA)
+
+        if( !vP.has_value( ) || ALWAYS_SIMULATE_GRID_QUERY )
+        {
+            if( uiVerbosity > 0 && !ALWAYS_SIMULATE_GRID_QUERY )
+                std::cout << "WARNING: gridCount is not implemented for grids with uneven cell sizes in orthotope "
+                             "dimensions. "
+                          << "Falling back to individual count operations." << std::endl;
+            return GridCountFallback( *this, xDatasetId, vGrid, vInterTypes, uiVerbosity ).getData( );
+        }
+
+
+        std::array<std::vector<coordinate_t>, D> vGridExt;
+
+        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+            vGridExt[ uiI ].swap( vGrid[ uiI ] );
+        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
+        {
+            vGridExt[ uiI + D - ORTHOTOPE_DIMS ].push_back( vP.value( )[ uiI ][ 0 ] );
+            vGridExt[ uiI + D - ORTHOTOPE_DIMS ].push_back( vP.value( )[ uiI ][ 1 ] );
+        }
+
+        for( auto& rA : vGridExt )
+            for( auto& rC : rA )
                 --rC;
 
-        return vDataSets[ xDatasetId ].grid( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vGrid, vOrthoFrom,
-                                             vOrthoTo, vInterTypes
+        return vDataSets[ xDatasetId ].grid( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vGridExt, vInterTypes
 #if GET_PROG_PRINTS
                                              ,
                                              xProg
 #endif
         );
-        return std::vector<val_t>{ };
     }
 
     std::vector<val_t> gridCount( class_key_t xDatasetId,
@@ -496,7 +572,6 @@ template <typename type_defs> class Index : public AbstractIndex
 
         return gridCount( xDatasetId, vGrid, vInterTypes, uiVerbosity );
     }
-#endif
 
   public:
     /**
@@ -1030,11 +1105,11 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                 .c_str( ) )
-#if 0
         .def(
             "grid_count",
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
-                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D> vGrid,
+                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D - type_defs::ORTHOTOPE_DIMS>
+                    vGrid,
                 const typename type_defs::isect_arr_t& vInterTypes,
                 size_t uiVerbosity ) { return rM.gridCount( xDatasetId, vGrid, vInterTypes, uiVerbosity ); },
             pybind11::arg( "dataset_id" ), pybind11::arg( "grid" ),
@@ -1070,7 +1145,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
         .def(
             "grid_count",
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
-                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D> vGrid,
+                std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D - type_defs::ORTHOTOPE_DIMS>
+                    vGrid,
                 sps::IntersectionType xInterType,
                 size_t uiVerbosity ) { return rM.gridCount( xDatasetId, vGrid, xInterType, uiVerbosity ); },
             pybind11::arg( "dataset_id" ), pybind11::arg( "grid" ),
@@ -1103,7 +1179,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     to_pos must be larger equal than from_pos in each dimension.
 )pbdoc" )
                 .c_str( ) )
-#endif
         .def(
             "count_multiple",
             []( const sps::Index<type_defs>& rM,
