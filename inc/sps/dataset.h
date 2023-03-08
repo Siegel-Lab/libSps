@@ -1488,6 +1488,14 @@ template <typename type_defs> class Dataset
         const grid_ret_entry_t rRetEntry;
 
         const OverlayBoundsGrid& vOverlayBounds;
+        struct ExtractedOverlayBounds
+        {
+            size_t uiBottomLeftIndex;
+            size_t uiIndex;
+        };
+        using ExtractedOverlayBoundsGrid = std::array<std::vector<ExtractedOverlayBounds>, D>;
+
+        const ExtractedOverlayBoundsGrid vExtractedOverlayBounds;
         const typename Overlay<type_defs>::grid_ret_t& xCollectedVals;
         const typename Overlay<type_defs>::grid_ret_entry_t& xRetEntryInternal;
         const isect_arr_t& vInterTypes;
@@ -1549,6 +1557,14 @@ template <typename type_defs> class Dataset
             addGridValuesToCurrCellItr<0, 0, 0>( );
         }
 
+        /*
+         * @todo instead of nested loops have one loop that sets the coordinates while iterating...
+         * for each dimension there can be a divisor and modulator. so we iterate over the raw 1d array.
+         * then for each cell compute the coordinates by division & modulo.
+         * This would be an almost if-less implementation (there is one if left in the loop termination...)
+         *
+         * To figure out the box-borders, there should then be a bool vector for each dimension.
+         */
         template <size_t uiD> inline void execOnAllCells( )
         {
             if constexpr( uiD < D )
@@ -1579,7 +1595,7 @@ template <typename type_defs> class Dataset
                 if( vOverlayBounds[ uiD ].size( ) > 0 )
                 {
                     // first overlay bounds might be the transition from
-                    // before the first overlay-box into the first overlay-box. 
+                    // before the first overlay-box into the first overlay-box.
                     // in that case we need the overlay entries for these grid-cells
                     // why are they not all zero?:
                     // Answer: e.g. the box at x: 0 (<- first box) y: 3 (<- not first box) will have overlay entries,
@@ -1656,6 +1672,37 @@ template <typename type_defs> class Dataset
             return vNumMin1;
         }
 
+        static ExtractedOverlayBoundsGrid
+        initExtractedOverlayBoundsGrid( [[maybe_unused]] const OverlayBoundsGrid& vOverlayBounds )
+        {
+            ExtractedOverlayBoundsGrid vRet;
+#if 0
+            for( size_t uiD = 0; uiD < D; uiI++ )
+                if( vOverlayBounds[ uiD ].size( ) > 0 )
+                {
+                    vRet[uiD].reserve(vOverlayBounds[uiD].back().uiGridTo);
+                    for( size_t uiX = 0; uiX < vOverlayBounds[ uiD ][ 0 ].uiGridFrom; uiX++ )
+                        vRet[uiD].push_back( ExtractedOverlayBounds{
+                            .uiBottomLeftIndex = std::numeric_limits<size_t>::max( ),
+                            .uiIndex = std::numeric_limits<size_t>::max( ),
+                        } );
+                    for( size_t uiI = 0; uiI < vOverlayBounds[ uiD ].size( ); uiI++ )
+                    {
+                        vRet[uiD].push_back( ExtractedOverlayBounds{
+                            .uiBottomLeftIndex = vOverlayBounds[ uiD ][ uiI ].uiGridFrom - 1,
+                            .uiIndex = vOverlayBounds[ uiD ][ uiI ].uiGridFrom + uiI, // - 1 + 1
+                        } );
+                        for(size_t uiX = rBounds.uiGridFrom; uiX < rBounds.uiGridTo; uiX++)
+                            vRet[uiD].push_back( ExtractedOverlayBounds{
+                                .uiBottomLeftIndex = std::numeric_limits<size_t>::max( ),
+                                .uiIndex = uiI + uiX, // - 1 + 1
+                            } );
+                    }
+                }
+#endif
+            return vRet;
+        }
+
       public:
         CollectCellValues( const std::array<std::vector<coordinate_t>, D>& vGrid,
                            const OverlayBoundsGrid& vOverlayBounds,
@@ -1673,6 +1720,7 @@ template <typename type_defs> class Dataset
               vNumMin1( initVNumMin1( vGrid ) ),
               rRetEntry( xRet.template add<D, false, true>( vNumMin1 ) ),
               vOverlayBounds( vOverlayBounds ),
+              vExtractedOverlayBounds( initExtractedOverlayBoundsGrid( vOverlayBounds ) ),
               xCollectedVals( xCollectedVals ),
               xRetEntryInternal( xRetEntryInternal ),
               vInterTypes( vInterTypes ),

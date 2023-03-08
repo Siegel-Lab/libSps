@@ -281,8 +281,8 @@ template <typename type_defs> class Overlay
     }
 
     template <size_t N>
-    void iterate(
-        const std::array<coordinate_t, N>& rEnds, std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
+    void iterate( const std::array<coordinate_t, N>& rEnds,
+                  std::function<void( const std::array<coordinate_t, N>& )> fDo ) const
     {
         std::array<coordinate_t, N> rCurr;
         iterateHelper<0, N>( rEnds, fDo, rCurr );
@@ -1172,7 +1172,7 @@ template <typename type_defs> class Overlay
                             // start of overlay needs to be considered
                             vvSparsePoss[ uiI ].push_back( rSparseCoords.template sparse<D - 1, false>(
                                 vOverlayBottomLeft[ uiI - ( uiI > uiD ? 1 : 0 ) ], vSparseCoordsOverlay[ uiD ],
-                                uiI - ( uiI > uiD ? 1 : 0 ) ) ); 
+                                uiI - ( uiI > uiD ? 1 : 0 ) ) );
                             for( size_t uiX = vGridFrom[ uiI ] + 1; uiX < vGridTo[ uiI ]; uiX++ )
                                 vvSparsePoss[ uiI ].push_back( rSparseCoords.template sparse<D - 1, false>(
                                     vGrid[ uiI ][ uiX + 1 ], vSparseCoordsOverlay[ uiD ],
