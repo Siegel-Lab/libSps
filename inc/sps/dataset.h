@@ -12,6 +12,7 @@
 #include <mutex>
 #include <random>
 #include <string>
+#include <map>
 
 #if WITH_PYTHON
 #include <pybind11/pybind11.h>

@@ -152,6 +152,12 @@ PYBIND11_MODULE( sps, m )
     m.attr( "DEBUG" ) = false;
 #endif
 
+#ifdef WITH_STXXL
+    m.attr( "WITH_STXXL" ) = true;
+#else
+    m.attr( "WITH_STXXL" ) = false;
+#endif
+
     exportEnum( m );
 
     // export various types

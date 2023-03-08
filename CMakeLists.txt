@@ -33,7 +33,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
 else(CMAKE_COMPILER_IS_GNUCC)
     set(WITH_STXXL_DEFAULT OFF)
 endif(CMAKE_COMPILER_IS_GNUCC)
-option(WITH_STXXL "Use stxxl to build the cached forms of the index" WITH_STXXL_DEFAULT)
+option(WITH_STXXL "Use stxxl to build the cached forms of the index" ${WITH_STXXL_DEFAULT})
 
 #################
 # Configuration #
@@ -98,7 +98,7 @@ if(Python_FOUND)
     # configure the version.h.in file
     add_custom_target(
         sps_config_version ALL
-        COMMAND ${conf_version_exec}
+        COMMAND "python" ${conf_version_exec}
             "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/version.h.in"
             "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
@@ -107,7 +107,7 @@ if(Python_FOUND)
 
     add_custom_target(
         sps_config_build_time ALL
-        COMMAND ${conf_build_time_exec}
+        COMMAND "python" ${conf_build_time_exec}
             "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/build_time.h.in"
             "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

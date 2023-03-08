@@ -3,6 +3,9 @@
 #include "sps/type_defs.h"
 #include <chrono>
 #include <iostream>
+#include <algorithm>
+#include <fstream>
+#include <cassert>
 
 #ifdef WITH_STXXL
 #include <stxxl/io>
