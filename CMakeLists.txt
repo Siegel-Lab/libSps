@@ -246,6 +246,7 @@ target_include_directories( libsps INTERFACE
 )
 if(WITH_STXXL)
     target_link_libraries( libsps INTERFACE stxxl )
+    target_compile_definitions( libsps INTERFACE WITH_STXXL )
 endif(WITH_STXXL)
 add_dependencies(libsps sps_config_version sps_config_build_time)
 
