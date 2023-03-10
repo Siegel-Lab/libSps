@@ -56,6 +56,7 @@ class ThreadPool
     /* External definition
      */
     ThreadPool( size_t );
+    ThreadPool( );
 
     /* External definition
      */
@@ -118,7 +119,7 @@ class ThreadPool
 
 /* Constructor just launches some amount of workers
  */
-inline ThreadPool::ThreadPool( size_t threads = std::thread::hardware_concurrency( ) )
+inline ThreadPool::ThreadPool( size_t threads )
     : bStop( false ), // stop must be false in the beginning
       threads( threads )
 {
@@ -179,6 +180,12 @@ inline ThreadPool::ThreadPool( size_t threads = std::thread::hardware_concurrenc
         } // lambda
         ); // function call
 } // method
+
+/* Constructor just launches some amount of workers
+ */
+inline ThreadPool::ThreadPool( )
+    : ThreadPool( std::thread::hardware_concurrency( ) )
+{}
 
 /* the destructor joins all threads
  */

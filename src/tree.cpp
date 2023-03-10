@@ -157,6 +157,8 @@ PYBIND11_MODULE( sps, m )
 #else
     m.attr( "WITH_STXXL" ) = false;
 #endif
+    
+    m.attr( "COMPILER_ID" ) = CXX_COMPILER_ID;
 
     exportEnum( m );
 

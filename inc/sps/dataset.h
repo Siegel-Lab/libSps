@@ -13,6 +13,7 @@
 #include <random>
 #include <string>
 #include <map>
+#include <set>
 
 #if WITH_PYTHON
 #include <pybind11/pybind11.h>
