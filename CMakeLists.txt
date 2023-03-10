@@ -28,11 +28,17 @@ set(STORAGE_C "0" CACHE STRING "The storage type of this index (one of Ram, Disk
 set(STORAGE_D "0" CACHE STRING "The storage type of this index (one of Ram, Disk, Cached).")
 set(STORAGE_E "0" CACHE STRING "The storage type of this index (one of Ram, Disk, Cached).")
 
-if(CMAKE_COMPILER_IS_GNUCC)
-    set(WITH_STXXL_DEFAULT ON)
-else(CMAKE_COMPILER_IS_GNUCC)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(WITH_STXXL_DEFAULT OFF)
-endif(CMAKE_COMPILER_IS_GNUCC)
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(WITH_STXXL_DEFAULT ON)
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    set(WITH_STXXL_DEFAULT OFF)
+else()
+    set(WITH_STXXL_DEFAULT ON)
+endif()
+
 option(WITH_STXXL "Use stxxl to build the cached forms of the index" ${WITH_STXXL_DEFAULT})
 
 #################
@@ -49,7 +55,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
-if(CMAKE_COMPILER_IS_GNUCC)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     # enable warnings (always good)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall")
     # throw error for undefined symbols
@@ -141,6 +147,7 @@ if (pybind11_FOUND)
     endif(WITH_STXXL)
 
     target_compile_definitions( sps PRIVATE WITH_PYTHON )
+    target_compile_definitions( sps PRIVATE CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}" )
 
     target_compile_definitions( sps PRIVATE DIMENSIONS_A=${DIMENSIONS_A} )
     target_compile_definitions( sps PRIVATE DIMENSIONS_B=${DIMENSIONS_B} )
