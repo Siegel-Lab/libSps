@@ -496,11 +496,6 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * to_pos must be larger equal than from_pos in each dimension.
      *
-     * @todo this interface needs to change:
-     * instead of vPos, vSize, and vNum, there should be for each dimension a vector of the coordinates that need to be
-     * queried.
-     * The the resulting vector returns the values of the cells in between
-     *
      * @param xDatasetId The id of the dataset to query
      * @param vGrid The coordinates of the grid-lines for each dimensions.
      * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
@@ -720,17 +715,16 @@ template <typename type_defs> class Index : public AbstractIndex
      * - The number of overlay prefix sums
      * - The number of internal sparse coordinates
      * - The number of overlay sparse coordinates
-     * - The number of global sparse coordinates
      * - The total size in bytes
      *
      *
      * @param vFac list of factors that are proportional to the number of boxes within the data structure
      * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
      * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
-     * @return std:vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
+     * @return std:vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
      *         The predicted number of dataset structure elements for each factor
      */
-    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
+    std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
     estimateDataStructureElements( std::vector<double> vFac )
     {
         return dataset_t::estimateDataStructureElements( vCorners, makeEntry( ), vFac );
@@ -1279,7 +1273,6 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     - The number of overlay prefix sums
     - The number of internal sparse coordinates
     - The number of overlay sparse coordinates
-    - The number of global sparse coordinates
     - Total size of the datastructure
 
     :param f: list of factors that are proportional to the number of boxes within the data structure

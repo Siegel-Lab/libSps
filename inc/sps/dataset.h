@@ -713,7 +713,7 @@ template <typename type_defs> class Dataset
             uiNumPSOverlay, uiNumPSInternal, uiNumLookUpTablesOverlay, uiNumLookUpTablesInternal );
     }
 
-    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
+    static std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>
     estimateDataStructureElements( corners_t& vCorners, std::array<typename corners_t::Entry, D> xSortedPoints,
                                    pos_t uiNumOverlays, pos_t uiCoordinateSizes, pos_t uiMinPos )
     {
@@ -772,7 +772,6 @@ template <typename type_defs> class Dataset
                                 ( uiNumOverlaysTotal * std::get<2>( tTotal ) ) / uiNumOverlaySamples,
                                 ( uiNumOverlaysTotal * std::get<3>( tTotal ) ) / uiNumOverlaySamples,
                                 uiNumOverlaysTotal,
-                                0, // @todo remove from tuple
                                 uiSizeFull );
     }
 
@@ -829,7 +828,7 @@ template <typename type_defs> class Dataset
         return toFactor( uiCoordinateSizes, uiNumOverlays );
     }
 
-    static std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
+    static std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
     estimateDataStructureElements( corners_t& vCorners, const typename corners_t::Entry xCorners,
                                    std::vector<double> vFac )
     {
@@ -844,7 +843,7 @@ template <typename type_defs> class Dataset
         auto xA = generateCoordSizes( vCorners, xCorners );
         pos_t uiCoordinateSizes = xA[ 0 ];
         pos_t uiMinPos = xA[ 2 ];
-        std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>> vRet;
+        std::vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>> vRet;
         for( float fFac : vFac )
             vRet.push_back( estimateDataStructureElements( vCorners, xSortedPoints,
                                                            toNumbers( toNumRatios( uiCoordinateSizes ), fFac ),
@@ -900,9 +899,9 @@ template <typename type_defs> class Dataset
         while( true )
         {
             xProg << Verbosity( 0 ) << "searching factors [" << fStart << ", " << fEnd << ")\n";
-            uint64_t uiEnd = std::get<6>( estimateDataStructureElements(
+            uint64_t uiEnd = std::get<5>( estimateDataStructureElements(
                 vCorners, xSortedPoints, toNumbers( vNumRatios, fEnd ), uiCoordinateSizes, uiMinPos ) );
-            uint64_t uiCenter = std::get<6>( estimateDataStructureElements(
+            uint64_t uiCenter = std::get<5>( estimateDataStructureElements(
                 vCorners, xSortedPoints, toNumbers( vNumRatios, fEnd / 2 ), uiCoordinateSizes, uiMinPos ) );
             if( uiEnd > uiCenter + 10000 )
                 break;
@@ -921,7 +920,7 @@ template <typename type_defs> class Dataset
             uiMin = std::numeric_limits<uint64_t>::max( );
             for( double fPos = fStart; fPos <= fEnd; fPos += ( fEnd - fStart ) / fSampleSteps )
             {
-                uint64_t uiCurr = std::get<6>( estimateDataStructureElements(
+                uint64_t uiCurr = std::get<5>( estimateDataStructureElements(
                     vCorners, xSortedPoints, toNumbers( vNumRatios, fPos ), uiCoordinateSizes, uiMinPos ) );
                 if( uiCurr < uiMin )
                 {
@@ -1270,7 +1269,6 @@ template <typename type_defs> class Dataset
     using OverlayBoundsGrid = std::array<std::vector<OverlayBounds>, D>;
 
     using grid_ret_t = NDGrid<type_defs, val_t, RamVecGenerator>;
-    // @todo this needs not to consider orthotope dimensions
     using grid_ret_entry_t = typename grid_ret_t::template Entry<D>;
 
 
