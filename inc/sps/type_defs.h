@@ -71,7 +71,7 @@ enum IntersectionType
  *
  * The Index class takes this as a template parameter.
  *
- * @todo a lot of the template parameters are not actually variable most of the time
+ * @todo-low-prio a lot of the template parameters are not actually variable most of the time
  *      - having them drastically increases compiletime
  *      - also the TypeDefs class is kind of a bad idea since it needs to be instanciated every time
  *      - better approach:
