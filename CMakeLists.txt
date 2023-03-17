@@ -285,5 +285,9 @@ install(FILES "${PROJECT_BINARY_DIR}/libspsConfigVersion.cmake"
         DESTINATION lib/cmake/libsps)
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/inc/ ${CMAKE_BINARY_DIR}/generated/inc/ DESTINATION inc)
 
-add_custom_target(format COMMAND "clang-format" "-i" "-style=file" "inc/sps/*.h" "src/*.cpp" 
+file(GLOB format_files
+     "inc/cm/*.h"
+     "src/*.cpp"
+)
+add_custom_target(format COMMAND "clang-format" "-i" "-style=file" ${format_files}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} VERBATIM)
