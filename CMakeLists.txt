@@ -36,7 +36,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(WITH_STXXL_DEFAULT OFF)
 else()
-    set(WITH_STXXL_DEFAULT ON)
+    set(WITH_STXXL_DEFAULT OFF)
 endif()
 
 option(WITH_STXXL "Use stxxl to build the cached forms of the index" ${WITH_STXXL_DEFAULT})
@@ -92,9 +92,8 @@ endif()
 # include subprojects
 if(WITH_STXXL)
     add_subdirectory ( contrib/stxxl EXCLUDE_FROM_ALL )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 endif(WITH_STXXL)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 
 find_package (Python COMPONENTS Interpreter Development)
 
