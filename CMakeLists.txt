@@ -92,7 +92,7 @@ endif()
 
 # include subprojects
 if(WITH_STXXL)
-    add_subdirectory ( contrib/stxxl EXCLUDE_FROM_ALL )
+    #add_subdirectory ( contrib/stxxl EXCLUDE_FROM_ALL )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 endif(WITH_STXXL)
 
