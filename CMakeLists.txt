@@ -39,7 +39,8 @@ else()
     set(WITH_STXXL_DEFAULT OFF)
 endif()
 
-option(WITH_STXXL "Use stxxl to build the cached forms of the index" ${WITH_STXXL_DEFAULT})
+#option(WITH_STXXL "Use stxxl to build the cached forms of the index" ${WITH_STXXL_DEFAULT})
+option(WITH_STXXL "Use stxxl to build the cached forms of the index" OFF)
 
 #################
 # Configuration #
@@ -142,7 +143,7 @@ if (pybind11_FOUND)
     target_include_directories( sps PUBLIC inc )
     if(WITH_STXXL)
         target_include_directories( sps SYSTEM PRIVATE ${STXXL_INCLUDE_DIRS} )
-        target_compile_definitions( sps PRIVATE WITH_STXXL )
+        target_compile_definitions( sps PRIVATE "WITH_STXXL" )
     endif(WITH_STXXL)
 
     target_compile_definitions( sps PRIVATE WITH_PYTHON )
@@ -252,7 +253,7 @@ target_include_directories( libsps INTERFACE
 )
 if(WITH_STXXL)
     target_link_libraries( libsps INTERFACE stxxl )
-    target_compile_definitions( libsps INTERFACE WITH_STXXL )
+    target_compile_definitions( libsps INTERFACE "WITH_STXXL" )
 endif(WITH_STXXL)
 add_dependencies(libsps sps_config_version sps_config_build_time)
 
