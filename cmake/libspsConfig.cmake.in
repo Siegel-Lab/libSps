@@ -1,7 +1,9 @@
 @PACKAGE_INIT@
 
 
-# find_package(stxxl REQUIRED)
+if (@WITH_STXXL@)
+    find_package(stxxl REQUIRED)
+endif(@WITH_STXXL@)
 
-include("${CMAKE_CURRENT_LIST_DIR}/libspsTargets.cmake")
+include("@CMAKE_CURRENT_LIST_DIR@/libspsTargets.cmake")
 check_required_components("@PROJECT_NAME@")
