@@ -151,17 +151,9 @@ using default_val_t = uint32_t;
 using default_class_key_t = uint16_t;
 static const bool EXPLAIN = false;
 
-/**
- * @brief Type definitions for a RAM Index
- *
- * Index stores all information in RAM and never interacts with the filesystem.
- *
- * @tparam D number of dimensions
- * @tparam orthope number of orthope dimensions
- */
-template <size_t D, size_t orthope, bool bin_search_sparse>
-using InMemTypeDef = TypeDefs<default_coordinate_t, //
-                              default_val_t, //
+template <size_t D, size_t orthope, bool bin_search_sparse, typename val_t>
+using ValInMemTypeDef = TypeDefs<default_coordinate_t, //
+                              val_t, //
                               D, //
                               default_class_key_t, //
                               RamVecGenerator, //
@@ -174,6 +166,16 @@ using InMemTypeDef = TypeDefs<default_coordinate_t, //
                               orthope, //
                               EXPLAIN, //
                               StdOutProgressStream>;
+/**
+ * @brief Type definitions for a RAM Index
+ *
+ * Index stores all information in RAM and never interacts with the filesystem.
+ *
+ * @tparam D number of dimensions
+ * @tparam orthope number of orthope dimensions
+ */
+template <size_t D, size_t orthope, bool bin_search_sparse>
+using InMemTypeDef = ValInMemTypeDef<D, orthope, bin_search_sparse, default_val_t>;
 
 
 #ifdef WITH_STXXL
@@ -351,18 +353,9 @@ template <typename val_t> struct DiskVecGenerator
     }
 };
 
-/**
- * @brief Type definitions for a Disk Index
- *
- * Index that loads all data from a file on startup and store it back to the file on shutdown.
- * Expect it to consume as much RAM as the filesize.
- *
- * @tparam D number of dimensions
- * @tparam orthope number of orthope dimensions
- */
-template <size_t D, size_t orthope, bool bin_search_sparse>
-using DiskTypeDef = TypeDefs<default_coordinate_t, //
-                             default_val_t, //
+template <size_t D, size_t orthope, bool bin_search_sparse, typename val_t>
+using ValDiskTypeDef = TypeDefs<default_coordinate_t, //
+                             val_t, //
                              D, //
                              default_class_key_t, //
                              DiskVecGenerator, //
@@ -375,23 +368,23 @@ using DiskTypeDef = TypeDefs<default_coordinate_t, //
                              orthope, //
                              EXPLAIN, //
                              StdOutProgressStream>;
-
-
-#ifdef WITH_STXXL
 /**
- * @brief Type definitions for a Cached Index
+ * @brief Type definitions for a Disk Index
  *
- * Index that uses a cache to load data from and store data to a file dynamically as needed during runtime.
- * Expect this storage type to be slightly slower than the other two options.
- * For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data
- * stored.
+ * Index that loads all data from a file on startup and store it back to the file on shutdown.
+ * Expect it to consume as much RAM as the filesize.
  *
  * @tparam D number of dimensions
  * @tparam orthope number of orthope dimensions
  */
 template <size_t D, size_t orthope, bool bin_search_sparse>
-using CachedTypeDef = TypeDefs<default_coordinate_t, //
-                               default_val_t, //
+using DiskTypeDef = ValDiskTypeDef<D, orthope, bin_search_sparse, default_val_t>;
+
+
+#ifdef WITH_STXXL
+template <size_t D, size_t orthope, bool bin_search_sparse, typename val_t>
+using ValCachedTypeDef = TypeDefs<default_coordinate_t, //
+                               val_t, //
                                D, //
                                default_class_key_t, //
                                DiskVecGenerator, //
@@ -406,4 +399,18 @@ using CachedTypeDef = TypeDefs<default_coordinate_t, //
                                orthope, //
                                EXPLAIN, //
                                StdOutProgressStream>;
+/**
+ * @brief Type definitions for a Cached Index
+ *
+ * Index that uses a cache to load data from and store data to a file dynamically as needed during runtime.
+ * Expect this storage type to be slightly slower than the other two options.
+ * For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data
+ * stored.
+ *
+ * @tparam D number of dimensions
+ * @tparam orthope number of orthope dimensions
+ */
+template <size_t D, size_t orthope, bool bin_search_sparse>
+using CachedTypeDef = ValCachedTypeDef<D, orthope, bin_search_sparse, default_val_t>;
+
 #endif
