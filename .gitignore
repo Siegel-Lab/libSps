@@ -32,3 +32,4 @@ out/*
 .vs/*
 CmakeSettings.json
 *.pyd
+*.pickle

@@ -151,7 +151,7 @@ template <typename type_defs> class SimpleValVector : public AbstractIndex
 #if WITH_PYTHON
 template <typename type_defs> std::string exportSimpleVector( pybind11::module& m, std::string sName )
 {
-    pybind11::class_<sps::SimpleValVector<type_defs>, sps::AbstractIndex>( m, ( "Val" + sName ).c_str( ),
+    pybind11::class_<sps::SimpleValVector<type_defs>>( m, sName.c_str( ),
                                                                            R"pbdoc(
     Simple Vector for val_t entries.
     
@@ -195,66 +195,6 @@ template <typename type_defs> std::string exportSimpleVector( pybind11::module& 
 
         ;
 
-
-    pybind11::class_<sps::SimpleVector<type_defs>, sps::AbstractIndex>( m, sName.c_str( ),
-                                                                        ( R"pbdoc(
-    Simple Vector for )pbdoc" + std::to_string( type_defs::D ) + R"pbdoc(-dimensional orthotopes.
-    
-    .. automethod:: add_point
-    .. automethod:: count
-)pbdoc" )
-                                                                            .c_str( ) )
-        .def( pybind11::init<std::string, bool>( ),
-              pybind11::arg( "path" ) = "",
-              pybind11::arg( "write_mode" ) = false,
-              R"pbdoc(
-    Create a new vector.
-
-    :param path: Prefix path of the vector on the filesystem (a file with the ending .orthos will be created), defaults to "".
-    :type path: str
-    
-    :param write_mode: Open the vector in write mode (if this is set to False no changes can be made to the vector), defaults to False.
-    :type write_mode: str
-)pbdoc" )
-        .def( "add_point", &sps::SimpleVector<type_defs>::addPoint, pybind11::arg( "start" ), pybind11::arg( "end" ),
-              pybind11::arg( "val" ) = 1,
-              ( R"pbdoc(
-    Append an orthotope to the vector
-
-    :param start: The bottom left position of the orthotope.
-    :type start: list[int[)pbdoc" +
-                std::to_string( type_defs::D ) + R"pbdoc(]]
-    
-    :param end: The top right position of the orthotope.
-    :type end: list[int[)pbdoc" +
-                std::to_string( type_defs::D ) + R"pbdoc(]]
-    
-    :param val: The value of the orthotope.
-    :type val: int
-)pbdoc" )
-                  .c_str( ) )
-        .def( "count", &sps::SimpleVector<type_defs>::count,
-              ( R"pbdoc(
-    Count the number of orthotopes in the given area.
-
-    :param start: The bottom left position of the query area.
-    :type start: list[int[)pbdoc" +
-                std::to_string( type_defs::D ) + R"pbdoc(]]
-    
-    :param end: The top right position of the query area.
-    :type end: list[int[)pbdoc" +
-                std::to_string( type_defs::D ) + R"pbdoc(]]
-
-    This counts by naively iterating through all points and checking their coordinates.
-    The main purpose of this is for runtime benchmarking.
-)pbdoc" )
-                  .c_str( ) )
-
-        ;
-
-    // somehow this is not working :(
-    pybind11::implicitly_convertible<sps::SimpleVector<type_defs>, sps::AbstractIndex>( );
-
-    return "    " + sName + "\n    Val" + sName + "\n";
+    return "    " + sName + "\n ";
 }
 #endif

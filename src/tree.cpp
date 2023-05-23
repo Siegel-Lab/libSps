@@ -130,19 +130,34 @@ std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t 
                                                                 bSimpleVec );
     if( pRet != nullptr )
         return pRet;
+    pRet = factoryHelper<DIMENSIONS_F, ORTHOTOPE_F, STORAGE_F>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
+    pRet = factoryHelper<DIMENSIONS_G, ORTHOTOPE_G, STORAGE_G>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
+    pRet = factoryHelper<DIMENSIONS_H, ORTHOTOPE_H, STORAGE_H>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
     throw std::invalid_argument( "sps has not been compiled with the requested parameter combination." );
 }
 
 PYBIND11_MODULE( sps, m )
 {
-    
 #ifdef WITH_STXXL
     // prevent creation of stxxl log files
     if( getenv( (char*)"STXXLLOGFILE" ) == nullptr )
         putenv( (char*)"STXXLLOGFILE=/dev/null" );
     if( getenv( (char*)"STXXLERRLOGFILE" ) == nullptr )
         putenv( (char*)"STXXLERRLOGFILE=/dev/null" );
+
+    exportSimpleVector<CachedTypeDef<1, 0, true>>( m, "CachedSimpleVector" );
 #endif
+    exportSimpleVector<DiskTypeDef<1, 0, true>>( m, "DiskSimpleVector" );
+    exportSimpleVector<InMemTypeDef<1, 0, true>>( m, "MemSimpleVector" );
 
     m.attr( "VERSION" ) = SPS_VERSION;
     m.attr( "BUILD_TIME" ) = SPS_BUILD_TIME;
@@ -174,6 +189,9 @@ PYBIND11_MODULE( sps, m )
     sIndices += exportPrefixSumIndex<DIMENSIONS_C, ORTHOTOPE_C, STORAGE_C>( m );
     sIndices += exportPrefixSumIndex<DIMENSIONS_D, ORTHOTOPE_D, STORAGE_D>( m );
     sIndices += exportPrefixSumIndex<DIMENSIONS_E, ORTHOTOPE_E, STORAGE_E>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_F, ORTHOTOPE_F, STORAGE_F>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_G, ORTHOTOPE_G, STORAGE_G>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_H, ORTHOTOPE_H, STORAGE_H>( m );
 
     m.attr( "AVAILABLE_INDICES" ) = sIndices;
 

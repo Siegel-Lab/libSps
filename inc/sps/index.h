@@ -201,7 +201,7 @@ template <typename type_defs> class Index : public AbstractIndex
                                   IntersectionType xInterType = IntersectionType::slice ) const
     {
         isect_arr_t vInterTypes;
-        for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
+        for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
             vInterTypes[ uiI ] = xInterType;
 
         return addDims( vStart, vEnd, vInterTypes );
