@@ -74,7 +74,8 @@ template <typename type_defs> class Index : public AbstractIndex
      * defaults to false.
      */
     Index( std::string sPrefix = "", bool bWrite = false )
-        : vSparseCoord( sPrefix, bWrite ),
+        : vCorners( sPrefix, bWrite ),
+          vSparseCoord( sPrefix, bWrite ),
           vPrefixSumGrid( sPrefix + ".prefix_sums", bWrite ),
           vOverlayGrid( sPrefix + ".overlays", bWrite ),
           xFile( dataset_vec_generator.file( sPrefix + ".datasets", bWrite ) ),

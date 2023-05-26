@@ -142,6 +142,30 @@ std::unique_ptr<AbstractIndex> factory( std::string sPrefix, size_t uiD, size_t 
                                                                 bSimpleVec );
     if( pRet != nullptr )
         return pRet;
+    pRet = factoryHelper<DIMENSIONS_I, ORTHOTOPE_I, STORAGE_I>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
+    pRet = factoryHelper<DIMENSIONS_J, ORTHOTOPE_J, STORAGE_J>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
+    pRet = factoryHelper<DIMENSIONS_K, ORTHOTOPE_K, STORAGE_K>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
+    pRet = factoryHelper<DIMENSIONS_L, ORTHOTOPE_L, STORAGE_L>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
+    pRet = factoryHelper<DIMENSIONS_M, ORTHOTOPE_M, STORAGE_M>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
+    pRet = factoryHelper<DIMENSIONS_N, ORTHOTOPE_N, STORAGE_N>( uiD, uiOrthtopeDims, sStorageType, sPrefix, bWrite,
+                                                                bSimpleVec );
+    if( pRet != nullptr )
+        return pRet;
     throw std::invalid_argument( "sps has not been compiled with the requested parameter combination." );
 }
 
@@ -192,6 +216,12 @@ PYBIND11_MODULE( sps, m )
     sIndices += exportPrefixSumIndex<DIMENSIONS_F, ORTHOTOPE_F, STORAGE_F>( m );
     sIndices += exportPrefixSumIndex<DIMENSIONS_G, ORTHOTOPE_G, STORAGE_G>( m );
     sIndices += exportPrefixSumIndex<DIMENSIONS_H, ORTHOTOPE_H, STORAGE_H>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_I, ORTHOTOPE_I, STORAGE_I>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_J, ORTHOTOPE_J, STORAGE_J>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_K, ORTHOTOPE_K, STORAGE_K>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_L, ORTHOTOPE_L, STORAGE_L>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_M, ORTHOTOPE_M, STORAGE_M>( m );
+    sIndices += exportPrefixSumIndex<DIMENSIONS_N, ORTHOTOPE_N, STORAGE_N>( m );
 
     m.attr( "AVAILABLE_INDICES" ) = sIndices;
 

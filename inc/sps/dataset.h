@@ -113,6 +113,20 @@ template <typename type_defs> class Dataset
                 return comp( a, b );
             }
         }
+
+        corner_t min_value( ) const
+        {
+            corner_t xRet{ };
+            return xRet;
+        };
+
+        corner_t max_value( ) const
+        {
+            corner_t xRet{ };
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                xRet.vPos[ uiI ] = std::numeric_limits<coordinate_t>::max( );
+            return xRet;
+        };
     };
 
     struct PointsComperator
@@ -1056,7 +1070,7 @@ template <typename type_defs> class Dataset
          */
         std::mutex xLock;
 
-        std::sort<typename std::vector<corner_t>::iterator, PointsBinComperator>(
+        typename corners_t::template points_sort_func_t<typename corners_t::points_vec_t::iterator, PointsBinComperator>()(
             vCorners.vData.begin( ) + xCorners.uiStartIndex, vCorners.vData.begin( ) + xCorners.uiEndIndex,
             PointsBinComperator( *this, rOverlays, xLock ) );
 

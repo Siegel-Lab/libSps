@@ -393,7 +393,7 @@ using ValCachedTypeDef = TypeDefs<default_coordinate_t, //
                                //                           DiskVecGenerator, CachedVecGenerator>::type, //
                                DiskVecGenerator, //
                                DiskVecGenerator, //
-                               DiskVecGenerator, //
+                               CachedVecGenerator, //
                                CachedVecGenerator, //
                                bin_search_sparse, //
                                orthope, //

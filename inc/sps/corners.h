@@ -26,7 +26,11 @@ template <typename type_defs> class Corners
 #endif
 
   public:
-    static constexpr bool THREADSAVE = true;
+    EXTRACT_VEC_GENERATOR( points, corner_t ); // macro call
+    points_file_t xFile;
+    points_vec_t vData;
+    
+    static constexpr bool THREADSAVE = points_THREADSAVE;
 
   private:
     struct PointsComperator
@@ -40,6 +44,20 @@ template <typename type_defs> class Corners
         {
             return a.vPos[ uiDim ] < b.vPos[ uiDim ];
         }
+
+        corner_t min_value( ) const
+        {
+            corner_t xRet{ };
+            return xRet;
+        };
+
+        corner_t max_value( ) const
+        {
+            corner_t xRet{ };
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                xRet.vPos[ uiI ] = std::numeric_limits<coordinate_t>::max( );
+            return xRet;
+        };
     };
     struct PointsComperator2
     {
@@ -56,10 +74,23 @@ template <typename type_defs> class Corners
                 return false;
             return a.vPos[ uiDim2 ] < b.vPos[ uiDim2 ];
         }
+
+        corner_t min_value( ) const
+        {
+            corner_t xRet{ };
+            return xRet;
+        };
+
+        corner_t max_value( ) const
+        {
+            corner_t xRet{ };
+            for( size_t uiI = 0; uiI < D; uiI++ )
+                xRet.vPos[ uiI ] = std::numeric_limits<coordinate_t>::max( );
+            return xRet;
+        };
     };
 
   public:
-    std::vector<corner_t> vData;
 
     struct Entry
     {
@@ -147,7 +178,8 @@ template <typename type_defs> class Corners
         friend class Corners;
     };
 
-    Corners( )
+    Corners( std::string sPrefix = "", bool bWrite = false )
+        : xFile( points_vec_generator.file( sPrefix + ".corners", bWrite ) ), vData( points_vec_generator.vec( xFile ) )
     {}
 
     template <bool trigger = !IS_ORTHOTOPE> typename std::enable_if_t<trigger> add( pos_t vPos, val_t uiVal )
@@ -242,13 +274,13 @@ template <typename type_defs> class Corners
 
     void sortByDim( size_t uiDim, const Entry& rEntry )
     {
-        std::sort<typename std::vector<corner_t>::iterator, PointsComperator>(
+        points_sort_func_t<typename points_vec_t::iterator, PointsComperator>()(
             vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex, PointsComperator( uiDim ) );
     }
 
     void sortByDim( size_t uiDim1, size_t uiDim2, const Entry& rEntry )
     {
-        std::sort<typename std::vector<corner_t>::iterator, PointsComperator2>( vData.begin( ) + rEntry.uiStartIndex,
+        points_sort_func_t<typename points_vec_t::iterator, PointsComperator2>()( vData.begin( ) + rEntry.uiStartIndex,
                                                                                 vData.begin( ) + rEntry.uiEndIndex,
                                                                                 PointsComperator2( uiDim1, uiDim2 ) );
     }
