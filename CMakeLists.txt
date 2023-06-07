@@ -118,7 +118,9 @@ endif()
 
 # include subprojects
 if(WITH_STXXL)
-    add_subdirectory ( contrib/stxxl )
+    add_subdirectory ( contrib/stxxl SYSTEM)
+    # these things are not needed (we only want the header files)
+    set_target_properties(stxxl test1 test2 PROPERTIES EXCLUDE_FROM_ALL 1)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 endif(WITH_STXXL)
 
