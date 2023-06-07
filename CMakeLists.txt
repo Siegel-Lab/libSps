@@ -118,7 +118,8 @@ endif()
 
 # include subprojects
 if(WITH_STXXL)
-    add_subdirectory ( contrib/stxxl EXCLUDE_FROM_ALL )
+    option(BUILD_STATIC_LIBS "Build static library version of libstxxl" OFF)
+    add_subdirectory ( contrib/stxxl )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 endif(WITH_STXXL)
 
@@ -340,5 +341,10 @@ file(GLOB format_files
      "inc/cm/*.h"
      "src/*.cpp"
 )
+
+##########
+# Format #
+##########
+
 add_custom_target(format COMMAND "clang-format" "-i" "-style=file" ${format_files}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} VERBATIM)
