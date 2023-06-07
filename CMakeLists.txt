@@ -118,7 +118,6 @@ endif()
 
 # include subprojects
 if(WITH_STXXL)
-    option(BUILD_STATIC_LIBS "Build static library version of libstxxl" OFF)
     add_subdirectory ( contrib/stxxl )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 endif(WITH_STXXL)
