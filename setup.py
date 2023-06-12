@@ -61,34 +61,13 @@ class CMakeBuild(build_ext):
             f"-DLIB_SPS_VERSION={VERSION}",
         ]
 
-        for arg_name in [
-            "DIMENSIONS_A",
-            "DIMENSIONS_B",
-            "DIMENSIONS_C",
-            "DIMENSIONS_D",
-            "DIMENSIONS_E",
-            "DIMENSIONS_F",
-            "DIMENSIONS_G",
-            "DIMENSIONS_H",
-            "ORTHOTOPE_A",
-            "ORTHOTOPE_B",
-            "ORTHOTOPE_C",
-            "ORTHOTOPE_D",
-            "ORTHOTOPE_E",
-            "ORTHOTOPE_F",
-            "ORTHOTOPE_G",
-            "ORTHOTOPE_H",
-            "STORAGE_A",
-            "STORAGE_B",
-            "STORAGE_C",
-            "STORAGE_D",
-            "STORAGE_E",
-            "STORAGE_F",
-            "STORAGE_G",
-            "STORAGE_H",
-        ]:
-            if "SPS_" + arg_name in os.environ:
-                cmake_args.append("-D" + arg_name + "=" + os.environ["SPS_" + arg_name])
+        for arg_PRE in ["DIMENSIONS_", "ORTHOTOPE_", "STORAGE_",]:
+            for arg_POST in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]:
+                arg_name = arg_PRE + arg_POST
+                if "SPS_" + arg_name in os.environ:
+                    cmake_args.append("-D" + arg_name + "=" + os.environ["SPS_" + arg_name])
+        if "SPS_WITH_STXXL" in os.environ:
+            cmake_args.append("-DWITH_STXXL =" + os.environ["SPS_WITH_STXXL"])
 
         build_args = []
         # Adding CMake arguments set as environment variable

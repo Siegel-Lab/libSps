@@ -33,3 +33,4 @@ out/*
 CmakeSettings.json
 *.pyd
 *.pickle
+dist/*

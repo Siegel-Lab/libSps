@@ -225,6 +225,8 @@ if (pybind11_FOUND)
 
     target_include_directories( sps PUBLIC ${CMAKE_BINARY_DIR}/generated/inc )
     add_dependencies(sps sps_config_version sps_config_build_time)
+
+    target_link_options( sps PRIVATE -static-libgcc -static-libstdc++ )
 else(pybind11_FOUND)
     message(WARNING "No pybind11 found. sps python module target will not be available.")
 endif(pybind11_FOUND)

@@ -1,9 +1,6 @@
 Bug:
 
-- divide by col & row giving wired results
 - recheck effectiveness of other size optimization: old check was bugged and completely uninformative
-- symmetry not properly implemented yet
-- virtual 4c
 
 Features (ranked)
 
