@@ -30,7 +30,7 @@ jobs:
         python-version: '3.9'
     - name: Install dependencies
       run: |
-        sudo apt-install gcc-9 gcc-9
+        sudo apt install gcc-9 gcc-9
         conda install patchelf
         python -m pip install --upgrade pip
         pip install wheel auditwheel pybind11==2.8.0
