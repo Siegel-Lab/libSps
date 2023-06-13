@@ -42,7 +42,7 @@ jobs:
     - name: Turn into manylinux package
       run: |
         auditwheel show dist/*.whl
-        auditwheel repair --strip --plat manylinux_2_12_x86_64 --exclude libgomp.so.1 dist/*.whl
+        auditwheel repair --strip --plat manylinux_2_31_x86_64 --exclude libgomp.so.1 dist/*.whl
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
