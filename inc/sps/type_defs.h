@@ -3,6 +3,7 @@
 #include "sps/operator_array.h"
 #include <array>
 #include <vector>
+#include <cstddef>
 
 namespace sps
 {
