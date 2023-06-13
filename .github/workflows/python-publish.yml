@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt install gcc-9 gcc-9
-        conda install patchelf=0.17.4
+        conda install patchelf=0.17
         python -m pip install --upgrade pip
         pip install wheel auditwheel auditwheel-symbols pybind11==2.8.0
     - name: Build package
