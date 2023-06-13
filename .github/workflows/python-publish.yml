@@ -18,7 +18,10 @@ permissions:
 jobs:
   deploy:
 
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+            os: [ubuntu-20.04, windows-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v3
@@ -43,6 +46,7 @@ jobs:
         auditwheel repair --strip --plat manylinux_2_31_x86_64 --exclude libgomp.so.1 dist/*.whl
         rm -r dist
         mv wheelhouse dist
+      if: matrix.os == 'ubuntu-20.04'
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
