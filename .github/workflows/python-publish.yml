@@ -30,9 +30,8 @@ jobs:
         python-version: '3.9'
     - name: Install dependencies
       run: |
-        sudo apt install patchelf=0.17
         python -m pip install --upgrade pip
-        pip install wheel auditwheel pybind11==2.8.0
+        pip install wheel=0.40.0 auditwheel=5.4.0 patchelf=0.17.2 pybind11==2.8.0
     - name: Build package
       run: python setup.py bdist_wheel
       env:
