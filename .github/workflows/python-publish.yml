@@ -16,14 +16,13 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
-
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
           os: [ubuntu-20.04, windows-latest]
-          python-version: ["3.9", "3.10"]
+          python-version: ["3.5", "3.6", "3.7", "3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v3
@@ -42,7 +41,7 @@ jobs:
       env:
        CC:   gcc-9
        CXX:  g++-9
-    - name: Turn into manylinux package
+    - name: Audit wheel
       run: |
         pip install auditwheel==5.4.0 patchelf==0.17.2
         auditwheel show dist/*.whl
@@ -50,6 +49,21 @@ jobs:
         rm -r dist
         mv wheelhouse dist
       if: matrix.os == 'ubuntu-20.04'
+    - uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: ./dist
+        
+  publish:
+    needs: build
+    runs-on: ubuntu-20.04
+  
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: ./dist
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
