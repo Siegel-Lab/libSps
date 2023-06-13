@@ -30,14 +30,15 @@ jobs:
         python-version: '3.9'
     - name: Install dependencies
       run: |
-        conda install patchelf gcc=9.4.0 gxx=9.4.0 -c conda-forge
+        sudo apt-install gcc-9 gcc-9
+        conda install patchelf
         python -m pip install --upgrade pip
         pip install wheel auditwheel pybind11==2.8.0
     - name: Build package
       run: python setup.py bdist_wheel
       env:
-       CC:   gcc-9.4.0
-       CXX:  g++-9.4.0
+       CC:   gcc-9
+       CXX:  g++-9
     - name: Turn into manylinux package
       run: auditwheel repair dist/*.whl
     - name: Publish package
