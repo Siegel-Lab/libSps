@@ -20,9 +20,10 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     strategy:
-        matrix:
-            os: [ubuntu-20.04, windows-latest]
-            python-version: [3.9, 3.10]
+      fail-fast: false
+      matrix:
+          os: [ubuntu-20.04, windows-latest]
+          python-version: ["3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v3
