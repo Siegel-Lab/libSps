@@ -171,10 +171,5 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
-    ],
-    install_requires=[
-        'pybind11>=2.8.0',
-        'cmake>=3.17',
-        'make',
     ]
 )
