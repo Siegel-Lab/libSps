@@ -32,7 +32,7 @@ jobs:
       run: |
         conda install patchelf gcc=9.4.0 gxx=9.4.0 cmake=3.19 -c conda-forge
         python -m pip install --upgrade pip
-        pip install wheel auditwheel pybind11=2.8.0
+        pip install wheel auditwheel pybind11==2.8.0
     - name: Build package
       run: python setup.py bdist_wheel
     - name: Turn into manylinux package
