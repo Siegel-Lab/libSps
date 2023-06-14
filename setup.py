@@ -55,7 +55,6 @@ class CMakeBuild(build_ext):
         cmake_args = [
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}{os.sep}",
             f"-DPython_EXECUTABLE={sys.executable}",
-            f"-DPYTHON_EXECUTABLE:FILEPATH={sys.executable}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
             f"-DPython_LIBRARY={sysconfig.get_config_var('LIBDIR')}",
             f"-DPython_INCLUDE_DIR={sysconfig.get_path('include')}",
