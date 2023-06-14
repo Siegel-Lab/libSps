@@ -39,6 +39,8 @@ jobs:
     - name: Audit wheel
       run: |
         /opt/python/${{ matrix.python-version }}/bin/python -m auditwheel repair --strip --plat manylinux2014_x86_64 --exclude libgomp.so.1 dist/*.whl
+        rm -r dist
+        mv wheelhouse dist
     - uses: actions/upload-artifact@v3
       with:
         name: dist
