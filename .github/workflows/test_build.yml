@@ -6,11 +6,9 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Test build
+name: Build
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -44,4 +42,3 @@ jobs:
         auditwheel repair --strip --plat manylinux_2_31_x86_64 --exclude libgomp.so.1 dist/*.whl
         rm -r dist
         mv wheelhouse dist
-      if: matrix.os == 'ubuntu-20.04'
