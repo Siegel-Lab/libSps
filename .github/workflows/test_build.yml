@@ -39,6 +39,6 @@ jobs:
       run: |
         pip install auditwheel==5.4.0 patchelf==0.17.2
         auditwheel show dist/*.whl
-        auditwheel repair --strip --plat manylinux_2_31_x86_64 --exclude libgomp.so.1 dist/*.whl
+        auditwheel repair --strip --plat manylinux_2_12_x86_64 --exclude libgomp.so.1,libm.so.6 dist/*.whl
         rm -r dist
         mv wheelhouse dist
