@@ -16,7 +16,8 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64
 
     steps:
     - uses: actions/checkout@v3
@@ -31,7 +32,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install wheel==0.40.0 pybind11==2.8.0
     - name: Build package
-      run: python setup.py bdist_wheel
+      run: pip wheel . -w dist
       env:
        CC:   gcc-9
        CXX:  g++-9
@@ -39,6 +40,6 @@ jobs:
       run: |
         pip install auditwheel==5.4.0 patchelf==0.17.2
         auditwheel show dist/*.whl
-        auditwheel repair --strip --plat manylinux_2_12_x86_64 --exclude libgomp.so.1,libm.so.6 dist/*.whl
+        auditwheel repair --strip --plat manylinux_2_12_x86_64 --exclude libgomp.so.1 dist/*.whl
         rm -r dist
         mv wheelhouse dist
