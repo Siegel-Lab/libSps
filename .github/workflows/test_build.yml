@@ -27,8 +27,9 @@ jobs:
         git submodule update --init --recursive
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install wheel==0.40.0 pybind11==2.8.0
+        ls -l /opt/python/cp39-cp39/
+        /opt/python/cp39-cp39/python -m pip install --upgrade pip
+        /opt/python/cp39-cp39/python -m pip install wheel==0.40.0 pybind11==2.8.0
     - name: Build package
       run: |
         ls -l /opt/python/cp39-cp39/
