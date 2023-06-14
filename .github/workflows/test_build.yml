@@ -28,7 +28,9 @@ jobs:
     - name: Install dependencies
       run: |
         /opt/python/cp39-cp39/bin/python -m pip install --upgrade pip
-        /opt/python/cp39-cp39/bin/python -m pip install wheel==0.40.0 pybind11==2.8.0 gcc==9.4.0 gx==9.4.0
+        /opt/python/cp39-cp39/bin/python -m pip install wheel==0.40.0 pybind11==2.8.0
+        sudo apt update
+        sudo apt install gcc-9 g++-9
     - name: Build package
       run: |
         /opt/python/cp39-cp39/bin/python setup.py bdist_wheel
