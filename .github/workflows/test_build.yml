@@ -35,7 +35,7 @@ jobs:
         /opt/python/${{ matrix.python-version }}/bin/python -m pip install wheel==0.40.0 pybind11==2.8.0
     - name: Build package
       run: |
-        /opt/python/${{ matrix.python-version }}/bin/python setup.py bdist_wheel
+        /opt/python/${{ matrix.python-version }}/bin/python -m pip wheel . -w dist
     - name: Audit wheel
       run: |
-        auditwheel repair --strip --plat manylinux2014_x86_64 --exclude libgomp.so.1 dist/*.whl
+        /opt/python/${{ matrix.python-version }}/bin/python -m auditwheel repair --strip --plat manylinux2014_x86_64 --exclude libgomp.so.1 dist/*.whl
