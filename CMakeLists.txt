@@ -165,7 +165,7 @@ endif(Python_FOUND)
 ########################
 
 #set(requested_python_version 3.5)
-find_package( pybind11 QUIET PATHS ${Python_SITEARCH} )
+find_package( pybind11 QUIET PATHS )
 if (pybind11_FOUND)
     pybind11_add_module( sps src/tree.cpp )
     target_include_directories( sps PUBLIC inc )
