@@ -124,7 +124,7 @@ if(WITH_STXXL)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 endif(WITH_STXXL)
 
-find_package (Python COMPONENTS Interpreter Development)
+find_package (Python COMPONENTS Interpreter Development.Module)
 
 if(Python_FOUND)
     set(conf_version_exec "${CMAKE_CURRENT_SOURCE_DIR}/src/conf_version.h.in.py")
@@ -165,7 +165,7 @@ endif(Python_FOUND)
 ########################
 
 #set(requested_python_version 3.5)
-find_package( pybind11 QUIET )
+find_package( pybind11 PATHS ${Python_SITEARCH} )
 if (pybind11_FOUND)
     pybind11_add_module( sps src/tree.cpp )
     target_include_directories( sps PUBLIC inc )
