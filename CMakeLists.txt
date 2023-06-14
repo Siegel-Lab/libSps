@@ -132,7 +132,7 @@ if(Python_FOUND)
     # configure the version.h.in file
     add_custom_target(
         sps_config_version ALL
-        COMMAND "python3" ${conf_version_exec}
+        COMMAND ${Python_EXECUTABLE} ${conf_version_exec}
             "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/version.h.in"
             "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
@@ -141,7 +141,7 @@ if(Python_FOUND)
 
     add_custom_target(
         sps_config_build_time ALL
-        COMMAND "python3" ${conf_build_time_exec}
+        COMMAND ${Python_EXECUTABLE} ${conf_build_time_exec}
             "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/build_time.h.in"
             "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
