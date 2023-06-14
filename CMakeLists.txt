@@ -124,8 +124,6 @@ if(WITH_STXXL)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 endif(WITH_STXXL)
 
-message(${Python_EXECUTABLE})
-message(${Python_INCLUDE_DIR})
 find_package (Python COMPONENTS Interpreter Development)
 
 if(Python_FOUND)
