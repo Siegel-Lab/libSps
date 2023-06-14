@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Build
+name: Test Python Package Publishing
 
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-          python-version: ["cp39-cp39"]
+          python-version: ["cp38-cp38", "cp39-cp39", "cp310-cp310", "cp311-cp311", "cp312-cp312"]
 
     steps:
     - uses: actions/checkout@v3
@@ -51,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-          python-version: ["3.9"]
+          python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v3
@@ -80,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-          python-version: ["3.9"]
+          python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v3
@@ -103,3 +103,21 @@ jobs:
       with:
         name: dist
         path: ./dist
+        
+  publish:
+    needs: [build-ubuntu, build-windows, build-mac]
+    runs-on: ubuntu-20.04
+  
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: ./dist
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      with:
+        user: __token__
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        skip-existing: true
+        repository-url: https://test.pypi.org/legacy/
