@@ -77,7 +77,7 @@ jobs:
         path: ./dist
         
   publish:
-    needs: build-ubuntu build-windows
+    needs: [build-ubuntu, build-windows]
     if: ${{ always() }}
     runs-on: ubuntu-20.04
   
