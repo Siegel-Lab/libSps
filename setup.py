@@ -155,7 +155,7 @@ setup(
     url='https://github.com/Siegel-Lab/libSps',
     description="O(1) region count queries using sparse prefix sums",
     long_description="""
-        # O(1) region count queries using sparse prefix sums
+        O(1) region count queries using sparse prefix sums
     """,
     ext_modules=[CMakeExtension("sps", "libsps")],
     cmdclass={"build_ext": CMakeBuild},
