@@ -27,19 +27,17 @@ jobs:
         git submodule update --init --recursive
     - name: Install dependencies
       run: |
-        ls -l /opt/python/cp39-cp39/
-        /opt/python/cp39-cp39/python -m pip install --upgrade pip
-        /opt/python/cp39-cp39/python -m pip install wheel==0.40.0 pybind11==2.8.0
+        /opt/python/cp39-cp39/bin/python -m pip install --upgrade pip
+        /opt/python/cp39-cp39/bin/python -m pip install wheel==0.40.0 pybind11==2.8.0
     - name: Build package
       run: |
-        ls -l /opt/python/cp39-cp39/
-        /opt/python/cp39-cp39/python setup.py bdist_wheel
+        /opt/python/cp39-cp39/bin/python setup.py bdist_wheel
       env:
        CC:   gcc-9
        CXX:  g++-9
     - name: Audit wheel
       run: |
-        pip install auditwheel==5.4.0 patchelf==0.17.2
+        /opt/python/cp39-cp39/bin/python -m pip install auditwheel==5.4.0 patchelf==0.17.2
         auditwheel show dist/*.whl
         auditwheel repair --strip --plat manylinux2014_x86_64 --exclude libgomp.so.1 dist/*.whl
         rm -r dist
