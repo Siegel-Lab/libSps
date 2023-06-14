@@ -11,19 +11,48 @@ name: Upload Python Package
 on:
   release:
     types: [published]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64
+    strategy:
+      fail-fast: false
+      matrix:
+          python-version: ["cp38-cp38", "cp39-cp39", "cp310-cp310", "cp311-cp311", "cp312-cp312"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Update submodules
+      run: |
+        git config --global --add safe.directory '*'
+        git submodule update --init --recursive
+    - name: Install dependencies
+      run: |
+        /opt/python/${{ matrix.python-version }}/bin/python -m pip install --upgrade pip
+        /opt/python/${{ matrix.python-version }}/bin/python -m pip install wheel==0.40.0 pybind11==2.8.0
+    - name: Build package
+      run: |
+        /opt/python/${{ matrix.python-version }}/bin/python setup.py bdist_wheel
+    - name: Audit wheel
+      run: |
+        auditwheel repair --strip --plat manylinux2014_x86_64 --exclude libgomp.so.1 dist/*.whl
+        rm -r dist
+        mv wheelhouse dist
+    - uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: ./dist
+  build-windows:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-          os: [ubuntu-20.04, windows-latest]
-          python-version: ["3.7", "3.8", "3.9", "3.10"]
+          os: [windows-latest]
+          python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v3
@@ -42,21 +71,13 @@ jobs:
       env:
        CC:   gcc-9
        CXX:  g++-9
-    - name: Audit wheel
-      run: |
-        pip install auditwheel==5.4.0 patchelf==0.17.2
-        auditwheel show dist/*.whl
-        auditwheel repair --strip --plat manylinux_2_31_x86_64 --exclude libgomp.so.1 dist/*.whl
-        rm -r dist
-        mv wheelhouse dist
-      if: matrix.os == 'ubuntu-20.04'
     - uses: actions/upload-artifact@v3
       with:
         name: dist
         path: ./dist
         
   publish:
-    needs: build
+    needs: build-ubuntu build-windows
     if: ${{ always() }}
     runs-on: ubuntu-20.04
   
