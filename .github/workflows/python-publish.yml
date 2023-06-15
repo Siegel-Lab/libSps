@@ -91,9 +91,6 @@ jobs:
         pip install wheel pybind11
     - name: Build package
       run: python setup.py bdist_wheel
-      env:
-       CC:   gcc-9
-       CXX:  g++-9
     - uses: actions/upload-artifact@v3
       with:
         name: dist
