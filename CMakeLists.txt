@@ -134,7 +134,7 @@ if(Python_FOUND)
         sps_config_version ALL
         COMMAND ${Python_EXECUTABLE} ${conf_version_exec}
             "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/version.h.in"
-            "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}"
             "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         VERBATIM)
