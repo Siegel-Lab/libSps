@@ -2,7 +2,7 @@
 
 
 if (@WITH_STXXL@)
-    find_package(stxxl REQUIRED)
+    find_package(stxxl REQUIRED ${Python_SITEARCH})
 endif(@WITH_STXXL@)
 
 set(WITH_STXXL @WITH_STXXL@)
