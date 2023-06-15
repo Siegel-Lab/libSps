@@ -17,11 +17,6 @@ permissions:
 jobs:
   build-sourcedist:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-          python-version: ["3.9"]
-
     steps:
     - uses: actions/checkout@v3
     - name: Update submodules
@@ -31,11 +26,11 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.9
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install wheel pybind11==2.8.0 auditwheel==5.4.0 build==0.10.0
+        pip install wheel pybind11 auditwheel build
     - name: Build package
       run: |
         python -m build --sdist -o dist
@@ -51,7 +46,6 @@ jobs:
       fail-fast: false
       matrix:
           python-version: ["cp36-cp36m", "cp37-cp37m", "cp38-cp38", "cp39-cp39", "cp310-cp310", "cp311-cp311", "cp312-cp312"]
-
     steps:
     - uses: actions/checkout@v3
     - name: Update submodules
@@ -61,7 +55,7 @@ jobs:
     - name: Install dependencies
       run: |
         /opt/python/${{ matrix.python-version }}/bin/python -m pip install --upgrade pip
-        /opt/python/${{ matrix.python-version }}/bin/python -m pip install wheel auditwheel==5.4.0 pybind11
+        /opt/python/${{ matrix.python-version }}/bin/python -m pip install wheel auditwheel pybind11
     - name: Build package
       run: |
         /opt/python/${{ matrix.python-version }}/bin/python setup.py bdist_wheel -vvv
@@ -80,8 +74,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-          python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
-
+          python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
     - name: Update submodules
@@ -106,8 +99,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-          python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
-
+          python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
     - name: Update submodules
@@ -130,7 +122,6 @@ jobs:
   publish:
     needs: [build-ubuntu, build-windows, build-mac, build-sourcedist]
     runs-on: ubuntu-20.04
-  
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
