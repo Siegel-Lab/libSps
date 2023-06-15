@@ -119,7 +119,7 @@ jobs:
         name: dist
         path: ./dist
         
-  publish:
+  publish-testpypi:
     needs: [build-ubuntu, build-windows, build-mac, build-sourcedist]
     runs-on: ubuntu-20.04
     steps:
