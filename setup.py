@@ -139,9 +139,9 @@ class CMakeBuild(build_ext):
         subprocess.run(
             ["cmake", "--build", "."] + build_args, cwd=build_temp, check=True
         )
-        if len(ext.install_name) > 0:
+        for install_name in ext.install_name:
             subprocess.run(
-                ["cmake", "--install", ".", "--prefix", os.path.join(site.getsitepackages()[0], ext.install_name)], 
+                ["cmake", "--install", ".", "--prefix", os.path.join(site.getsitepackages()[0], install_name)], 
                 cwd=build_temp, check=True
             )
 
@@ -157,7 +157,7 @@ setup(
     long_description="""
         O(1) region count queries using sparse prefix sums
     """,
-    ext_modules=[CMakeExtension("sps", "libsps")],
+    ext_modules=[CMakeExtension("sps", ["libsps", "stxxl"])],
     cmdclass={"build_ext": CMakeBuild},
     extras_require={"test": "pytest"},
     zip_safe=False,
