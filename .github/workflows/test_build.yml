@@ -35,7 +35,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install wheel==0.40.0 pybind11==2.8.0 auditwheel==5.4.0
+        pip install wheel==0.40.0 pybind11==2.8.0 auditwheel==5.4.0 build==0.10.0
     - name: Build package
       run: |
         python -m build --sdist -o dist
@@ -50,7 +50,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-          python-version: ["cp36-cp36", "cp37-cp37", "cp39-cp39", "cp310-cp310", "cp311-cp311", "cp312-cp312"]
+          python-version: ["cp36-cp36m", "cp37-cp37m", "cp39-cp39", "cp310-cp310", "cp311-cp311", "cp312-cp312"]
 
     steps:
     - uses: actions/checkout@v3
@@ -61,7 +61,7 @@ jobs:
     - name: Install dependencies
       run: |
         /opt/python/${{ matrix.python-version }}/bin/python -m pip install --upgrade pip
-        /opt/python/${{ matrix.python-version }}/bin/python -m pip install wheel==0.40.0 pybind11==2.8.0 auditwheel==5.4.0
+        /opt/python/${{ matrix.python-version }}/bin/python -m pip install wheel==0.40.0 auditwheel==5.4.0
     - name: Build package
       run: |
         /opt/python/${{ matrix.python-version }}/bin/python setup.py bdist_wheel -vvv
@@ -93,7 +93,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install wheel==0.40.0 pybind11==2.8.0
+        pip install wheel==0.40.0 pybind11
     - name: Build package
       run: python setup.py bdist_wheel -vvv
       env:
@@ -134,7 +134,7 @@ jobs:
         path: ./dist
         
   publish:
-    needs: [build-ubuntu, build-windows, build-mac]
+    needs: [build-ubuntu, build-windows, build-mac, build-sourcedist]
     runs-on: ubuntu-20.04
   
     steps:
