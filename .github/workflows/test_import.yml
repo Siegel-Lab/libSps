@@ -1,6 +1,6 @@
 # pip install --index-url https://test.pypi.org/simple/ your-package
 
-name: Test Python Package Publishing
+name: Test Import
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   
+jobs:
   test:
     runs-on: ${{ matrix.os }}
     container: quay.io/pypa/manylinux2014_x86_64
