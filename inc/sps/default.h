@@ -148,7 +148,7 @@ template <typename val_t> struct RamVecGenerator
 
 using default_coordinate_t = uint64_t;
 using default_val_t = uint32_t;
-using default_class_key_t = uint16_t;
+using default_class_key_t = uint32_t;
 static const bool EXPLAIN = false;
 
 template <size_t D, size_t orthope, bool bin_search_sparse, typename val_t>
