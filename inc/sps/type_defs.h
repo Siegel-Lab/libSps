@@ -144,6 +144,7 @@ class TypeDefs
     using progress_stream_t = _progress_stream_t;
 
     using isect_arr_t = std::array<IntersectionType, ORTHOTOPE_DIMS>;
+    using bool_arr_t = std::array<bool, ORTHOTOPE_DIMS>;
 };
 
 #define EXTRACT_TYPE_DEFS                                                                                              \
@@ -183,7 +184,9 @@ class TypeDefs
                                                                                                                        \
     using progress_stream_t = typename type_defs::progress_stream_t;                                                   \
                                                                                                                        \
-    using isect_arr_t = typename type_defs::isect_arr_t;
+    using isect_arr_t = typename type_defs::isect_arr_t; \
+    \
+    using bool_arr_t = typename type_defs::bool_arr_t;
 
 
 #define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
