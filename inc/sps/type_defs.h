@@ -2,8 +2,8 @@
 
 #include "sps/operator_array.h"
 #include <array>
-#include <vector>
 #include <cstddef>
+#include <vector>
 
 namespace sps
 {
@@ -85,7 +85,6 @@ enum IntersectionType
  * @tparam _D number of dimensions.
  * @tparam _class_key_t type of the dataset keys, expected to be an unsigned int.
  * @tparam _vec_generator generator object that implements the file and vec methods. See DiskVecGenerator.
- * @tparam _binary_search_based_sparse whether sparse space lookup tables shall be binary search based
  * @tparam _orthotope_dims number or orthotope dimensions
  * @tparam _explain debugging parameter. Be verbose while creating and querying the index.
  * @tparam _progress_stream_t object that catches all the print output. See StdOutProgressStream.
@@ -100,8 +99,8 @@ template <typename _coordinate_t, //
           NAMED_VEC_GEN_AND_SORTER_TEMPLATE( desc ), //
           NAMED_VEC_GEN_AND_SORTER_TEMPLATE( points ), //
           NAMED_VEC_GEN_AND_SORTER_TEMPLATE( prefix_sums ), //
-          bool _binary_search_based_sparse, //
           size_t _orthotope_dims, //
+          size_t _orthotope_power, //
           bool _explain, //
           typename _progress_stream_t>
 class TypeDefs
@@ -129,8 +128,8 @@ class TypeDefs
 
     static constexpr bool EXPLAIN = _explain;
 
-
-    static constexpr bool BINARY_SEARCH_BASED_SPARSE = _binary_search_based_sparse;
+    // @deprecated -> always false
+    static constexpr bool BINARY_SEARCH_BASED_SPARSE = false;
 
     static constexpr coordinate_t ORTHOTOPE_DIMS = _orthotope_dims;
 
@@ -142,6 +141,7 @@ class TypeDefs
     using sps_t = typename std::conditional<IS_ORTHOTOPE, std::op_array<val_t, 1 << ORTHOTOPE_DIMS>, val_t>::type;
 
     using progress_stream_t = _progress_stream_t;
+    static constexpr size_t orthotope_power = _orthotope_power;
 
     using isect_arr_t = std::array<IntersectionType, ORTHOTOPE_DIMS>;
     using bool_arr_t = std::array<bool, ORTHOTOPE_DIMS>;
@@ -184,9 +184,11 @@ class TypeDefs
                                                                                                                        \
     using progress_stream_t = typename type_defs::progress_stream_t;                                                   \
                                                                                                                        \
-    using isect_arr_t = typename type_defs::isect_arr_t; \
-    \
-    using bool_arr_t = typename type_defs::bool_arr_t;
+    using isect_arr_t = typename type_defs::isect_arr_t;                                                               \
+                                                                                                                       \
+    using bool_arr_t = typename type_defs::bool_arr_t;                                                                 \
+                                                                                                                       \
+    static constexpr size_t orthotope_power = type_defs::orthotope_power;
 
 
 #define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \

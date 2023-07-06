@@ -9,11 +9,11 @@
 #include "sps/util.h"
 #include <cassert>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <random>
-#include <string>
-#include <map>
 #include <set>
+#include <string>
 
 #if WITH_PYTHON
 #include <pybind11/pybind11.h>
@@ -1070,7 +1070,8 @@ template <typename type_defs> class Dataset
          */
         std::mutex xLock;
 
-        typename corners_t::template points_sort_func_t<typename corners_t::points_vec_t::iterator, PointsBinComperator>()(
+        typename corners_t::template points_sort_func_t<typename corners_t::points_vec_t::iterator,
+                                                        PointsBinComperator>( )(
             vCorners.vData.begin( ) + xCorners.uiStartIndex, vCorners.vData.begin( ) + xCorners.uiEndIndex,
             PointsBinComperator( *this, rOverlays, xLock ) );
 

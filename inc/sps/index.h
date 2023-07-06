@@ -18,8 +18,8 @@
 #include <cassert>
 #include <functional>
 #include <optional>
-#include <string>
 #include <sstream>
+#include <string>
 #ifdef WITH_STXXL
 #include <stxxl/vector>
 #endif
@@ -160,12 +160,40 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
   private:
-    coordinate_t addDimFrom( coordinate_t uiSize, IntersectionType xIntersectionType, bool bNoPoints=false ) const
+    size_t logx( const size_t b, const size_t a ) const
+    {
+        return (size_t)( std::log( (double)a ) / std::log( (double)b ) );
+    }
+
+    size_t logScaleSize( const size_t uiSize ) const
+    {
+        if constexpr( orthotope_power == 0 )
+            return uiSize;
+        else
+        {
+            if( uiSize == 0 )
+                return 0;
+            return logx( orthotope_power, uiSize ) + 1;
+        }
+    }
+    size_t logScaleSizeInsert( const size_t uiSize ) const
+    {
+        if constexpr( orthotope_power == 0 )
+            return uiSize;
+        else
+        {
+            if( uiSize == 0 )
+                return 0;
+            return logScaleSize( uiSize - 1 ) + 1;
+        }
+    }
+
+    coordinate_t addDimFrom( coordinate_t uiSize, IntersectionType xIntersectionType, bool bNoPoints = false ) const
     {
         if( xIntersectionType == IntersectionType::slice )
-            return uiSize;
+            return logScaleSize( uiSize );
         else if( xIntersectionType == IntersectionType::encloses )
-            return 1 + uiSize;
+            return 1 + logScaleSize( uiSize );
         else
             return bNoPoints ? 1 : 0;
     }
@@ -173,8 +201,10 @@ template <typename type_defs> class Index : public AbstractIndex
     coordinate_t addDimTo( coordinate_t uiSize, IntersectionType xIntersectionType ) const
     {
 
-        if( xIntersectionType == IntersectionType::slice || xIntersectionType == IntersectionType::enclosed )
-            return uiSize;
+        if( xIntersectionType == IntersectionType::slice )
+            return logScaleSizeInsert( uiSize );
+        else if( xIntersectionType == IntersectionType::enclosed )
+            return logScaleSize( uiSize );
         else if( xIntersectionType == IntersectionType::points_only )
             return 1;
         else
@@ -182,7 +212,7 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
     std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd, isect_arr_t vIntersectionTypes,
-                                  bool_arr_t bNoPoints=false ) const
+                                  bool_arr_t bNoPoints = false ) const
     {
         std::array<pos_t, 2> vRet;
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
@@ -199,9 +229,8 @@ template <typename type_defs> class Index : public AbstractIndex
         return vRet;
     }
 
-    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd, 
-                                  IntersectionType xInterType = IntersectionType::slice,
-                                  bool bNoPoints=false ) const
+    std::array<pos_t, 2> addDims( ret_pos_t vStart, ret_pos_t vEnd,
+                                  IntersectionType xInterType = IntersectionType::slice, bool bNoPoints = false ) const
     {
         isect_arr_t vInterTypes;
         bool_arr_t vNoPoints;
@@ -411,7 +440,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
     val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR, const isect_arr_t& vInterTypes,
-                 bool_arr_t vNoPoints=false, size_t uiVerbosity = 0 ) const
+                 bool_arr_t vNoPoints = false, size_t uiVerbosity = 0 ) const
     {
         for( size_t uiI = 0; uiI < D - ORTHOTOPE_DIMS; uiI++ )
             if( vFromR[ uiI ] > vToR[ uiI ] )
@@ -424,7 +453,7 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
     val_t count( class_key_t xDatasetId, ret_pos_t vFromR, ret_pos_t vToR,
-                 IntersectionType xInterType = IntersectionType::enclosed, bool bNoPoints=false, 
+                 IntersectionType xInterType = IntersectionType::enclosed, bool bNoPoints = false,
                  size_t uiVerbosity = 0 ) const
     {
         isect_arr_t vInterTypes;
@@ -1049,8 +1078,9 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
             "count",
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
                 typename type_defs::ret_pos_t vFromR, typename type_defs::ret_pos_t vToR,
-                sps::IntersectionType xInterType, bool bNoPoints,
-                size_t uiVerbosity ) { return rM.count( xDatasetId, vFromR, vToR, xInterType, bNoPoints, uiVerbosity ); },
+                sps::IntersectionType xInterType, bool bNoPoints, size_t uiVerbosity ) {
+                return rM.count( xDatasetId, vFromR, vToR, xInterType, bNoPoints, uiVerbosity );
+            },
             pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
             pybind11::arg( "to_pos" ), //
             pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //
@@ -1089,9 +1119,10 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
             "count",
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
                 typename type_defs::ret_pos_t vFromR, typename type_defs::ret_pos_t vToR,
-                typename type_defs::isect_arr_t vInterTypes,
-                typename type_defs::bool_arr_t vNoPoints,
-                size_t uiVerbosity ) { return rM.count( xDatasetId, vFromR, vToR, vInterTypes, vNoPoints, uiVerbosity ); },
+                typename type_defs::isect_arr_t vInterTypes, typename type_defs::bool_arr_t vNoPoints,
+                size_t uiVerbosity ) {
+                return rM.count( xDatasetId, vFromR, vToR, vInterTypes, vNoPoints, uiVerbosity );
+            },
             pybind11::arg( "dataset_id" ), pybind11::arg( "from_pos" ),
             pybind11::arg( "to_pos" ), //
             pybind11::arg( "intersection_types" ), //
@@ -1136,8 +1167,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
                 std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D - type_defs::ORTHOTOPE_DIMS>
                     vGrid,
-                const typename type_defs::isect_arr_t& vInterTypes,
-                const typename type_defs::bool_arr_t& vNoPoints,
+                const typename type_defs::isect_arr_t& vInterTypes, const typename type_defs::bool_arr_t& vNoPoints,
                 size_t uiVerbosity ) { return rM.gridCount( xDatasetId, vGrid, vInterTypes, vNoPoints, uiVerbosity ); },
             pybind11::arg( "dataset_id" ), pybind11::arg( "grid" ),
             pybind11::arg( "intersection_types" ), //
@@ -1180,8 +1210,7 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
             []( const sps::Index<type_defs>& rM, typename type_defs::class_key_t xDatasetId,
                 std::array<std::vector<typename type_defs::coordinate_t>, type_defs::D - type_defs::ORTHOTOPE_DIMS>
                     vGrid,
-                sps::IntersectionType xInterType,
-                bool bNoPoints,
+                sps::IntersectionType xInterType, bool bNoPoints,
                 size_t uiVerbosity ) { return rM.gridCount( xDatasetId, vGrid, xInterType, bNoPoints, uiVerbosity ); },
             pybind11::arg( "dataset_id" ), pybind11::arg( "grid" ),
             pybind11::arg( "intersection_type" ) = sps::IntersectionType::enclosed, //

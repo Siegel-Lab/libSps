@@ -3,8 +3,8 @@
 #include "sps/type_defs.h"
 #include <cassert>
 #include <functional>
-#include <string>
 #include <sstream>
+#include <string>
 
 
 namespace sps
@@ -481,6 +481,7 @@ template <typename type_defs> class SparseCoordLookupArray
     }
 };
 
+// @deprecated use SparseCoordLookupArray
 template <typename type_defs> class SparseCoordBinSearch
 {
     EXTRACT_TYPE_DEFS; // macro call
@@ -689,6 +690,7 @@ template <typename type_defs> class SparseCoordBinSearch
     }
 };
 
+// @deprecated BINARY_SEARCH_BASED_SPARSE is always false
 template <typename type_defs>
 using SparseCoord = typename std::conditional<type_defs::BINARY_SEARCH_BASED_SPARSE, //
                                               SparseCoordTmpl<type_defs, SparseCoordBinSearch>, //

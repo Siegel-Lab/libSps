@@ -1,11 +1,11 @@
 #pragma once
 
 #include "sps/type_defs.h"
-#include <chrono>
-#include <iostream>
 #include <algorithm>
-#include <fstream>
 #include <cassert>
+#include <chrono>
+#include <fstream>
+#include <iostream>
 
 #ifdef WITH_STXXL
 #include <stxxl/io>
@@ -149,23 +149,40 @@ template <typename val_t> struct RamVecGenerator
 using default_coordinate_t = uint64_t;
 using default_val_t = uint32_t;
 using default_class_key_t = uint32_t;
+static const size_t DEFAULT_ORTHOTOPE_POWER = 0;
 static const bool EXPLAIN = false;
 
-template <size_t D, size_t orthope, bool bin_search_sparse, typename val_t>
+template <size_t D, size_t orthope, size_t orthotope_power>
+using PowerInMemTypeDef = TypeDefs<default_coordinate_t, //
+                                   default_val_t, //
+                                   D, //
+                                   default_class_key_t, //
+                                   RamVecGenerator, //
+                                   RamVecGenerator, //
+                                   RamVecGenerator, //
+                                   RamVecGenerator, //
+                                   RamVecGenerator, //
+                                   RamVecGenerator, //
+                                   orthope, //
+                                   orthotope_power, //
+                                   EXPLAIN, //
+                                   StdOutProgressStream>;
+
+template <size_t D, size_t orthope, typename val_t>
 using ValInMemTypeDef = TypeDefs<default_coordinate_t, //
-                              val_t, //
-                              D, //
-                              default_class_key_t, //
-                              RamVecGenerator, //
-                              RamVecGenerator, //
-                              RamVecGenerator, //
-                              RamVecGenerator, //
-                              RamVecGenerator, //
-                              RamVecGenerator, //
-                              bin_search_sparse, //
-                              orthope, //
-                              EXPLAIN, //
-                              StdOutProgressStream>;
+                                 val_t, //
+                                 D, //
+                                 default_class_key_t, //
+                                 RamVecGenerator, //
+                                 RamVecGenerator, //
+                                 RamVecGenerator, //
+                                 RamVecGenerator, //
+                                 RamVecGenerator, //
+                                 RamVecGenerator, //
+                                 orthope, //
+                                 DEFAULT_ORTHOTOPE_POWER, //
+                                 EXPLAIN, //
+                                 StdOutProgressStream>;
 /**
  * @brief Type definitions for a RAM Index
  *
@@ -174,8 +191,7 @@ using ValInMemTypeDef = TypeDefs<default_coordinate_t, //
  * @tparam D number of dimensions
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, size_t orthope, bool bin_search_sparse>
-using InMemTypeDef = ValInMemTypeDef<D, orthope, bin_search_sparse, default_val_t>;
+template <size_t D, size_t orthope> using InMemTypeDef = ValInMemTypeDef<D, orthope, default_val_t>;
 
 
 #ifdef WITH_STXXL
@@ -353,21 +369,37 @@ template <typename val_t> struct DiskVecGenerator
     }
 };
 
-template <size_t D, size_t orthope, bool bin_search_sparse, typename val_t>
+template <size_t D, size_t orthope, size_t orthotope_power>
+using PowerDiskTypeDef = TypeDefs<default_coordinate_t, //
+                                  default_val_t, //
+                                  D, //
+                                  default_class_key_t, //
+                                  DiskVecGenerator, //
+                                  DiskVecGenerator, //
+                                  DiskVecGenerator, //
+                                  DiskVecGenerator, //
+                                  DiskVecGenerator, //
+                                  DiskVecGenerator, //
+                                  orthope, //
+                                  orthotope_power, //
+                                  EXPLAIN, //
+                                  StdOutProgressStream>;
+
+template <size_t D, size_t orthope, typename val_t>
 using ValDiskTypeDef = TypeDefs<default_coordinate_t, //
-                             val_t, //
-                             D, //
-                             default_class_key_t, //
-                             DiskVecGenerator, //
-                             DiskVecGenerator, //
-                             DiskVecGenerator, //
-                             DiskVecGenerator, //
-                             DiskVecGenerator, //
-                             DiskVecGenerator, //
-                             bin_search_sparse, //
-                             orthope, //
-                             EXPLAIN, //
-                             StdOutProgressStream>;
+                                val_t, //
+                                D, //
+                                default_class_key_t, //
+                                DiskVecGenerator, //
+                                DiskVecGenerator, //
+                                DiskVecGenerator, //
+                                DiskVecGenerator, //
+                                DiskVecGenerator, //
+                                DiskVecGenerator, //
+                                orthope, //
+                                DEFAULT_ORTHOTOPE_POWER, //
+                                EXPLAIN, //
+                                StdOutProgressStream>;
 /**
  * @brief Type definitions for a Disk Index
  *
@@ -377,28 +409,42 @@ using ValDiskTypeDef = TypeDefs<default_coordinate_t, //
  * @tparam D number of dimensions
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, size_t orthope, bool bin_search_sparse>
-using DiskTypeDef = ValDiskTypeDef<D, orthope, bin_search_sparse, default_val_t>;
+template <size_t D, size_t orthope> using DiskTypeDef = ValDiskTypeDef<D, orthope, default_val_t>;
 
 
 #ifdef WITH_STXXL
-template <size_t D, size_t orthope, bool bin_search_sparse, typename val_t>
+
+template <size_t D, size_t orthope, size_t orthotope_power>
+using PowerCachedTypeDef = TypeDefs<default_coordinate_t, //
+                                    default_val_t, //
+                                    D, //
+                                    default_class_key_t, //
+                                    DiskVecGenerator, //
+                                    DiskVecGenerator, //
+                                    DiskVecGenerator, //
+                                    DiskVecGenerator, //
+                                    CachedVecGenerator, //
+                                    CachedVecGenerator, //
+                                    orthope, //
+                                    orthotope_power, //
+                                    EXPLAIN, //
+                                    StdOutProgressStream>;
+
+template <size_t D, size_t orthope, typename val_t>
 using ValCachedTypeDef = TypeDefs<default_coordinate_t, //
-                               val_t, //
-                               D, //
-                               default_class_key_t, //
-                               DiskVecGenerator, //
-                               DiskVecGenerator, //
-                               // typename std::conditional<BINARY_SEARCH_BASED_SPARSE,
-                               //                           DiskVecGenerator, CachedVecGenerator>::type, //
-                               DiskVecGenerator, //
-                               DiskVecGenerator, //
-                               CachedVecGenerator, //
-                               CachedVecGenerator, //
-                               bin_search_sparse, //
-                               orthope, //
-                               EXPLAIN, //
-                               StdOutProgressStream>;
+                                  val_t, //
+                                  D, //
+                                  default_class_key_t, //
+                                  DiskVecGenerator, //
+                                  DiskVecGenerator, //
+                                  DiskVecGenerator, //
+                                  DiskVecGenerator, //
+                                  CachedVecGenerator, //
+                                  CachedVecGenerator, //
+                                  orthope, //
+                                  DEFAULT_ORTHOTOPE_POWER, //
+                                  EXPLAIN, //
+                                  StdOutProgressStream>;
 /**
  * @brief Type definitions for a Cached Index
  *
@@ -410,7 +456,6 @@ using ValCachedTypeDef = TypeDefs<default_coordinate_t, //
  * @tparam D number of dimensions
  * @tparam orthope number of orthope dimensions
  */
-template <size_t D, size_t orthope, bool bin_search_sparse>
-using CachedTypeDef = ValCachedTypeDef<D, orthope, bin_search_sparse, default_val_t>;
+template <size_t D, size_t orthope> using CachedTypeDef = ValCachedTypeDef<D, orthope, default_val_t>;
 
 #endif

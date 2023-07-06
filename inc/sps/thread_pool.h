@@ -183,8 +183,7 @@ inline ThreadPool::ThreadPool( size_t threads )
 
 /* Constructor just launches some amount of workers
  */
-inline ThreadPool::ThreadPool( )
-    : ThreadPool( std::thread::hardware_concurrency( ) )
+inline ThreadPool::ThreadPool( ) : ThreadPool( std::thread::hardware_concurrency( ) )
 {}
 
 /* the destructor joins all threads

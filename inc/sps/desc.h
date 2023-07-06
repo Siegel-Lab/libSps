@@ -30,7 +30,7 @@ template <template <typename> typename vec_gen_t> class DescImpl
     typename char_gen_t::vec_t vData;
     char cEof;
 
-    friend std::ostream& std::operator<<<>( std::ostream& os, const DescImpl& rTree );
+    friend std::ostream& std::operator<< <>( std::ostream& os, const DescImpl& rTree );
 
   public:
     DescImpl( std::string sPrefix, bool bWrite, char cEof )

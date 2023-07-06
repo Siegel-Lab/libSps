@@ -29,7 +29,7 @@ template <typename type_defs> class Corners
     EXTRACT_VEC_GENERATOR( points, corner_t ); // macro call
     points_file_t xFile;
     points_vec_t vData;
-    
+
     static constexpr bool THREADSAVE = points_THREADSAVE;
 
   private:
@@ -91,7 +91,6 @@ template <typename type_defs> class Corners
     };
 
   public:
-
     struct Entry
     {
         coordinate_t uiStartIndex;
@@ -274,15 +273,16 @@ template <typename type_defs> class Corners
 
     void sortByDim( size_t uiDim, const Entry& rEntry )
     {
-        points_sort_func_t<typename points_vec_t::iterator, PointsComperator>()(
+        points_sort_func_t<typename points_vec_t::iterator, PointsComperator>( )(
             vData.begin( ) + rEntry.uiStartIndex, vData.begin( ) + rEntry.uiEndIndex, PointsComperator( uiDim ) );
     }
 
     void sortByDim( size_t uiDim1, size_t uiDim2, const Entry& rEntry )
     {
-        points_sort_func_t<typename points_vec_t::iterator, PointsComperator2>()( vData.begin( ) + rEntry.uiStartIndex,
-                                                                                vData.begin( ) + rEntry.uiEndIndex,
-                                                                                PointsComperator2( uiDim1, uiDim2 ) );
+        points_sort_func_t<typename points_vec_t::iterator, PointsComperator2>( )(
+            vData.begin( ) + rEntry.uiStartIndex,
+            vData.begin( ) + rEntry.uiEndIndex,
+            PointsComperator2( uiDim1, uiDim2 ) );
     }
 
     size_t size( ) const

@@ -152,7 +152,7 @@ template <typename type_defs> class SimpleValVector : public AbstractIndex
 template <typename type_defs> std::string exportSimpleVector( pybind11::module& m, std::string sName )
 {
     pybind11::class_<sps::SimpleValVector<type_defs>>( m, sName.c_str( ),
-                                                                           R"pbdoc(
+                                                       R"pbdoc(
     Simple Vector for val_t entries.
     
     .. automethod:: add

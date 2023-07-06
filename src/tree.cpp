@@ -8,12 +8,10 @@
 #include <fstream>
 #include <stdlib.h>
 #include <string_view>
-//#include <unistd.h>
+// #include <unistd.h>
 
 
-constexpr bool bBinSearchSparse = false;
-
-template <size_t D, size_t O, template <size_t, size_t, bool> typename storage_t>
+template <size_t D, size_t O, template <size_t, size_t> typename storage_t>
 std::string exportPrefixSumIndex( pybind11::module& m, std::string sPref )
 {
     if constexpr( D != 0 )
@@ -31,7 +29,7 @@ std::string exportPrefixSumIndex( pybind11::module& m, std::string sPref )
             sDesc += " " + std::to_string( D ) + "-orthotopes";
         sDesc += " in " + std::to_string( D - O ) + "-dimensional space";
 
-        return exportIndex<storage_t<D + O, O, bBinSearchSparse>>(
+        return exportIndex<storage_t<D + O, O>>(
             m, ( sPref + "PrefixSum_" + std::to_string( D ) + "D_" + std::to_string( O ) + "O" ).c_str( ), sDesc );
     }
     return "";
@@ -45,7 +43,7 @@ template <size_t D, size_t O, size_t storage_t> std::string exportPrefixSumIndex
     else if constexpr( storage_t == 2 )
         return exportPrefixSumIndex<D, O, CachedTypeDef>( m, "Cached" );
 #endif
-    else 
+    else
         return exportPrefixSumIndex<D, O, DiskTypeDef>( m, "Disk" );
 }
 
@@ -53,30 +51,30 @@ template <size_t D> std::string exportStorageSimpleVec( pybind11::module& m, std
 {
     std::string sRet = "";
 #ifdef DISK
-    sRet += exportSimpleVector<DiskTypeDef<D, D, true>>( m, ( "DiskSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<DiskTypeDef<D, D>>( m, ( "DiskSimpleVector" + sSuff ).c_str( ) );
 #endif
 #ifdef CACHED
 #ifdef WITH_STXXL
-    sRet += exportSimpleVector<CachedTypeDef<D, D, true>>( m, ( "CachedSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<CachedTypeDef<D, D>>( m, ( "CachedSimpleVector" + sSuff ).c_str( ) );
 #endif
 #endif
 #ifdef RAM
-    sRet += exportSimpleVector<InMemTypeDef<D, D, true>>( m, ( "RamSimpleVector" + sSuff ).c_str( ) );
+    sRet += exportSimpleVector<InMemTypeDef<D, D>>( m, ( "RamSimpleVector" + sSuff ).c_str( ) );
 #endif
     return sRet;
 }
 
 
-template <size_t D, size_t O, template <size_t, size_t, bool> typename storage_t>
+template <size_t D, size_t O, template <size_t, size_t> typename storage_t>
 std::unique_ptr<AbstractIndex> factoryHelper( size_t uiD, size_t uiOrthtopeDims, std::string sPrefix, bool bWrite,
                                               bool bSimpleVec )
 {
     if( uiD == D && uiOrthtopeDims == O )
     {
         if( bSimpleVec )
-            return std::make_unique<sps::SimpleVector<storage_t<D, D, true>>>( sPrefix, bWrite );
+            return std::make_unique<sps::SimpleVector<storage_t<D, D>>>( sPrefix, bWrite );
         else
-            return std::make_unique<sps::Index<storage_t<D + O, O, bBinSearchSparse>>>( sPrefix, bWrite );
+            return std::make_unique<sps::Index<storage_t<D + O, O>>>( sPrefix, bWrite );
     }
     return nullptr;
 }
@@ -178,10 +176,10 @@ PYBIND11_MODULE( sps, m )
     if( getenv( (char*)"STXXLERRLOGFILE" ) == nullptr )
         putenv( (char*)"STXXLERRLOGFILE=/dev/null" );
 
-    exportSimpleVector<CachedTypeDef<1, 0, true>>( m, "CachedSimpleVector" );
+    exportSimpleVector<CachedTypeDef<1, 0>>( m, "CachedSimpleVector" );
 #endif
-    exportSimpleVector<DiskTypeDef<1, 0, true>>( m, "DiskSimpleVector" );
-    exportSimpleVector<InMemTypeDef<1, 0, true>>( m, "MemSimpleVector" );
+    exportSimpleVector<DiskTypeDef<1, 0>>( m, "DiskSimpleVector" );
+    exportSimpleVector<InMemTypeDef<1, 0>>( m, "MemSimpleVector" );
 
     m.attr( "VERSION" ) = SPS_VERSION;
     m.attr( "BUILD_TIME" ) = SPS_BUILD_TIME;
@@ -196,7 +194,7 @@ PYBIND11_MODULE( sps, m )
 #else
     m.attr( "WITH_STXXL" ) = false;
 #endif
-    
+
     m.attr( "COMPILER_ID" ) = CXX_COMPILER_ID;
 
     exportEnum( m );

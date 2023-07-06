@@ -349,7 +349,8 @@ template <typename type_defs, typename data_t, template <typename> typename data
 
     template <size_t N> using default_func_t = std::function<std::vector<size_t>( size_t, size_t, const Entry<N>& )>;
 
-    template <size_t N> std::unique_ptr<ParallelIterator<N, default_func_t<N>>> genIterator( const Entry<N>& xEntry ) const
+    template <size_t N>
+    std::unique_ptr<ParallelIterator<N, default_func_t<N>>> genIterator( const Entry<N>& xEntry ) const
     {
         return std::make_unique<ParallelIterator<N, default_func_t<N>>>(
             xEntry, []( size_t uiIdx, size_t uiDim, const Entry<N>& xEntry ) {
@@ -368,7 +369,8 @@ template <typename type_defs, typename data_t, template <typename> typename data
     std::unique_ptr<ParallelIterator<N, fSuccessor_t, args_successor_t...>>
     genIterator( const Entry<N>& xEntry, fSuccessor_t fSuccessors, args_successor_t&... vArgs ) const
     {
-        return std::make_unique<ParallelIterator<N, fSuccessor_t, args_successor_t...>>( xEntry, fSuccessors, vArgs... );
+        return std::make_unique<ParallelIterator<N, fSuccessor_t, args_successor_t...>>(
+            xEntry, fSuccessors, vArgs... );
     }
 };
 
