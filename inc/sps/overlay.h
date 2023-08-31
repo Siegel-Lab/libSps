@@ -626,7 +626,7 @@ template <typename type_defs> class Overlay
             xProg << Verbosity( 3 ) << "vSizes: " << vSizes << " vInternalAxisSizes: " << vInternalAxisSizes << "\n";
 #endif
 
-#if 1 // 1 == old implementation //@todo new implementation is buggy!!!
+#if 1 // 1 == old implementation //@todo-low-prio new implementation is buggy!!! - keeping it off for now
       // compute internal prefix sum
             coordinate_t uiNumDone = 0;
             for( size_t uiI = 0; uiI < D; uiI++ )
@@ -1004,7 +1004,7 @@ template <typename type_defs> class Overlay
 
 #define CHECK_BIT( var, pos ) !!( ( var ) & ( 1 << ( pos ) ) )
 
-    // @todo this can be computed compiletime and then jsut put into a lookup array
+    // @todo-low-prio this can be computed compiletime and then jsut put into a lookup array
     template <size_t uiD> static size_t intersectionTypeToCornerIndex( [[maybe_unused]] const isect_arr_t& vInterTypes )
     {
         if constexpr( IS_ORTHOTOPE )

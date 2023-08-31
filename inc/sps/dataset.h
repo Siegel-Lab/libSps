@@ -1573,7 +1573,7 @@ template <typename type_defs> class Dataset
         }
 
         /*
-         * @todo instead of nested loops have one loop that sets the coordinates while iterating...
+         * @todo-low-prio instead of nested loops have one loop that sets the coordinates while iterating...
          * for each dimension there can be a divisor and modulator. so we iterate over the raw 1d array.
          * then for each cell compute the coordinates by division & modulo.
          * This would be an almost if-less implementation (there is one if left in the loop termination...)
