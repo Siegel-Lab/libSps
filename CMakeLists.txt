@@ -58,15 +58,20 @@ set(STORAGE_N "0" CACHE STRING "The storage type of this index (one of Ram, Disk
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(WITH_STXXL_DEFAULT OFF)
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(UNROLL_FOR_ALL_COMBINATIONS_DEFAULT ON)
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     set(WITH_STXXL_DEFAULT ON)
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    set(UNROLL_FOR_ALL_COMBINATIONS_DEFAULT ON)
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(WITH_STXXL_DEFAULT OFF)
-else()
+    set(UNROLL_FOR_ALL_COMBINATIONS_DEFAULT OFF)
+    else()
     set(WITH_STXXL_DEFAULT OFF)
+    set(UNROLL_FOR_ALL_COMBINATIONS_DEFAULT OFF)
 endif()
 
 option(WITH_STXXL "Use stxxl to build the cached forms of the index" ${WITH_STXXL_DEFAULT})
+option(UNROLL_FOR_ALL_COMBINATIONS "Use aggressive template unrolling. Will increase compiletime and -ram usage massiveley, but decrease runtime." ${UNROLL_FOR_ALL_COMBINATIONS_DEFAULT})
 
 #################
 # Configuration #
@@ -174,6 +179,9 @@ if (pybind11_FOUND)
         target_link_libraries( sps PRIVATE stxxl )
         target_compile_definitions( sps PRIVATE "WITH_STXXL" )
     endif(WITH_STXXL)
+    if(UNROLL_FOR_ALL_COMBINATIONS)
+        target_compile_definitions( sps PRIVATE UNROLL_FOR_ALL_COMBINATIONS )
+    endif(UNROLL_FOR_ALL_COMBINATIONS)
 
     target_compile_definitions( sps PRIVATE WITH_PYTHON )
     target_compile_definitions( sps PRIVATE CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}" )
@@ -308,6 +316,9 @@ if(WITH_STXXL)
     target_link_libraries( libsps INTERFACE stxxl )
     target_compile_definitions( libsps INTERFACE "WITH_STXXL" )
 endif(WITH_STXXL)
+if(UNROLL_FOR_ALL_COMBINATIONS)
+    target_compile_definitions( libsps INTERFACE "UNROLL_FOR_ALL_COMBINATIONS" )
+endif(UNROLL_FOR_ALL_COMBINATIONS)
 add_dependencies(libsps sps_config_version sps_config_build_time)
 
 write_basic_package_version_file(

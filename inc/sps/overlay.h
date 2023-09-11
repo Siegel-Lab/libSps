@@ -788,27 +788,36 @@ template <typename type_defs> class Overlay
             }
     }
 
-
-    template <size_t, size_t uiDistToTo, size_t uiFirstZero> struct CombinationsInvariant
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
+    template <size_t, size_t uiDistToTo, size_t uiFirstZero>
+#endif
+    struct CombinationsInvariant
     {
-        static inline void
-        count( pos_t vPos, val_t& uiRet, pos_t& /*vMyBottomLeft*/,
-               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
-               const prefix_sum_grid_t& rPrefixSums,
-               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
-               [[maybe_unused]] size_t uiCornerIdx, sps_t uiBottomLeftPrefixSum
+        static inline void count(
+
+#ifndef UNROLL_FOR_ALL_COMBINATIONS
+            size_t, size_t uiDistToTo, size_t uiFirstZero,
+#endif
+            pos_t vPos, val_t& uiRet, pos_t& /*vMyBottomLeft*/,
+            const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
+            const prefix_sum_grid_t& rPrefixSums,
+            const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+            [[maybe_unused]] size_t uiCornerIdx, sps_t uiBottomLeftPrefixSum
 #if GET_PROG_PRINTS
-               ,
-               progress_stream_t& xProg
+            ,
+            progress_stream_t& xProg
 #endif
         )
         {
 #if GET_PROG_PRINTS
             xProg << Verbosity( 3 ) << "\t\tONE: query: " << vPos << " in overlay " << uiFirstZero << "\n";
 #endif
-            if constexpr( uiDistToTo == 0 )
-                return;
-            if constexpr( uiFirstZero == D )
+
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
+            if constexpr( uiDistToTo == 0 || uiFirstZero == D )
+#else
+            if( uiDistToTo == 0 || uiFirstZero == D )
+#endif
                 return;
             if( vOverlayEntries[ uiFirstZero ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
                 return;
@@ -850,31 +859,43 @@ template <typename type_defs> class Overlay
 #if GET_PROG_PRINTS
             xProg << "\t\tis " << ( uiDistToTo % 2 == 0 ? "-" : "+" ) << uiCurr << " (" << uiCurrArr << ")\n";
 #endif
+
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
             if constexpr( uiDistToTo % 2 == 0 )
+#else
+            if( uiDistToTo % 2 == 0 )
+#endif
                 uiRet -= uiCurr;
             else
                 uiRet += uiCurr;
         }
     };
 
-
-    template <size_t /*uiD*/, size_t uiDistToTo, size_t uiFirstZero> struct CombinationsInvariantAll
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
+    template <size_t /*uiD*/, size_t uiDistToTo, size_t uiFirstZero>
+#endif
+    struct CombinationsInvariantAll
     {
-        static inline void
-        count( pos_t vPos, sps_t& uiRet, pos_t& /*vMyBottomLeft*/,
-               const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
-               const prefix_sum_grid_t& rPrefixSums,
-               const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
-               sps_t uiBottomLeftPrefixSum,
-               progress_stream_t&
+        static inline void count(
+#ifndef UNROLL_FOR_ALL_COMBINATIONS
+            size_t, size_t uiDistToTo, size_t uiFirstZero,
+#endif
+            pos_t vPos, sps_t& uiRet, pos_t& /*vMyBottomLeft*/,
+            const std::array<red_entry_arr_t, D>& vSparseCoordsOverlay, const sparse_coord_t& rSparseCoords,
+            const prefix_sum_grid_t& rPrefixSums,
+            const std::array<typename prefix_sum_grid_t::template Entry<D - 1>, D>& vOverlayEntries,
+            sps_t uiBottomLeftPrefixSum,
+            progress_stream_t&
 #if GET_PROG_PRINTS
-                   xProg
+                xProg
 #endif
         )
         {
-            if constexpr( uiDistToTo == 0 )
-                return;
-            if constexpr( uiFirstZero == D )
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
+            if constexpr( uiDistToTo == 0 || uiFirstZero == D )
+#else
+            if( uiDistToTo == 0 || uiFirstZero == D )
+#endif
                 return;
             if( vOverlayEntries[ uiFirstZero ].uiStartIndex == std::numeric_limits<coordinate_t>::max( ) )
                 return;
@@ -921,7 +942,11 @@ template <typename type_defs> class Overlay
 #endif
 #endif
 
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
             if constexpr( uiDistToTo % 2 == 0 )
+#else
+            if( uiDistToTo % 2 == 0 )
+#endif
                 uiRet -= uiCurr;
             else
                 uiRet += uiCurr;
@@ -1006,6 +1031,44 @@ template <typename type_defs> class Overlay
 
     // @todo-low-prio this can be computed compiletime and then jsut put into a lookup array
     template <size_t uiD> static size_t intersectionTypeToCornerIndex( [[maybe_unused]] const isect_arr_t& vInterTypes )
+    {
+        if constexpr( IS_ORTHOTOPE )
+        {
+            size_t uiRet = 0;
+            for( size_t uiI = 0; uiI < ORTHOTOPE_DIMS; uiI++ )
+            {
+                size_t uiIsTop;
+
+                switch( vInterTypes[ uiI ] )
+                {
+                    case IntersectionType::points_only:
+                    case IntersectionType::first:
+                        uiIsTop = 0;
+                        break;
+                    case IntersectionType::last:
+                        uiIsTop = 1;
+                        break;
+                    default:
+                    case IntersectionType::enclosed:
+                    case IntersectionType::encloses:
+                        uiIsTop = CHECK_BIT( uiD, D - uiI - 1 );
+                        break;
+                    case IntersectionType::overlaps:
+                        uiIsTop = !CHECK_BIT( uiD, D - uiI - 1 );
+                        break;
+                }
+
+                uiRet <<= 1;
+                uiRet += uiIsTop;
+            }
+            return uiRet;
+        }
+        else
+            return 0;
+    }
+
+    // @todo-low-prio code duplication
+    static size_t intersectionTypeToCornerIndex( size_t uiD, [[maybe_unused]] const isect_arr_t& vInterTypes )
     {
         if constexpr( IS_ORTHOTOPE )
         {

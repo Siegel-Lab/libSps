@@ -11,7 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.command.install_headers import install_headers as install_headers_orig
 
 
-VERSION = "0.4.1"
+VERSION = "0.5.0"
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
@@ -68,6 +68,8 @@ class CMakeBuild(build_ext):
                     cmake_args.append("-D" + arg_name + "=" + os.environ["SPS_" + arg_name])
         if "SPS_WITH_STXXL" in os.environ:
             cmake_args.append("-DWITH_STXXL =" + os.environ["SPS_WITH_STXXL"])
+        if "SPS_UNROLL_FOR_ALL_COMBINATIONS" in os.environ:
+            cmake_args.append("-DUNROLL_FOR_ALL_COMBINATIONS =" + os.environ["SPS_UNROLL_FOR_ALL_COMBINATIONS"])
 
         build_args = []
         # Adding CMake arguments set as environment variable

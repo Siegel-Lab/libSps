@@ -86,34 +86,42 @@ template <typename type_defs> class Corner : public USED_POINT
 
 
 template <typename pos_t, size_t N, size_t NE>
-inline void forAllCombinationsHelper( std::function<void( size_t, pos_t, size_t )> fDo, pos_t& vCurr,
+inline void forAllCombinationsHelper( std::function<void( size_t, size_t, size_t, pos_t )> fDo, pos_t& vCurr,
                                       [[maybe_unused]] pos_t vFrom, [[maybe_unused]] pos_t vTo, size_t uiDistTo,
-                                      size_t uiNum, std::function<bool( typename pos_t::value_type )> fCond )
+                                      size_t uiNum, size_t uiFirstZero,
+                                      std::function<bool( typename pos_t::value_type, size_t, bool )> fCond )
 {
     if constexpr /* <- required to prevent infinite unrolling loop in compiler */ ( N == NE )
-        fDo( uiNum, vCurr, uiDistTo );
+        fDo( uiNum, uiDistTo, uiFirstZero, vCurr );
     else
     {
         vCurr[ N ] = vFrom[ N ];
-        if( fCond( vCurr[ N ] ) )
-            forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo + 1, uiNum, fCond );
+        if( fCond( vCurr[ N ], N, true ) )
+        {
+            if( uiFirstZero == NE )
+                forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo + 1, uiNum, N, fCond );
+            else
+                forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo + 1, uiNum, uiFirstZero,
+                                                            fCond );
+        }
         vCurr[ N ] = vTo[ N ];
-        if( fCond( vCurr[ N ] ) )
+        if( fCond( vCurr[ N ], N, false ) )
             forAllCombinationsHelper<pos_t, N + 1, NE>( fDo, vCurr, vFrom, vTo, uiDistTo,
-                                                        uiNum + ( 1 << ( NE - ( N + 1 ) ) ), fCond );
+                                                        uiNum + ( 1 << ( NE - ( N + 1 ) ) ), uiFirstZero, fCond );
     }
 }
 
 
 template <typename pos_t, size_t N>
 inline void forAllCombinationsN(
-    std::function<void( size_t, pos_t, size_t )> fDo,
+    std::function<void( size_t, size_t, size_t, pos_t )> fDo,
     pos_t vFrom,
     pos_t vTo,
-    std::function<bool( typename pos_t::value_type )> fCond = []( typename pos_t::value_type ) { return true; } )
+    std::function<bool( typename pos_t::value_type, size_t, bool )> fCond = []( typename pos_t::value_type, size_t,
+                                                                                bool ) { return true; } )
 {
     pos_t vCurr{ };
-    forAllCombinationsHelper<pos_t, 0, N>( fDo, vCurr, vFrom, vTo, 0, 0, fCond );
+    forAllCombinationsHelper<pos_t, 0, N>( fDo, vCurr, vFrom, vTo, 0, 0, N, fCond );
 }
 
 template <typename> struct array_size;
@@ -123,14 +131,16 @@ template <typename T, size_t N> struct array_size<std::array<T, N>>
 };
 template <typename pos_t>
 inline void forAllCombinations(
-    std::function<void( size_t, pos_t, size_t )> fDo,
+    std::function<void( size_t, size_t, size_t, pos_t )> fDo,
     pos_t vFrom,
     pos_t vTo,
-    std::function<bool( typename pos_t::value_type )> fCond = []( typename pos_t::value_type ) { return true; } )
+    std::function<bool( typename pos_t::value_type, size_t, bool )> fCond = []( typename pos_t::value_type, size_t,
+                                                                                bool ) { return true; } )
 {
     forAllCombinationsN<pos_t, array_size<pos_t>::size>( fDo, vFrom, vTo, fCond );
 }
 
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
 
 template <typename pos_t, size_t N, size_t NE, template <size_t, size_t, size_t> class fDo_t, size_t uiDistTo,
           size_t uiNum, size_t uiFirstZero, typename fCond_t, typename... extra_t>
@@ -171,5 +181,16 @@ inline void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond, e
 {
     forAllCombinationsNTmpl<pos_t, array_size<pos_t>::size, fDo_t>( vFrom, vTo, fCond, rExtra... );
 }
+
+#else
+
+template <typename pos_t, class fDo_t, typename fCond_t, typename... extra_t>
+inline void forAllCombinationsTmpl( pos_t& vFrom, pos_t& vTo, fCond_t&& fCond, extra_t&&... rExtra )
+{
+    forAllCombinations<pos_t>( [ & ]( size_t uiNum, size_t uiDistTo, size_t uiFirstZero,
+                                      pos_t vCurr ) { fDo_t::count( uiNum, uiDistTo, uiFirstZero, vCurr, rExtra... ); },
+                               vFrom, vTo, fCond );
+}
+#endif
 
 } // namespace sps

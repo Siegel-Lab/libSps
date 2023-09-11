@@ -190,7 +190,7 @@ template <typename type_defs> class Corners
     typename std::enable_if_t<trigger> add( pos_t vStart, pos_t vEnd, val_t uiVal )
     {
         forAllCombinationsN<pos_t, ORTHOTOPE_DIMS>(
-            [ & ]( size_t uiI, pos_t vPos, size_t ) {
+            [ & ]( size_t uiI, size_t, size_t, pos_t vPos ) {
                 for( size_t uiD = ORTHOTOPE_DIMS; uiD < D; uiD++ )
                 {
                     assert( vStart[ uiD ] == vEnd[ uiD ] );

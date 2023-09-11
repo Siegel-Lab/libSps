@@ -325,15 +325,22 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
   private:
-    template <size_t uiD, size_t uiDistToTo, size_t> struct SizeLimitedInvariant
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
+    template <size_t uiD, size_t uiDistToTo, size_t>
+#endif
+    struct SizeLimitedInvariant
     {
-        static void count( pos_t vPos, const isect_arr_t& vInterTypes, const dataset_vec_t& vDataSets,
-                           const sparse_coord_t& vSparseCoord, const prefix_sum_grid_t& vPrefixSumGrid,
-                           const overlay_grid_t& vOverlayGrid, const class_key_t xDatasetId,
-                           const size_t uiIntersectTypeFac, val_t& uiRet
+        static void count(
+#ifndef UNROLL_FOR_ALL_COMBINATIONS
+            size_t uiD, size_t uiDistToTo, size_t,
+#endif
+            pos_t vPos, const isect_arr_t& vInterTypes, const dataset_vec_t& vDataSets,
+            const sparse_coord_t& vSparseCoord, const prefix_sum_grid_t& vPrefixSumGrid,
+            const overlay_grid_t& vOverlayGrid, const class_key_t xDatasetId, const size_t uiIntersectTypeFac,
+            val_t& uiRet
 #if GET_PROG_PRINTS
-                           ,
-                           progress_stream_t& xProg
+            ,
+            progress_stream_t& xProg
 #endif
         )
         {
@@ -341,12 +348,18 @@ template <typename type_defs> class Index : public AbstractIndex
             xProg << "query: " << xDatasetId << " vPos: " << vPos << " uiD: " << uiD << "\n";
 #endif
 
-            val_t uiCurr = vDataSets[ xDatasetId ].get(
-                vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
-                Overlay<type_defs>::template intersectionTypeToCornerIndex<uiD>( vInterTypes )
+            val_t uiCurr = vDataSets[ xDatasetId ].get( vOverlayGrid, vSparseCoord, vPrefixSumGrid, vPos,
+
+                                                        Overlay<type_defs>::template intersectionTypeToCornerIndex
+#ifdef UNROLL_FOR_ALL_COMBINATIONS
+                                                        <uiD>(
+#else
+                                                        ( uiD,
+#endif
+                                                            vInterTypes )
 #if GET_PROG_PRINTS
-                    ,
-                xProg
+                                                            ,
+                                                        xProg
 #endif
             );
 
