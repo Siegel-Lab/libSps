@@ -193,8 +193,6 @@ class TypeDefs
 //    static_assert( 4096 % sizeof( content_t ) == 0 );
 
 
-// @todo @continue_here static assert below triggers -> why is it here?
-// look at default.h -> CacheVec size / build in a separator here, that does an if this if that command
 #define EXTRACT_VEC_GENERATOR( name, content_t )                                                                       \
                                                                                                                        \
     using name##_vec_generator_t = name##_tmpl_vec_generator_t<content_t>;                                             \
