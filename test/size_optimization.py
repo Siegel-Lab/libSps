@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.getcwd())
-from build_benchmark.libSps import VERSION, make_sps_index, ValDiskSimpleVector_2D#, ValCachedSimpleVector_2D
+from build_benchmark.libSps import VERSION, make_sps_index
 import random
 import time
 import os
@@ -306,43 +306,5 @@ def test(plot=True, max_pred_file_size=10, fac_base=2):
         save(gridplot(plots, sizing_mode="scale_width", merge_tools=False))
 
 
-def test_max_io(n_query=N_QUERY):
-    print("#VERSION", VERSION)
-    print("#N_QUERY", N_QUERY)
-    print("vector", "storage", "n", "querytime [s]", sep="\t")
-    for _n in range(MIN_FILL, MAX_FILL):
-        vec_d = ValDiskSimpleVector_2D("test/benchmark_index_d", True)
-        n = 10**_n
-        for _ in range(n):
-            vec_d.add(random.choice(range(n)))
-        bins = []
-        for _ in range(n_query):
-            bins.append(random.choice(range(n)))
-        t1 = time.perf_counter()
-        vec_d.get_multiple(bins)
-        t2 = time.perf_counter()
-        print("vector" if _n == 1 else "", "ram" if _n == 1 else "", n, (t2-t1), sep="\t")
-
-        del vec_d
-        
-        os.remove("test/benchmark_index_d.vals")
-    for _n in range(MIN_FILL, MAX_FILL):
-        vec_c = ValCachedSimpleVector_2D("test/benchmark_index_c", True)
-        n = 10**_n
-        for _ in range(n):
-            vec_c.add(random.choice(range(10000)))
-        bins = []
-        for _ in range(n_query):
-            bins.append(random.choice(range(n)))
-        t1 = time.perf_counter()
-        vec_c.get_multiple(bins)
-        t2 = time.perf_counter()
-        print("", "cached" if _n == 1 else "", n, (t2-t1), sep="\t")
-
-        del vec_c
-        
-        os.remove("test/benchmark_index_c.vals")
-
 random.seed(6846854546132)
-#test_max_io()
 test()
