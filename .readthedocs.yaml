@@ -11,8 +11,6 @@ build:
       - mkdir build
       - cmake . -B build -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
       - cmake --build build --target docs
-      - mkdir $READTHEDOCS_OUTPUT/pdf/
-      - tectonic build/tex/*.tex -o $READTHEDOCS_OUTPUT/pdf/
 
 conda:
   environment: docs_conf/dev_env_linux.yml

@@ -40,7 +40,7 @@ Then you can choose to compile using pip or CMake.
 
 Pip:
 
-    pip install -e . --no-deps -vvv
+    pip install -e .
 
 CMake:
 
