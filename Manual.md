@@ -38,13 +38,8 @@ To compile libSps from the githug source use the following commands:
     conda activate libSps
     cd ..
 
-    # configure build 
-    mkdir build
-    cd build
-    cmake ../libSps/ # Here you can configure various options (see below)
-
-    # build
-    make
+    # build and install libSps using pip
+    pip install -e . --no-deps -vvv
 
 Various parameters of libSps are set during compile time.
 We chose to use compile time parameters as the underlying memory layout is affected and knowing the layout ahead of time improves runtime performance.
@@ -52,14 +47,15 @@ If you plan using libSps from C++ you can set all these options via template par
 However, for python you have to define the parameters at compile time.
 With CMake, you can configure libSps in various ways:
 
-Add `-DWITH_PYTHON=ON` to create a shared object file that can be imported as a python module. If this parameter is set:
-- set `-DNUM_DIMENSIONS_A=X -DNUM_DIMENSIONS_B=Y ... -DNUM_DIMENSIONS_D=Z` to create indices with X, Y, ..., Z dimensions.
-- set `-DORTHOTOPE_A=X` to create indices where dimension 1 of the overlay grid is dependent on its dimension 0.
-- set `-DWO_DEPENDENT_DIM=ON` to create indices where the overlay grids' dimensions are independent of each other.
-- set `-DW_CUBES=ON` to create indices where entries are not point-like but interval-like on the first 3 dimensions. I.e. cubes placed in >=3-dimensional space.
-- set `-DW_RECTANGLES=ON` to create indices where entries are not point-like but interval-like on the first 2 dimensions. I.e. rectangles placed in >=2-dimensional space.
-- set `-DW_INTERVALS=ON` to create indices where entries are not point-like but interval-like on the first dimension. I.e. intervals placed in n-dimensional space.
-- set `-DW_POINTS=ON` to create indices where entries are fully point-like.
+Add `SPS_WITH_PYTHON=ON` to create a shared object file that can be imported as a python module. If this parameter is set:
+- set `SPS_NUM_DIMENSIONS_A=X -DNUM_DIMENSIONS_B=Y ... -DNUM_DIMENSIONS_D=Z` to create indices with X, Y, ..., Z dimensions.
+- set `SPS_ORTHOTOPE_A=X` to create indices where dimension 1 of the overlay grid is dependent on its dimension 0.
+- set `SPS_STORAGE_A=RAM` to create indices where the overlay grids' dimensions are independent of each other.
+- set `SPS_STORAGE_A=DISK` to create indices where the overlay grids' dimensions are independent of each other.
+- set `SPS_W_CUBES=ON` to create indices where entries are not point-like but interval-like on the first 3 dimensions. I.e. cubes placed in >=3-dimensional space.
+- set `SPS_W_RECTANGLES=ON` to create indices where entries are not point-like but interval-like on the first 2 dimensions. I.e. rectangles placed in >=2-dimensional space.
+- set `SPS_W_INTERVALS=ON` to create indices where entries are not point-like but interval-like on the first dimension. I.e. intervals placed in n-dimensional space.
+- set `SPS_W_POINTS=ON` to create indices where entries are fully point-like.
 - set `-DDISK=ON` to create indices that load all data from a file on startup and store it back to the file on shutdown. Expect them to consume as much RAM as the filesize.
 - set `-DCACHED=ON` to create indices that use a cache to load data from and store data to a file dynamically as needed during runtime. Expect this storage type to be slightly slower than the other two options. For large datasets this storage is necessary, as it allows the RAM usage to be independent of the amount of data stored.
 - set `-DRAM=ON` to create indices that store all information in RAM and never interact with the filesystem.

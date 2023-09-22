@@ -5,9 +5,10 @@ build:
   tools:
     python: "miniconda3-4.7"
   jobs:
+    post_checkout:
+      - git submodule update --init --recursive
     post_create_environment:
-      - cmake . -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
-      - make docs
+      - cmake --build . --tarbet docs -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
       - tectonic tex/*.tex -o $READTHEDOCS_OUTPUT/pdf/
 
 conda:
