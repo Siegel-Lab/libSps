@@ -38,7 +38,7 @@ The beauty of this approach is that it takes constant O(1) time, no matter the n
 
 The easiest way to install libSps is via pip
 
-    pip install git++https://github.com/Siegel-Lab/libSps@stable-latest
+    pip install libSps
 
 Once installed, you can create an index and add points to it:
 

@@ -7,9 +7,7 @@ build:
   commands:
     - conda env create -f docs_conf/dev_env_linux.yml
     - conda init bash
-    - ~/.bashrc
-    - conda activate sm_dev
     - mkdir build
     - cd build
-    - cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
-    - make docs 
+    - bash -c "conda activate sm_dev; cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/; make docs"
+    # can also put sth to $READTHEDOCS_OUTPUT/pdf/
