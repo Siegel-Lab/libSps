@@ -6,8 +6,9 @@ build:
     python: "miniconda3-4.7"
   commands:
     - conda env create -f docs_conf/dev_env_linux.yml
-    - conda init bash
+    - source /home/docs/.asdf/installs/python/miniconda3-4.7.12/etc/profile.d/conda.sh
+    - conda activate sm_dev
     - mkdir build
     - cd build
-    - bash -c "conda activate sm_dev; cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/; make docs"
-    # can also put sth to $READTHEDOCS_OUTPUT/pdf/
+    - cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/ # can also put sth to $READTHEDOCS_OUTPUT/pdf/
+    - make docs 
