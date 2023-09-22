@@ -5,12 +5,12 @@ build:
   tools:
     python: "miniconda3-4.7"
   jobs:
-    post_create_environment:
-      - conda activate sm_dev
+    build:
       - mkdir build
       - cd build
-      - cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/ # can also put sth to $READTHEDOCS_OUTPUT/pdf/
-      - make docs 
+      - cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
+      - make docs
+      - tectonic tex/*.tex -o $READTHEDOCS_OUTPUT/pdf/
 
 conda:
   environment: docs_conf/dev_env_linux.yml
