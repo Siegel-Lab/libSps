@@ -240,9 +240,9 @@ endif(pybind11_FOUND)
 #################
 # Documentation #
 #################
-
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Doxygen QUIET)
-find_package(Sphinx QUIET)
+find_package(Sphinx)
 if (DOXYGEN_FOUND)
 
 if(Sphinx_FOUND)
@@ -267,7 +267,7 @@ if(Sphinx_FOUND)
     set(SPHINX_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
     
     # HTML output directory
-    set(SPHINX_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs")
+    set(SPHINX_HTML_DIR CACHE STRING "${CMAKE_CURRENT_BINARY_DIR}/docs")
 
     # pdftex output
     set(SPHINX_TEX_DIR "${CMAKE_CURRENT_BINARY_DIR}/tex")
@@ -279,17 +279,17 @@ if(Sphinx_FOUND)
         ${SPHINX_EXECUTABLE}
             -E -a -q -b html
             -d "${SPHINX_CACHE_DIR}"
-            -Dbreathe_projects.libSps="${CMAKE_CURRENT_BINARY_DIR}/doxygen/xml"
+            -Dbreathe_projects.sps="${CMAKE_CURRENT_BINARY_DIR}/doxygen/xml"
             "${BINARY_BUILD_DIR}"
             "${SPHINX_HTML_DIR}" &&
         ${SPHINX_EXECUTABLE}
             -E -a -q -b latex
             -d "${SPHINX_CACHE_DIR}"
-            -Dbreathe_projects.libSps="${CMAKE_CURRENT_BINARY_DIR}/doxygen/xml"
+            -Dbreathe_projects.sps="${CMAKE_CURRENT_BINARY_DIR}/doxygen/xml"
             "${BINARY_BUILD_DIR}"
             "${SPHINX_TEX_DIR}" &&
         tectonic "${SPHINX_TEX_DIR}/*.tex"
-        DEPENDS libSps docs-doxygen
+        DEPENDS sps docs-doxygen
         COMMENT "Building API documentation with Sphinx")
 
 else(Sphinx_FOUND)

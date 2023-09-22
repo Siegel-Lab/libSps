@@ -4,9 +4,11 @@ build:
   os: "ubuntu-22.04"
   tools:
     python: "mambaforge-22.9"
+  commands:
+    mkdir build
+    cd build
+    cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
+    make docs 
 
 conda:
   environment: docs_conf/dev_env_linux.yml
-
-sphinx:
-  configuration: docs_conf/conf.py
