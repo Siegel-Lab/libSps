@@ -6,7 +6,7 @@ build:
     python: "3.9"
 
 conda:
-  environment: docs_conf/dev_env_linux.yaml
+  environment: docs_conf/dev_env_linux.yml
 
 sphinx:
   configuration: docs_conf/conf.py
