@@ -62,4 +62,4 @@ html_static_path = ['_static']
 
 master_doc = "index"
 
-breathe_default_project = "libSps"
+breathe_default_project = "sps"

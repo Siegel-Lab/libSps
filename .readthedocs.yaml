@@ -7,7 +7,7 @@ build:
   commands:
     - conda env create -f docs_conf/dev_env_linux.yml
     - conda init bash
-    - bash
+    - ~/.bashrc
     - conda activate sm_dev
     - mkdir build
     - cd build

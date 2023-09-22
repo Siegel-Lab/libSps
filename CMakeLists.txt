@@ -271,7 +271,7 @@ if(Sphinx_FOUND)
     message("SPHINX_HTML_DIR=${SPHINX_HTML_DIR}")
 
     # pdftex output
-    set(SPHINX_TEX_DIR "${CMAKE_CURRENT_BINARY_DIR}/tex")
+    set(SPHINX_TEX_DIR "${CMAKE_CURRENT_BINARY_DIR}/tex" CACHE STRING "The TAX output directory of the documentation.")
 
     add_custom_target(docs
         rm -rf ${SPHINX_CACHE_DIR} &&
