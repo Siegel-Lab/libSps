@@ -3,9 +3,10 @@ version: "2"
 build:
   os: "ubuntu-22.04"
   tools:
-    python: "mambaforge-22.9"
+    python: "miniconda3-4.7"
   commands:
     - conda env create -f docs_conf/dev_env_linux.yml
+    - conda init bash
     - conda activate sm_dev
     - mkdir build
     - cd build
