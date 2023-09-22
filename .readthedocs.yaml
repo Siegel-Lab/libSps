@@ -5,7 +5,7 @@ build:
   tools:
     python: "miniconda3-4.7"
   jobs:
-    build:
+    post_create_environment:
       - mkdir build
       - cd build
       - cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
