@@ -106,7 +106,7 @@ Next you need to fill the index with points.
 At the moment a description for each point can be stored but not retrieved again (hence you can also just leave the description empty).
 The number of coordinates you provide for each point must match the dimensionality of the index you picked in step 1.
 
-    index.add_point((5, 7, 1, 20))
+    index.add_point((5, 7, 1, 20)) # point at position 5/7/1/20
 
 If your index contains orthotope dimensions (see Manual->Usage->Intervals) adding one datapoint requires its bottom-left-front-... point and its top-right-back-... point.
 Again the dimensionality of the given points must match the picked number of dimensions.
@@ -114,7 +114,7 @@ For dimensions that are not orthotope the coordinates of both given points must 
 
 For example in index_2 the third dimension is not part of the rectangle and hence equal (in this case: 1) for both points.
 
-    index_2.add_point((5, 7, 1), (10, 8, 1))
+    index_2.add_point((5, 7, 1), (10, 8, 1)) # rectangle from 5/7 to 10/8 at z=1
 
 Once all points have been added you call `generate` to create the sparse prefix sum matrix. 
 This may take a long time to compute.
@@ -124,25 +124,19 @@ This may take a long time to compute.
 Generate returns the id of the generated dataset. 
 You will need this id for querying the index later.
 
-If you want to store multiple datsets in the same index you can provide the generate function with the index of the first point that shall be part of the dataset and the index of one past the last point that shall be part of the dataset.
-Note that if your index is orthotope a single datapoint may take up multiple indices.
-You should hence use `len(index)` for determining the start and end indices of your datasets before and after adding points.
+If you want to store multiple datsets in the same index you can call generate multiple times times. Each time it will use the points that have been added since the last call to generate and return a new ID that identifies the dataset.
 
     index = make_sps_index()
 
     # create dataset a
-    start_a = len(index)
-    index.add_point((5, 7))
-    index.add_point((20, 1))
-    end_a = len(index)
-    dataset_a_id = index.generate(start_a, end_a)
+    index.add_point((5, 7), 1) # point at position 5/7 with value 1
+    index.add_point((20, 1), 5) # point at position 20/1 with value 5
+    dataset_a_id = index.generate()
 
     # create dataset b
-    start_b = len(index)
-    index.add_point((1, 1))
-    index.add_point((9, 3))
-    end_b = len(index)
-    dataset_b_id = index.generate(start_b, end_b)
+    index.add_point((1, 1), 2) # point at position 1/1 with value 2
+    index.add_point((9, 3), 7) # point at position 9/3 with value 7
+    dataset_b_id = index.generate()
 
 
 #### Querying indices

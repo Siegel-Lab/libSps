@@ -36,3 +36,4 @@ CmakeSettings.json
 *.pickle
 dist/*
 wheelhouse/*
+docs/*
