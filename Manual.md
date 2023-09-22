@@ -9,7 +9,7 @@ The bioconda installation is easier, but restricts you to using the default comp
 
 The easiest way to install libSps is via pip
 
-    pip install git++https://github.com/Siegel-Lab/libSps@stable-latest
+    pip install libSps
 
 ### Default Compilation Parameters
 

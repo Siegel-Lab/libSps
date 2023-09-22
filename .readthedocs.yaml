@@ -1,0 +1,13 @@
+version: "0.5.0"
+
+build:
+  os: "ubuntu-22.04"
+  tools:
+    python: "3.9"
+
+python:
+  install:
+    - requirements: docs_conf/requirements.txt
+
+sphinx:
+  configuration: docs_conf/conf.py

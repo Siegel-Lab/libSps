@@ -1,0 +1,14 @@
+cmake=3.19
+gcc=9.4.0
+gxx=9.4.0
+git=2.23.0
+make=4.3
+pybind11=2.8.0
+bokeh==2.3.2
+sphinx
+sphinx_rtd_theme
+expect
+doxygen
+sphinx-mdinclude
+breathe
+tectonic
