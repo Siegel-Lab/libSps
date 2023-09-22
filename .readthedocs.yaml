@@ -8,7 +8,8 @@ build:
     post_checkout:
       - git submodule update --init --recursive
     post_create_environment:
-      - cmake --build . --target docs -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
+      - cmake . -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
+      - make docs
       - tectonic tex/*.tex -o $READTHEDOCS_OUTPUT/pdf/
 
 conda:
