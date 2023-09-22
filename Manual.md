@@ -39,9 +39,11 @@ To compile libSps from the githug source use the following commands:
 Then you can choose to compile using pip or CMake.
 
 Pip:
+
     pip install -e . --no-deps -vvv
 
 CMake:
+
     mkdir build
     cd build
     cmake ..
@@ -51,19 +53,22 @@ Various parameters of libSps are set during compile time.
 We chose to use compile time parameters as the underlying memory layout is affected and knowing the layout ahead of time improves runtime performance.
 If you plan using libSps from C++ you can set all these options via template parameters (see "Creating indices" below).
 However, for python you have to define the parameters at compile time.
-With CMake, you can configure libSps in various ways:
 
+To set parameters in cmake use the following syntax while initializing the build directory:
 
+    cmake .. -D<parameter>=<value>
 
-- set `SPS_DIMENSIONS_A=X -SPS_DIMENSIONS_B=Y ... -SPS_DIMENSIONS_C=Z` to create indices with X, Y, ..., Z dimensions.
-- set `SPS_ORTHOTOPE_A=X, SPS_ORTHOTOPE_B=Y, SPS_ORTHOTOPE_C=Z` to create indices the first X, Y, ..., Z dimensions store hyperrectangular data instead of points.
-- set `SPS_STORAGE_A=0` to create indices where the overlay grids' dimensions are independent of each other.
-- set `SPS_STORAGE_A=1` to create indices where the overlay grids' dimensions are independent of each other.
-- set `SPS_STORAGE_A=2` to create indices where the overlay grids' dimensions are independent of each other.
+To set parameters for pip export the parameters as environment variables before building:
 
-If multiple contradicting options are turned on as e.g. `-DNUM_DIMENSIONS_A=7 -DNUM_DIMENSIONS_B=3` and `-DRAM=ON -DDISK=ON` indices with all valid combinations will be compiled and made available via the `make_sps_index()` factory function.
-You may want to consider turning options off to save compiletime: E.g. `-DCACHED=OFF -DNUM_DIMENSIONS_A=0`.
+    export SPS_<parameter>=<value>
 
+You can configure several parameters individually for several indices (the indices are distinguished by appending _A, _B, _C, ... to the parameter name).:
+
+- set `DIMENSIONS_A=X` to create an index with X dimensions.
+- set `ORTHOTOPE_A=X` to create indices the first X dimensions store hyperrectangles data instead of points. I.e. with DIMENSIONS_A=3 and ORTHOTOPE_A=2 rectangles are stored in 3D space.
+- set `STORAGE_A=X` to pick the storage system for the index, where 0=Ram, 1=Disk, and 2=Cached. Ram indices are stored in main memory only, disk indices load their data from the disk into ram on startup, and cached indices are stored on disk but keep a cache in main memory.
+
+If multiple indices are created, they are made available via the `make_sps_index()` factory function.
 
 
 ## Usage
@@ -75,7 +80,7 @@ The libSps workflow is seperated in two phases: Creating an index and querying t
 This section contains the documentation for using libSps from Python3.
 libSps should be imported as follows:
 
-    from libSps import make_sps_index
+    from sps import make_sps_index
 
 #### Creating indices
 
@@ -101,7 +106,7 @@ Next you need to fill the index with points.
 At the moment a description for each point can be stored but not retrieved again (hence you can also just leave the description empty).
 The number of coordinates you provide for each point must match the dimensionality of the index you picked in step 1.
 
-    index.add_point((5, 7, 1, 20), "description of point for index")
+    index.add_point((5, 7, 1, 20))
 
 If your index contains orthotope dimensions (see Manual->Usage->Intervals) adding one datapoint requires its bottom-left-front-... point and its top-right-back-... point.
 Again the dimensionality of the given points must match the picked number of dimensions.
@@ -109,7 +114,7 @@ For dimensions that are not orthotope the coordinates of both given points must 
 
 For example in index_2 the third dimension is not part of the rectangle and hence equal (in this case: 1) for both points.
 
-    index_2.add_point((5, 7, 1), (10, 8, 1), "description of point for index_2")
+    index_2.add_point((5, 7, 1), (10, 8, 1))
 
 Once all points have been added you call `generate` to create the sparse prefix sum matrix. 
 This may take a long time to compute.
@@ -158,6 +163,7 @@ This section contains the Documentation for using libSps from C++17.
 The C++ library is header-only, so you merely need to include the appropriate header files to get it working.
 
 @todo make a small example project that includes libSps
+
 @todo give example code for the vec generator and sorter
 
 #### Creating indices
@@ -171,7 +177,7 @@ Here is an example:
     #include "sps/default.h"
     #include "sps/index.h"
 
-    typename sps::Index<InMemTypeDef<2, true, true>> xIndex( );
+    typename sps::Index<InMemTypeDef<2, 0>> xIndex( );
 
 Functionally, this does the same as the python `make_sps_index` factory function. 
 
@@ -184,36 +190,6 @@ Querying indices works the same as for the python Module.
 #### Documentation
 
 Technical Documentation for the c++ library can be found [here](https://github.com/MarkusRainerSchmidt/libSps/docs/Cpp.html "C++ Documentation").
-
-### Dependent Dimensions
-
-libSps can distribute overlays in dimension 1 dependent on dimension 0.
-
-
-<img src="../_static/distributing-overlays.png" />
-
-*Making dimension 1 dependent on dimension 0 breaks the uniform grid. Instread, rows are placed differently in each column.*
-
-**What are overlays?:**
-Overlays are used to reduce storage requirements in sparse prefix sum datastructures. 
-To achieve this, they span in a grid across the entire dataset.
-For this to work best, points should be evenly distributed amongst the overlays.
-
-**What does making one dimension dependent on another do?:**
-Usually the overlay grid is created, so that overlays are larger in regions where points are sparse and smaller in dense regions.
-This is done independently for each dimension, i.e. by sorting all points by their position in this dimension and then creating a grid division after a fixed number of points.
-If dimension 1 is dependent on dimension 0, these divisions for dimension 1 are not created globally, but locally for each slice of dimension 0.
-This breaks the grid in this dimension, i.e. divisions will be placed at different heights for each slice. 
-
-
-**When is this usefull?:**
-This is usefull if your dataset looks evenly distributed, when looking at every dimension individually, but is strongly clustered when considering the first two dimensions together.
-In this case the usual approach of stretching the grid will fail to separate points evenly among all overlays and therefore produce an extremely bloated datastructure.
-
-One example for such data is Hi-C data, where most points (>90%) lie close to the 45-degree diagonal.
-Looking seperatately at dimesion 1 or 2, all points look like they are evenly distributed, while actually they are not.
-
-For more details you should read Shekelyan et al. [1] and Schmidt et al. [2] or have a look at the [documentation of Smoother](https://github.com/MarkusRainerSchmidt/smoother/docs/index.html "Go to the Smoother GitHub page.").
 
 ### Intervals
 
@@ -360,7 +336,6 @@ Index gives the start index of the interval in .overlays.
 ## Limitations
 
 - libSps does not work with negative coordinates.
-- dimension 1 is the only dimension that can be made dependent on another dimension and it can only be made dependent on dimension 0.
 
 ## Thanks
 

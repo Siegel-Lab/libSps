@@ -10,7 +10,7 @@ build:
     post_create_environment:
       - mkdir build
       - cmake . -B build -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
-      - cmake --build build --target html
+      - cmake --build build --target docs
       - tectonic tex/*.tex -o $READTHEDOCS_OUTPUT/pdf/
 
 conda:
