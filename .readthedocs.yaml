@@ -6,9 +6,7 @@ build:
     python: "miniconda3-4.7"
   jobs:
     post_create_environment:
-      - mkdir build
-      - cd build
-      - cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
+      - cmake . -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
       - make docs
       - tectonic tex/*.tex -o $READTHEDOCS_OUTPUT/pdf/
 
