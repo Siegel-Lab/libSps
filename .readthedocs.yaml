@@ -4,11 +4,13 @@ build:
   os: "ubuntu-22.04"
   tools:
     python: "miniconda3-4.7"
-  commands:
-    - conda env create -f docs_conf/dev_env_linux.yml
-    - . /home/docs/.asdf/installs/python/miniconda3-4.7.12/etc/profile.d/conda.sh
-    - conda activate sm_dev
-    - mkdir build
-    - cd build
-    - cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/ # can also put sth to $READTHEDOCS_OUTPUT/pdf/
-    - make docs 
+  jobs:
+    post_create_environment:
+      - conda activate sm_dev
+      - mkdir build
+      - cd build
+      - cmake .. -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/ # can also put sth to $READTHEDOCS_OUTPUT/pdf/
+      - make docs 
+
+conda:
+  environment: docs_conf/dev_env_linux.yml
