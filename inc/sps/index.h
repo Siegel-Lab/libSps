@@ -447,7 +447,8 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param xDatasetId The id of the dataset to query
      * @param vFromR The bottom left position of the query region.
      * @param vToR The top right position of the query region.
-     * @param vInterTypes The used intersection types, defaults to enclosed. Ignored if there are no orthotope dimensions. Accepts one argument per dimension.
+     * @param vInterTypes The used intersection types, defaults to enclosed. Ignored if there are no orthotope
+     * dimensions. Accepts one argument per dimension.
      * @param vNoPoints If true, no points only hyper-rectangles are counted. Accepts one argument per dimension.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
@@ -556,7 +557,8 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * @param xDatasetId The id of the dataset to query
      * @param vGrid The coordinates of the grid-lines for each dimensions.
-     * @param vInterTypes The used intersection types, defaults to enclosed. Ignored if there are no orthotope dimensions.
+     * @param vInterTypes The used intersection types, defaults to enclosed. Ignored if there are no orthotope
+     * dimensions.
      * @param vNoPoints If true, no points only hyper-rectangles are counted. Accepts one argument per dimension.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t the values of the grid cells.
@@ -812,8 +814,6 @@ template <typename type_defs> class Index : public AbstractIndex
      * Here f is a factor proportional to the number of boxes used in the data structure.
      * See estimate_num_elements for a detailed description.
      *
-     * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
-     * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @param uiVerbosity Degree of verbosity while creating the dataset, defaults to 1.
      * @return uint64_t The predicted best value for f
      */

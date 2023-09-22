@@ -267,7 +267,8 @@ if(Sphinx_FOUND)
     set(SPHINX_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
     
     # HTML output directory
-    set(SPHINX_HTML_DIR CACHE STRING "${CMAKE_CURRENT_BINARY_DIR}/docs")
+    set(SPHINX_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs" CACHE STRING "The HTML output directory of the documentation.")
+    message("SPHINX_HTML_DIR=${SPHINX_HTML_DIR}")
 
     # pdftex output
     set(SPHINX_TEX_DIR "${CMAKE_CURRENT_BINARY_DIR}/tex")

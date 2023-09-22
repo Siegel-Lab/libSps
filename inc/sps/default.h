@@ -347,8 +347,7 @@ template <typename val_t> struct DiskVecGenerator
 
     /**
      * @brief shrink the capacity of the given vector to fit it's content
-     *
-     * @param rVec the vector.
+     * disabled at the moment.
      */
     void try_shrink_to_fit( vec_t& /*rVec*/ )
     {
