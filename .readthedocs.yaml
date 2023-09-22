@@ -11,6 +11,7 @@ build:
       - mkdir build
       - cmake . -B build -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/
       - cmake --build build --target docs
+      - mkdir $READTHEDOCS_OUTPUT/pdf/
       - tectonic tex/*.tex -o $READTHEDOCS_OUTPUT/pdf/
 
 conda:

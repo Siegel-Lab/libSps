@@ -66,7 +66,7 @@ The count function takes constant O(1) time, no matter the size of the queried r
 
 ## Complete Documentation
 
-For more information and in-depth instructions, check out the [full manual](https://github.com/Siegel-Lab/libSps/blob/master/Manual.md "Full Manual").
+For more information and in-depth instructions, check out the [full manual](https://github.com/Siegel-Lab/libSps/blob/master/Manual.md "Full Manual") or the [technical documentation](https://readthedocs.com/libSps "Technical Documentation").
 
 ## Citing libSps
 

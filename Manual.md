@@ -224,7 +224,6 @@ The size of the vectors is not stored and needs to be inferred from the file siz
 
 | file | object | desc |
 |------|--------|------|
-| .desc | char | The description strings of all points. Each description is EOF terminated. Hence, points only need to store pointers to the start of their description. Strings are stored as individual characters (1 byte a piece). |
 | .points | **point** | The individual points that were added. Contains the points of all datasets. The order of points may not reflect the order they have been added in. |
 | .prefix_sums | **prefix_sum_array** | The prefix sum for one position in space. |
 | .coords | **sparse_coordinate** | The translation from real to sparse coordinates. Each object is of type td::coordinate_t. |
@@ -328,7 +327,7 @@ Index gives the start index of the interval in .overlays.
 | type | default size in bytes | desc |
 |-|-|-|
 | td::D | n/a | Number of dimensions. Note: Making one dimension orthotope always also adds a non orthotope dimension to the index. These extra dimensions are also included in td::D |
-| td::coordinate_t | 4 bytes (uint32_t) | An individual coordinate of a point. |
+| td::coordinate_t | 8 bytes (uint64_t) | An individual coordinate of a point. |
 | td::ORTHOTOPE_DIMS | n/a | Number of orthotope dimensions. Note: Making one dimension orthotope always also adds a non orthotope dimension to the index. These extra dimensions are also included in td::D |
 | td::val_t | 4 bytes (uint32_t) | A single prefix sum. |
 
