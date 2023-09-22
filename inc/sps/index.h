@@ -397,7 +397,7 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param xDatasetId The id of the dataset to query
      * @param vFrom The bottom left position of the query region.
      * @param vTo The top right position of the query region.
-     * @param xInterType The used intersection type, defaults to enclosed.
+     * @param vInterTypes The used intersection types, defaults to enclosed.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
     val_t countSizeLimited( class_key_t xDatasetId, pos_t vFrom, pos_t vTo, isect_arr_t vInterTypes,
@@ -447,8 +447,8 @@ template <typename type_defs> class Index : public AbstractIndex
      * @param xDatasetId The id of the dataset to query
      * @param vFromR The bottom left position of the query region.
      * @param vToR The top right position of the query region.
-     * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
-     * @param bNoPoints If true, no points only hyper-rectangles are counted.
+     * @param vInterTypes The used intersection types, defaults to enclosed. Ignored if there are no orthotope dimensions. Accepts one argument per dimension.
+     * @param vNoPoints If true, no points only hyper-rectangles are counted. Accepts one argument per dimension.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t The number of points in dataset_id between from_pos and to_pos.
      */
@@ -556,7 +556,8 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      * @param xDatasetId The id of the dataset to query
      * @param vGrid The coordinates of the grid-lines for each dimensions.
-     * @param xInterType The used intersection type, defaults to enclosed. Ignored if there are no orthotope dimensions.
+     * @param vInterTypes The used intersection types, defaults to enclosed. Ignored if there are no orthotope dimensions.
+     * @param vNoPoints If true, no points only hyper-rectangles are counted. Accepts one argument per dimension.
      * @param uiVerbosity Degree of verbosity while counting, defaults to 0.
      * @return val_t the values of the grid cells.
      */
@@ -783,8 +784,6 @@ template <typename type_defs> class Index : public AbstractIndex
      *
      *
      * @param vFac list of factors that are proportional to the number of boxes within the data structure
-     * @param uiNumOverlaySamples number of overlays to sample, default to 10000.
-     * @param uiNumPointSamples number of points to sample per overlay, default to 10000.
      * @return std:vector<std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t>>
      *         The predicted number of dataset structure elements for each factor
      */

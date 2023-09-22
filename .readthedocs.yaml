@@ -6,7 +6,7 @@ build:
     python: "miniconda3-4.7"
   commands:
     - conda env create -f docs_conf/dev_env_linux.yml
-    - conda init bash
+    - source ${CONDA_EXE}/../../etc/profile.d/conda.sh
     - conda activate sm_dev
     - mkdir build
     - cd build
