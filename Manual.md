@@ -18,9 +18,8 @@ By default libSps is compiled to handle the following types of data:
 | Parameter | Default |
 |-|-|
 | Dimensions | 2 and 3 dimensional |
-| Dependent dimension | off |
-| Intervals / Rectangles / Cubes | off |
-| Storage type | main memory and cached |
+| Intervals / Rectangles / Cubes | Intervals |
+| Storage type | RAM |
 
 Note that these parameters can be changed using the GitHub/CMake installation method.
 
