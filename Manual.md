@@ -148,7 +148,7 @@ The bottom-left-front-.... position is inclusive and the top-right-back-... posi
 
 #### Documentation
 
-Technical Documentation for the python module can be found [here](https://libsps.readthedocs.io/en/master/Python.html "Python Documentation").
+Technical Documentation for the python module can be found [here](https://libsps.readthedocs.io/en/stable/Python.html "Python Documentation").
 
 ### C++
 
@@ -182,7 +182,7 @@ Querying indices works the same as for the python Module.
 
 #### Documentation
 
-Technical Documentation for the c++ library can be found [here](https://libsps.readthedocs.io/en/master/Cpp.html "C++ Documentation").
+Technical Documentation for the c++ library can be found [here](https://libsps.readthedocs.io/en/stable/Cpp.html "C++ Documentation").
 
 ### Intervals
 
