@@ -11,7 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.command.install_headers import install_headers as install_headers_orig
 
 
-VERSION = "0.5.1"
+VERSION = "0.5.2"
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
@@ -156,7 +156,7 @@ setup(
     url='https://github.com/Siegel-Lab/libSps',
     description="O(1) region count queries using sparse prefix sums",
     long_description="""
-libSps is a versatile C++ library designed for efficiently analyzing n-dimensional data. Specifically, it implements constant-time hyperrectangle count queries using a sparse prefix sum index. libSps is a header-only library and is based on algorithms developed by Shekelyan et al. [1] and Schmidt et al. [2].
+libSps is a versatile C++ library designed for efficiently analyzing n-dimensional data. Specifically, it implements constant-time hyperrectangle count queries using a sparse prefix sum index. libSps is available as a header-only library for C++ as well as a Python 3 module. It is based on algorithms developed by Shekelyan et al. [1] and Schmidt et al. [2].
 
 The library is ideal for processing contact mapping data (https://en.wikipedia.org/wiki/Chromosome_conformation_capture), and is therefore used in Smoother (https://github.com/Siegel-Lab/BioSmoother).
 
