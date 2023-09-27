@@ -257,8 +257,7 @@ template <typename val_t> struct DiskVec : public std::vector<val_t>
   public:
     DiskVec( std::pair<std::string, bool>* fileInfo ) : std::vector<val_t>( ), fileInfo( fileInfo )
     {
-        auto ifstream =
-            std::ifstream( fileInfo->first, std::ios_base::in | std::ios_base::out | std::ios_base::binary );
+        auto ifstream = std::ifstream( fileInfo->first, std::ios_base::in | std::ios_base::binary );
 
         ifstream.unsetf( std::ios::skipws );
         std::streampos fileSize;
