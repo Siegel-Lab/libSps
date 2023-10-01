@@ -40,7 +40,7 @@ The easiest way to install libSps is via pip
 
     pip install libsps
 
-Once installed, you can create an index and add points to it:
+libSps runs under Windows, Linux, and MacOS. Once installed, you can create an index and add points to it:
 
     from libSps import make_sps_index
 

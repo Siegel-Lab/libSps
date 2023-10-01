@@ -48,6 +48,7 @@ CMake:
     cmake ..
     make
 
+libSps compiles under Windows, Linux, and MacOS.
 Various parameters of libSps are set during compile time.
 We chose to use compile time parameters as the underlying memory layout is affected and knowing the layout ahead of time improves runtime performance.
 If you plan using libSps from C++ you can set all these options via template parameters (see "Creating indices" below).
