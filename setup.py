@@ -156,17 +156,11 @@ setup(
     url='https://github.com/Siegel-Lab/libSps',
     description="O(1) region count queries using sparse prefix sums",
     long_description="""
-libSps is a versatile C++ library designed for efficiently analyzing n-dimensional data. Specifically, it implements constant-time hyperrectangle count queries using a sparse prefix sum index. libSps is available as a header-only library for C++ as well as a Python 3 module. It is based on algorithms developed by Shekelyan et al. [1] and Schmidt et al. [2].
+libSps is a versatile C++ library designed for efficiently analyzing n-dimensional data. Specifically, it implements constant-time hyperrectangle count queries using a sparse prefix sum index. libSps is available as a header-only library for C++ as well as a Python 3 module.
 
-The library is ideal for processing contact mapping data (https://en.wikipedia.org/wiki/Chromosome_conformation_capture), and is therefore used in Smoother (https://github.com/Siegel-Lab/BioSmoother).
+The library is ideal for processing interactome data (https://en.wikipedia.org/wiki/Chromosome_conformation_capture), and is therefore used in Smoother (https://github.com/Siegel-Lab/BioSmoother).
 
 libSps's documentation is available at https://libsps.readthedocs.io/.
-
-
-
-[1] Shekelyan, M., Dignös, A. & Gamper, J. Sparse prefix sums: Constant-time range sum queries over sparse multidimensional data cubes. Information Systems 82, 136–147 (2019).
-
-[2] Schmidt et al. @todo
     """,
     ext_modules=[CMakeExtension("sps", ["libsps", "stxxl"])],
     cmdclass={"build_ext": CMakeBuild},
