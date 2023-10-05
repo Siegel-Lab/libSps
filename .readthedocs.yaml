@@ -11,9 +11,7 @@ build:
       - git checkout -- docs_conf/dev_env_linux.yml # don't ask me why readthedocs changes this file...
     post_build:
       - mkdir build
-      - export SPS_VERSION=$(cat VERSION)
-      - echo $SPS_VERSION
-      - cmake . -B build -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/ -DLIB_SPS_VERSION=$SPS_VERSION
+      - cmake . -B build -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/ -DLIB_SPS_VERSION=$(cat VERSION)
       - cmake --build build --target docs
 
 conda:
