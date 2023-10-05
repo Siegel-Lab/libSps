@@ -28,12 +28,13 @@ try:
     release = sps.VERSION.split("-")[1 if sps.VERSION.startswith("D-") else 0]
 
     rst_epilog = """
-    .. |libSpsVersion| replace:: {versionnum}
+
+.. |libSpsVersion| replace:: {versionnum}
     """.format(
     versionnum = sps.VERSION,
     )
 except ImportError:
-    release = "???"
+    release = "0.0.0"
 
 # -- General configuration ---------------------------------------------------
 
