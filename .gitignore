@@ -37,3 +37,4 @@ CmakeSettings.json
 dist/*
 wheelhouse/*
 docs/*
+docs_conf/_build/*
