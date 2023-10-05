@@ -8,7 +8,7 @@ build:
     post_checkout:
       - git submodule update --init --recursive
     pre_build:
-      - echo -e '\ndocs_conf/dev_env_linux.yml\ndocs_conf/conf.py\n.gitignore' >> .gitignore # don't ask me why readthedocs changes these files...
+      - git checkout -- docs_conf/dev_env_linux.yml docs_conf/conf.py # don't ask me why readthedocs changes these files...
       - git diff
     post_build:
       - mkdir build
