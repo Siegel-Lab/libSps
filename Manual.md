@@ -346,3 +346,7 @@ For citing libSps, please use:
 [1] Shekelyan, M., Dignös, A. & Gamper, J. Sparse prefix sums: Constant-time range sum queries over sparse multidimensional data cubes. Information Systems 82, 136–147 (2019).
 
 [2] Schmidt et al. @todo
+
+## Version
+
+This Documentation was generated for libSps |libSpsVersion|.

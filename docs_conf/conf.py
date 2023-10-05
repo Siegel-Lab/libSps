@@ -15,6 +15,8 @@ import sys
 # sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
 
+import sps
+
 # -- Project information -----------------------------------------------------
 
 project = 'libSps'
@@ -22,8 +24,13 @@ copyright = '2022, Markus Schmidt'
 author = 'Markus Schmidt'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = sps.VERSION.split("-")[1 if sps.VERSION.startswith("D-") else 0]
 
+rst_epilog = """
+.. |libSpsVersion| replace:: {versionnum}
+""".format(
+versionnum = sps.VERSION,
+)
 
 # -- General configuration ---------------------------------------------------
 
