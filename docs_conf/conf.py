@@ -31,7 +31,7 @@ try:
 
 .. |libSpsVersion| replace:: {versionnum}
     """.format(
-    versionnum = sps.VERSION,
+    versionnum = sps.VERSION[2:] if sps.VERSION.startswith("D-") else sps.VERSION,
     )
 except ImportError:
     release = "0.0.0"
