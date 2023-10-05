@@ -8,10 +8,10 @@ build:
     post_checkout:
       - git submodule update --init --recursive
     pre_build:
-      - git checkout -- docs_conf/dev_env_linux.yml # don't ask me why readthedocs changes this file...
+      - echo 'docs_conf/dev_env_linux.yml' >> .gitignore # don't ask me why readthedocs changes this file...
+      - echo 'docs_conf/conf.py' >> .gitignore
       - git diff
     post_build:
-      - git diff
       - mkdir build
       - cmake . -B build -DSPHINX_HTML_DIR=$READTHEDOCS_OUTPUT/html/ -DLIB_SPS_VERSION=$(cat VERSION)
       - cmake --build build --target docs
