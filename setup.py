@@ -10,8 +10,8 @@ from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 from distutils.command.install_headers import install_headers as install_headers_orig
 
-
-VERSION = "1.0.0"
+with open("VERSION", "r") as f:
+    VERSION = f.read().strip()
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
