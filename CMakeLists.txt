@@ -73,6 +73,31 @@ endif()
 option(WITH_STXXL "Use stxxl to build the cached forms of the index" ${WITH_STXXL_DEFAULT})
 option(UNROLL_FOR_ALL_COMBINATIONS "Use aggressive template unrolling. Will increase compiletime and -ram usage massiveley, but decrease runtime." ${UNROLL_FOR_ALL_COMBINATIONS_DEFAULT})
 
+option(CROSS_COMPILE_AARCH64 "Cross compile for M1 chips" OFF)
+
+if(CROSS_COMPILE_AARCH64)
+    set(CMAKE_SYSTEM_NAME "Linux")
+    set(CMAKE_SYSTEM_PROCESSOR "aarch64")
+
+    # specify the cross compiler
+    set(CMAKE_C_COMPILER /somewhere/bin/aarch64-unknown-linux-gnueabi-gcc)
+    set(CMAKE_CXX_COMPILER /somewhere/bin/aarch64-unknown-linux-gnueabi-g++)
+
+    # where is the target environment
+    set(CMAKE_FIND_ROOT_PATH /somewhere/sysroot)
+    set(CMAKE_SYSROOT /somewhere/sysroot)
+
+    # search for programs in the build host directories
+    set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+    # for libraries and headers in the target directories
+    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+    # automatically use the cross-wrapper for pkg-config
+    set(PKG_CONFIG_EXECUTABLE "/somewhere/bin/aarch64-unknown-linux-gnueabi-pkg-config" CACHE FILEPATH "pkg-config executable")
+endif()
+
 #################
 # Configuration #
 #################
@@ -154,11 +179,13 @@ if(Python_FOUND)
 else(Python_FOUND)
     add_custom_target(sps_config_version)
     add_custom_command(TARGET sps_config_version PRE_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/generated/inc/sps/"
                      COMMAND ${CMAKE_COMMAND} -E copy 
                      "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/version.h.backup" 
                      "${CMAKE_BINARY_DIR}/generated/inc/sps/version.h")
     add_custom_target(sps_config_build_time)
     add_custom_command(TARGET sps_config_build_time PRE_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/generated/inc/sps/"
                      COMMAND ${CMAKE_COMMAND} -E copy 
                      "${CMAKE_CURRENT_SOURCE_DIR}/inc/sps/build_time.h.backup" 
                      "${CMAKE_BINARY_DIR}/generated/inc/sps/build_time.h")
