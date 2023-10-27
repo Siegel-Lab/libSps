@@ -59,44 +59,19 @@ set(STORAGE_N "0" CACHE STRING "The storage type of this index (one of Ram, Disk
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(WITH_STXXL_DEFAULT OFF)
     set(UNROLL_FOR_ALL_COMBINATIONS_DEFAULT ON)
-    elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     set(WITH_STXXL_DEFAULT ON)
     set(UNROLL_FOR_ALL_COMBINATIONS_DEFAULT ON)
-    elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(WITH_STXXL_DEFAULT OFF)
     set(UNROLL_FOR_ALL_COMBINATIONS_DEFAULT OFF)
-    else()
+else()
     set(WITH_STXXL_DEFAULT OFF)
     set(UNROLL_FOR_ALL_COMBINATIONS_DEFAULT OFF)
 endif()
 
 option(WITH_STXXL "Use stxxl to build the cached forms of the index" ${WITH_STXXL_DEFAULT})
 option(UNROLL_FOR_ALL_COMBINATIONS "Use aggressive template unrolling. Will increase compiletime and -ram usage massiveley, but decrease runtime." ${UNROLL_FOR_ALL_COMBINATIONS_DEFAULT})
-
-option(CROSS_COMPILE_AARCH64 "Cross compile for M1 chips" OFF)
-
-if(CROSS_COMPILE_AARCH64)
-    set(CMAKE_SYSTEM_NAME "Linux")
-    set(CMAKE_SYSTEM_PROCESSOR "aarch64")
-
-    # specify the cross compiler
-    set(CMAKE_C_COMPILER /somewhere/bin/aarch64-unknown-linux-gnueabi-gcc)
-    set(CMAKE_CXX_COMPILER /somewhere/bin/aarch64-unknown-linux-gnueabi-g++)
-
-    # where is the target environment
-    set(CMAKE_FIND_ROOT_PATH /somewhere/sysroot)
-    set(CMAKE_SYSROOT /somewhere/sysroot)
-
-    # search for programs in the build host directories
-    set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-    # for libraries and headers in the target directories
-    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
-
-    # automatically use the cross-wrapper for pkg-config
-    set(PKG_CONFIG_EXECUTABLE "/somewhere/bin/aarch64-unknown-linux-gnueabi-pkg-config" CACHE FILEPATH "pkg-config executable")
-endif()
 
 #################
 # Configuration #
@@ -207,7 +182,7 @@ if (pybind11_FOUND)
         target_compile_definitions( sps PRIVATE "WITH_STXXL" )
     endif(WITH_STXXL)
     if(UNROLL_FOR_ALL_COMBINATIONS)
-        target_compile_definitions( sps PRIVATE UNROLL_FOR_ALL_COMBINATIONS )
+        target_compile_definitions( sps PRIVATE "UNROLL_FOR_ALL_COMBINATIONS" )
     endif(UNROLL_FOR_ALL_COMBINATIONS)
 
     target_compile_definitions( sps PRIVATE WITH_PYTHON )
