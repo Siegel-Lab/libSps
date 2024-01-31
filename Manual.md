@@ -339,13 +339,13 @@ libSps uses several other projects. These are:
 ## Citing libSps
 
 For citing libSps, please use:
-@todo
 
+Markus R Schmidt, Anna Barcons-Simon, Claudia Rabuffo, T Nicolai Siegel, Smoother: on-the-fly processing of interactome data using prefix sums, Nucleic Acids Research, 2024; gkae008, https://doi.org/10.1093/nar/gkae008
 ## References
 
 [1] Shekelyan, M., Dignös, A. & Gamper, J. Sparse prefix sums: Constant-time range sum queries over sparse multidimensional data cubes. Information Systems 82, 136–147 (2019).
 
-[2] Schmidt et al. @todo
+[2] Markus R Schmidt, Anna Barcons-Simon, Claudia Rabuffo, T Nicolai Siegel, Smoother: on-the-fly processing of interactome data using prefix sums, Nucleic Acids Research, 2024; gkae008, https://doi.org/10.1093/nar/gkae008
 
 ## Version
 
