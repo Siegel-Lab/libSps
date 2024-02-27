@@ -372,6 +372,35 @@ template <typename type_defs, typename data_t, template <typename> typename data
         return std::make_unique<ParallelIterator<N, fSuccessor_t, args_successor_t...>>(
             xEntry, fSuccessors, vArgs... );
     }
+
+    template <size_t N>
+    bool isChanging( const Entry<N>& xEntry, const std::array<coordinate_t, N>& vPos ) const
+    {
+        data_t uiVal = get( vPos, xEntry );
+        for(size_t uiI = 0; uiI < N; uiI++)
+        {
+            if(vPos[uiI] > 0)
+            {
+                std::array<coordinate_t, N> vTmp = vPos;
+                vTmp[uiI] --;
+                if(get(vTmp, xEntry) == uiVal)
+                    return false;
+            }
+            else if(uiVal == data_t{})
+                return false;
+        }
+        return true;
+    }
+
+    template <size_t N>
+    size_t getNumChanging( const Entry<N>& xEntry ) const
+    {
+        size_t uiNumChanging = 0;
+        for(size_t uiI = 0; uiI < sizeOf(xEntry); uiI++)
+            if(isChanging(xEntry, posOf(uiI + xEntry.uiStartIndex, xEntry)))
+                ++uiNumChanging;
+        return uiNumChanging;
+    }
 };
 
 template <typename type_defs, typename data_t, template <typename> typename data_tmpl_vec_generator_t>

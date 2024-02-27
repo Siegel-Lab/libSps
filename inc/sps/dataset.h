@@ -1858,11 +1858,15 @@ template <typename type_defs> class Dataset
         return overlay_grid_t::sizeOf( xOverlays );
     }
 
+    coordinate_t getNumPrefixSums( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords ) const
+    {
+        return getNumInternalPrefixSums( rOverlays, rSparseCoords ) + getNumOverlayPrefixSums( rOverlays,
+                                                                                               rSparseCoords );
+    }
+
     coordinate_t getSize( const overlay_grid_t& rOverlays, const sparse_coord_t& rSparseCoords ) const
     {
-        uint64_t uiNumPSTotal = ( getNumInternalPrefixSums( rOverlays, rSparseCoords ) +
-                                  getNumOverlayPrefixSums( rOverlays, rSparseCoords ) ) *
-                                sizeof( sps_t );
+        uint64_t uiNumPSTotal = getNumPrefixSums( rOverlays, rSparseCoords ) * sizeof( sps_t );
 
         uint64_t uiNumLookupTotal =
             ( getNumInternalSparseCoords( rOverlays ) + getNumOverlaySparseCoords( rOverlays ) ) *
@@ -1873,6 +1877,15 @@ template <typename type_defs> class Dataset
         // full
         return uiNumPSTotal + uiNumLookupTotal + uiSizeOverlaysOverhead + sizeof( Dataset );
     }
+
+    coordinate_t getNumChangingEntries( const overlay_grid_t& rOverlays, const prefix_sum_grid_t& rPrefixSums ) const
+    {
+        coordinate_t uiRet = 0;
+        for( coordinate_t uiI = 0; uiI < rOverlays.sizeOf( xOverlays ); uiI++ )
+            uiRet += rOverlays.vData[ uiI + xOverlays.uiStartIndex ].getNumChangingEntries( rPrefixSums );
+        return uiRet;
+    }
+
 
     friend std::ostream& operator<<( std::ostream& os, const Dataset& rDataset )
     {

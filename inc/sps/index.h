@@ -719,6 +719,44 @@ template <typename type_defs> class Index : public AbstractIndex
     }
 
     /**
+     * @brief Count the number of prefix sums stored in the dataset with id dataset_id.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return coordinate_t number of prefix sums
+     */
+    coordinate_t getNumPrefixSums( class_key_t xDatasetId ) const
+    {
+        return vDataSets[ xDatasetId ].getNumPrefixSums( vOverlayGrid, vSparseCoord );
+    }
+
+    /**
+     * @brief Count the total number of prefix sums in the entire index.
+     *
+     * @param xDatasetId The id of the dataset to query
+     * @return coordinate_t total number of prefix sums
+     */
+    coordinate_t totalNumPrefixSums( ) const
+    {
+        coordinate_t uiRet = 0;
+        for(class_key_t xDatasetId = 0; xDatasetId < vDataSets.size(); xDatasetId++)
+            uiRet += getNumPrefixSums(xDatasetId);
+        return uiRet;
+    }
+
+    /**
+     * @brief Count the number of prefix sums that are different than their immediate predecessor entries in all dimensions.
+     *
+     * @return coordinate_t number of changing prefix sums
+     */
+    coordinate_t getNumChangingPrefixSums( ) const
+    {
+        coordinate_t uiRet = 0;
+        for(class_key_t xDatasetId = 0; xDatasetId < vDataSets.size(); xDatasetId++)
+            uiRet += vDataSets[ xDatasetId ].getNumChangingEntries( vOverlayGrid, vPrefixSumGrid );
+        return uiRet;
+    }
+
+    /**
      * @brief Count the number of internal sparse coordinates stored in the dataset with id dataset_id.
      *
      * @param xDatasetId The id of the dataset to query
@@ -967,6 +1005,8 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     .. automethod:: to_factor
     .. automethod:: get_num_internal_prefix_sums
     .. automethod:: get_num_overlay_prefix_sums
+    .. automethod:: get_num_prefix_sums
+    .. automethod:: get_num_changing_prefix_sums
     .. automethod:: get_num_internal_sparse_coords
     .. automethod:: get_num_overlay_sparse_coords
 )pbdoc" )
@@ -1417,6 +1457,31 @@ template <typename type_defs> std::string exportIndex( pybind11::module& m, std:
     :type dataset_id: int
 
     :return: number of overlay prefix sums.
+    :rtype: int
+)pbdoc" )
+        .def( "get_num_prefix_sums", &sps::Index<type_defs>::getNumPrefixSums,
+              pybind11::arg( "dataset_id" ),
+              R"pbdoc(
+    Count the number of prefix sums stored in the dataset with id dataset_id.
+
+    :param dataset_id: The id of the dataset to query
+    :type dataset_id: int
+
+    :return: number of prefix sums.
+    :rtype: int
+)pbdoc" )
+        .def( "total_num_prefix_sums", &sps::Index<type_defs>::totalNumPrefixSums,
+              R"pbdoc(
+    Count the number of prefix sums stored in the entire index.
+
+    :return: total number of prefix sums.
+    :rtype: int
+)pbdoc" )
+        .def( "get_num_changing_prefix_sums", &sps::Index<type_defs>::getNumChangingPrefixSums,
+              R"pbdoc(
+    Count the number of prefix sums that are different than their immediate predecessor entries in all dimensions.
+
+    :return: number of changing prefix sums.
     :rtype: int
 )pbdoc" )
         .def( "get_num_internal_sparse_coords", &sps::Index<type_defs>::getNumInternalSparseCoords,

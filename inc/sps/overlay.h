@@ -1451,6 +1451,21 @@ template <typename type_defs> class Overlay
         return vAllEntries;
     }
 
+    
+    size_t getNumChangingEntries( const prefix_sum_grid_t& rPrefixSums ) const
+    {
+       size_t uiRet = 0;
+
+        for(size_t uiD = 0; uiD < D; uiD++) 
+            if( rPrefixSums.sizeOf( vOverlayEntries[ uiD ] ) > 0 )
+                uiRet += rPrefixSums.template getNumChanging<D - 1>( vOverlayEntries[ uiD ] );
+
+        if( rPrefixSums.sizeOf( xInternalEntires ) > 0 )
+            uiRet += rPrefixSums.template getNumChanging<D>( xInternalEntires );
+
+       return uiRet;
+    }
+
     friend std::ostream& operator<<( std::ostream& os, const Overlay& rOverlay )
     {
         os << "<" << std::endl;

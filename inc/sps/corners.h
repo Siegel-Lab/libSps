@@ -16,7 +16,7 @@ namespace sps
 template <typename type_defs> class Corners
 {
     EXTRACT_TYPE_DEFS; // macro call
-
+  public:
     using corner_t = AlignedPower2<Corner<type_defs>>;
 
 #if 0
